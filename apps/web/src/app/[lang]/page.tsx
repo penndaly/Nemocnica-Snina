@@ -3,6 +3,7 @@ import { Phone, PhoneCall, ArrowRight, BedDouble, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { StructuredData } from '@/components/StructuredData';
 import { SEED } from '@/lib/seed';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -42,6 +43,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
   return (
     <SiteLayout activePath={`/${locale}`}>
+      <StructuredData locale={locale} page="home" />
       {/* ── Hero ──────────────────────────────────────────── */}
       <section
         style={{

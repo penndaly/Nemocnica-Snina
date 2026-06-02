@@ -182,6 +182,9 @@ export function AdminSidebar({ data }: AdminSidebarProps) {
           />
         ))}
 
+        <SectionLabel text="Pacienti" />
+        <NavItem href="/admin/onboarding" label="eDohody — Žiadosti" icon={<User size={16} />} count={0} />
+
         <SectionLabel text="Nástroje" />
         <NavItem href="/admin/tools" label="Export / Import" icon={<Wrench size={16} />} />
       </div>

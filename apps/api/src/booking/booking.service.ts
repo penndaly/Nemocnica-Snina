@@ -3,6 +3,8 @@ import { PrismaClient, BookingStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { BookingRulesService } from './booking-rules.service';
+import { HisQueueService } from '../his/his-queue.service';
+import { SmsService } from '../sms/sms.service';
 import { validateRodneCislo } from '../common/rc-validation';
 import type { Clinic } from '@ns/types';
 
@@ -16,6 +18,7 @@ interface CreateBookingDto {
   hasReferral: boolean;
   gdprConsent: boolean;
   referralConsent: boolean;
+  locale?: string;
 }
 
 const prisma = new PrismaClient();
@@ -23,7 +26,11 @@ const RC_SALT_ROUNDS = 12;
 
 @Injectable()
 export class BookingService {
-  constructor(private readonly rules: BookingRulesService) {}
+  constructor(
+    private readonly rules: BookingRulesService,
+    private readonly his: HisQueueService,
+    private readonly sms: SmsService,
+  ) {}
 
   async createBooking(clinic: Clinic, dto: CreateBookingDto) {
     // 1. Validate RC
@@ -57,7 +64,7 @@ export class BookingService {
     const cancelToken = randomUUID();
 
     // 7. Atomic: mark slot booked + create booking
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       await tx.availabilitySlot.update({
         where: { id: slot.id },
         data: { booked: true },
@@ -83,6 +90,31 @@ export class BookingService {
 
       return { id: booking.id, cancelToken };
     });
+
+    // Post-transaction: publish to HIS queue + send confirmation SMS (non-blocking)
+    void this.his.publish({
+      type: 'booking.confirmed',
+      idempotencyKey: result.id,
+      payload: {
+        clinicId: dto.clinicId,
+        patientName: dto.patientName,
+        date: dto.date,
+        time: dto.time,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    void this.sms.sendBookingConfirmation({
+      phone: dto.patientPhone,
+      bookingId: result.id,
+      clinicName: dto.clinicId,
+      date: dto.date,
+      time: dto.time,
+      cancelToken: result.cancelToken,
+      locale: dto.locale,
+    });
+
+    return result;
   }
 
   async cancelBooking(cancelToken: string) {
@@ -102,6 +134,15 @@ export class BookingService {
         data: { booked: false, bookingId: null },
       }),
     ]);
+
+    void this.his.publish({
+      type: 'booking.cancelled',
+      idempotencyKey: `cancel:${booking.id}`,
+      payload: { bookingId: booking.id },
+      timestamp: new Date().toISOString(),
+    });
+
+    void this.sms.sendBookingCancellation(booking.patientPhone, booking.id);
 
     return { cancelled: true };
   }

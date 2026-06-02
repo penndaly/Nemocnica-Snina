@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Phone, PhoneCall } from 'lucide-react';
 import { locales, type SupportedLocale } from '@/i18n/config';
+import { AccessibilityControls } from '@/components/AccessibilityControls';
 
 const HOSPITAL_PHONE = '+421 57 766 01 11';
 
@@ -66,7 +67,9 @@ export function UtilityBar() {
           </a>
         </div>
 
-        {/* Right: language switch */}
+        {/* Right: a11y controls + language switch */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+        <AccessibilityControls />
         <nav aria-label={t('a11y.langSwitch')} style={{ display: 'flex', gap: '.3rem' }}>
           {(['sk', 'en'] as SupportedLocale[]).map((l) => (
             <button
@@ -91,6 +94,7 @@ export function UtilityBar() {
             </button>
           ))}
         </nav>
+        </div>
       </div>
     </div>
   );

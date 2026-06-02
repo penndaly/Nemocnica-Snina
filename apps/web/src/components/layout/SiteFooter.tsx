@@ -20,10 +20,11 @@ export function SiteFooter() {
   ];
 
   const col3 = [
-    { href: `/${locale}/objednanie`, label: t('book') },
-    { href: `/${locale}/portal`, label: t('portal') },
-    { href: `/${locale}/sluzby`, label: t('nav.services') },
-    { href: `/${locale}/aktuality`, label: t('nav.news') },
+    { href: `/${locale}/objednanie`,  label: t('book') },
+    { href: `/${locale}/registracia`, label: locale === 'sk' ? 'Registrácia nového pacienta' : 'New patient registration' },
+    { href: `/${locale}/portal`,      label: t('portal') },
+    { href: `/${locale}/sluzby`,      label: t('nav.services') },
+    { href: `/${locale}/aktuality`,   label: t('nav.news') },
   ];
 
   const col4 = [
