@@ -1,0 +1,30 @@
+{
+  "name": "nemocnica-snina-cms",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Nemocnica Snina — Strapi 4 headless CMS",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "build": "strapi build",
+    "strapi": "strapi",
+    "seed": "ts-node --project ../../tsconfig.base.json seed/import-seed.ts"
+  },
+  "engines": {
+    "node": ">=18.0.0 <=22.x.x",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {
+    "@strapi/strapi": "4.25.0",
+    "@strapi/plugin-i18n": "4.25.0",
+    "@strapi/plugin-users-permissions": "4.25.0",
+    "@strapi/provider-upload-local": "4.25.0",
+    "better-sqlite3": "9.4.3",
+    "pg": "8.12.0",
+    "pg-hstore": "2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "departments",
+  "info": {
+    "singularName": "department",
+    "pluralName": "departments",
+    "displayName": "Department",
+    "description": "Inpatient wards — from DATA_MODEL.md"
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "name":      { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "short":     { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "slug":      { "type": "uid",     "targetField": "short" },
+    "lead":      { "type": "string",  "required": true },
+    "leadRole":  { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "deputy":    { "type": "string" },
+    "deputyRole":{ "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
+    "beds":      { "type": "integer", "required": true, "default": 0 },
+    "phone":     { "type": "string" },
+    "email":     { "type": "email" },
+    "delivery":  { "type": "string" },
+    "featured":  { "type": "boolean", "default": false },
+    "summary":   { "type": "text",    "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "desc":      { "type": "richtext","required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "facilities":{ "type": "json",    "pluginsOptions": { "i18n": { "localized": true } } },
+    "visiting":  { "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
+    "image":     { "type": "media",   "multiple": false, "allowedTypes": ["images"] },
+    "physicians": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::physician.physician",
+      "mappedBy": "department"
+    }
+  }
+}

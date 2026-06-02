@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -41,57 +42,80 @@ function loc(obj: Record<string, string>, locale: SupportedLocale): string {
   return obj[locale] ?? obj['sk'] ?? '';
 }
 
+interface PatientIdentity { sub: string; name: string; }
+
+const OIDC_ERROR_MESSAGES: Record<string, Record<SupportedLocale, string>> = {
+  oidc_access_denied:  { sk: 'Prihlásenie cez eID bolo zamietnuté.',       en: 'eID login was denied.',               cs: 'Přihlášení přes eID bylo zamítnuto.', pl: 'Logowanie przez eID zostało odrzucone.', hu: 'Az eID bejelentkezést elutasították.', uk: 'Вхід через eID було відхилено.' },
+  missing_code:        { sk: 'Neplatná odpoveď od prihlasovacieho servera.', en: 'Invalid response from login server.', cs: 'Neplatná odpověď od přihlašovacího serveru.', pl: 'Nieprawidłowa odpowiedź serwera logowania.', hu: 'Érvénytelen válasz a bejelentkezési szervertől.', uk: 'Недійсна відповідь від сервера входу.' },
+  missing_verifier:    { sk: 'Platnosť relácie vypršala. Skúste znovu.',    en: 'Session expired. Please try again.',   cs: 'Relace vypršela. Zkuste to znovu.', pl: 'Sesja wygasła. Spróbuj ponownie.', hu: 'A munkamenet lejárt. Próbálja újra.', uk: 'Сесія закінчилася. Спробуйте ще раз.' },
+  auth_failed:         { sk: 'Prihlásenie zlyhalo. Skúste znovu.',          en: 'Authentication failed. Please try again.', cs: 'Ověření selhalo. Zkuste to znovu.', pl: 'Uwierzytelnianie nie powiodło się. Spróbuj ponownie.', hu: 'A hitelesítés sikertelen. Próbálja újra.', uk: 'Помилка автентифікації. Спробуйте ще раз.' },
+};
+
 export default function PortalPage() {
   const locale = useLocale() as SupportedLocale;
   const t = useTranslations();
+  const searchParams = useSearchParams();
 
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [idInput, setIdInput] = useState('');
-  const [pinInput, setPinInput] = useState('');
-  const [loginError, setLoginError] = useState('');
+  const [identity, setIdentity] = useState<PatientIdentity | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('overview');
 
-  function handleLogin(e: FormEvent) {
-    e.preventDefault();
-    if (!idInput.trim() || !pinInput.trim()) { setLoginError(locale === 'sk' ? 'Vyplňte všetky polia.' : 'Fill in all fields.'); return; }
-    // Demo: accept any credentials — real auth uses OIDC/eID + 2FA
-    setLoggedIn(true);
+  const oidcError = searchParams.get('error');
+  const oidcErrorMsg = oidcError
+    ? (OIDC_ERROR_MESSAGES[oidcError]?.[locale] ?? OIDC_ERROR_MESSAGES[oidcError]?.['sk'])
+    : null;
+
+  // On mount: check if we already have a valid session cookie
+  useEffect(() => {
+    fetch('/api/portal/me')
+      .then((r) => r.ok ? r.json() as Promise<PatientIdentity> : null)
+      .then((id) => { setIdentity(id); setSessionLoading(false); })
+      .catch(() => setSessionLoading(false));
+  }, []);
+
+  if (sessionLoading) {
+    return (
+      <SiteLayout activePath={`/${locale}/portal`}>
+        <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} role="status" aria-live="polite">
+          <span style={{ color: 'var(--ink-2)' }}>
+            {locale === 'sk' ? 'Načítavam…' : 'Loading…'}
+          </span>
+        </div>
+      </SiteLayout>
+    );
   }
 
-  if (!loggedIn) {
+  if (!identity) {
     return (
       <SiteLayout activePath={`/${locale}/portal`}>
         <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div style={{ width: '100%', maxWidth: 400 }}>
-            <div
-              className="card"
-              style={{ overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}
-            >
+          <div style={{ width: '100%', maxWidth: 420 }}>
+            <div className="card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
               <div style={{ background: 'var(--blue-900)', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.6rem', color: '#d6e2f0' }}>
-                <Lock size={28} />
-                <h2 style={{ color: '#fff', margin: 0, fontFamily: 'Newsreader, serif' }}>{t('portal.title')}</h2>
+                <Lock size={28} aria-hidden="true" />
+                <h1 style={{ color: '#fff', margin: 0, fontFamily: 'Newsreader, serif', fontSize: '1.4rem' }}>{t('portal.title')}</h1>
                 <p style={{ margin: 0, fontSize: '.85rem', opacity: .6 }}>Nemocnica Snina</p>
               </div>
-              <form onSubmit={handleLogin} className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <label className="field">
-                  <span>{locale === 'sk' ? 'Rodné číslo / ID pacienta' : 'Birth number / Patient ID'}</span>
-                  <input type="text" value={idInput} onChange={(e) => setIdInput(e.target.value)} required placeholder="YYMMDD/CCCC" />
-                </label>
-                <label className="field">
-                  <span>{locale === 'sk' ? 'PIN / SMS kód' : 'PIN / SMS code'}</span>
-                  <input type="password" value={pinInput} onChange={(e) => setPinInput(e.target.value)} required inputMode="numeric" />
-                </label>
-                {loginError && <p role="alert" style={{ color: 'var(--red)', fontSize: '.88rem' }}>{loginError}</p>}
-                <button type="submit" className="btn btn-primary btn-block btn-lg">
-                  <Lock size={16} />
-                  {t('login')}
-                </button>
-                <p style={{ fontSize: '.78rem', color: 'var(--ink-3)', textAlign: 'center' }}>
+              <div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {oidcErrorMsg && (
+                  <p role="alert" style={{ background: 'var(--red-50)', border: '1px solid var(--red)', borderRadius: 'var(--radius-sm)', padding: '.6rem .8rem', color: 'var(--red)', fontSize: '.88rem', margin: 0 }}>
+                    {oidcErrorMsg}
+                  </p>
+                )}
+                <a
+                  href={`/${locale}/portal/login`}
+                  className="btn btn-primary btn-block btn-lg"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}
+                >
+                  <ShieldCheck size={18} aria-hidden="true" />
+                  {locale === 'sk' ? 'Prihlásiť sa cez eID (Slovensko.sk)' : t('login')}
+                </a>
+                <p style={{ fontSize: '.78rem', color: 'var(--ink-3)', textAlign: 'center', margin: 0 }}>
                   {locale === 'sk'
-                    ? 'Produkcia: prihlásenie cez eID + 2FA. Demo akceptuje ľubovoľné hodnoty.'
-                    : 'Production: login via eID + 2FA. Demo accepts any values.'}
+                    ? 'Prihlasovanie prebieha cez národnú identitu (eID). Vaše údaje nie sú uložené na tomto serveri.'
+                    : 'Login is handled by the national identity provider (eID). Your credentials are never stored on this server.'}
                 </p>
-              </form>
+              </div>
             </div>
           </div>
         </div>
@@ -122,24 +146,26 @@ export default function PortalPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div className="avatar avatar-lg">JM</div>
+              <div className="avatar avatar-lg">
+                {identity.name ? identity.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+              </div>
               <div>
-                <h2 style={{ margin: 0 }}>{DEMO_PATIENT.name}</h2>
+                <h2 style={{ margin: 0 }}>{identity.name || (locale === 'sk' ? 'Pacient' : 'Patient')}</h2>
                 <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.3rem' }}>
-                  <span className="chip">{DEMO_PATIENT.insurance}</span>
-                  <span className="chip">{locale === 'sk' ? 'Skupina' : 'Blood'}: {DEMO_PATIENT.blood}</span>
-                  <span className="chip">{locale === 'sk' ? 'Nar.' : 'DOB'}: {DEMO_PATIENT.dob}</span>
+                  <span className="chip" style={{ fontSize: '.78rem', color: 'var(--green)' }}>
+                    {locale === 'sk' ? 'Overený cez eID' : 'Verified via eID'}
+                  </span>
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setLoggedIn(false)}
+            <a
+              href={`/${locale}/portal/logout`}
               className="btn btn-ghost btn-sm"
               style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}
             >
               <LogOut size={14} />
               {t('portal.logout')}
-            </button>
+            </a>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem', alignItems: 'start' }}>

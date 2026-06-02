@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "disclosures",
+  "info": {
+    "singularName": "disclosure",
+    "pluralName": "disclosures",
+    "displayName": "Public Disclosure"
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "documentId": { "type": "string",  "required": true, "description": "e.g. ZML-2024-051" },
+    "type":        { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "partner":     { "type": "string",  "required": true },
+    "value":       { "type": "string",  "required": true },
+    "date":        { "type": "date",    "required": true },
+    "pdf":         { "type": "media",   "multiple": false, "allowedTypes": ["files"], "required": false }
+  }
+}

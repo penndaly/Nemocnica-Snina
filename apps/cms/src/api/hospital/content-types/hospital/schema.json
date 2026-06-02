@@ -1,0 +1,26 @@
+{
+  "kind": "singleType",
+  "collectionName": "hospital",
+  "info": {
+    "singularName": "hospital",
+    "pluralName": "hospitals",
+    "displayName": "Hospital Info",
+    "description": "Singleton — contact details, address, emergency numbers. From DATA_MODEL.md: hospital singleton."
+  },
+  "options": { "draftAndPublish": false },
+  "pluginsOptions": {},
+  "attributes": {
+    "name":       { "type": "string",  "required": true },
+    "tagline":    { "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
+    "address":    { "type": "string",  "required": true },
+    "ico":        { "type": "string" },
+    "dic":        { "type": "string" },
+    "phone":      { "type": "string",  "required": true },
+    "reception":  { "type": "string" },
+    "pharmacy":   { "type": "string" },
+    "emergency":  { "type": "string",  "default": "112" },
+    "email":      { "type": "email" },
+    "region":     { "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
+    "mapEmbedUrl":{ "type": "string",  "description": "Google Maps embed URL for /kontakt" }
+  }
+}

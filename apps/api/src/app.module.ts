@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { BookingModule } from './booking/booking.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
@@ -9,10 +10,13 @@ import { AuditModule } from './audit/audit.module';
 import { HisModule } from './his/his.module';
 import { SmsModule } from './sms/sms.module';
 import { ApsModule } from './aps/aps.module';
+import { GdprModule } from './gdpr/gdpr.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
     AuthModule,
@@ -22,6 +26,8 @@ import { ApsModule } from './aps/aps.module';
     HisModule,
     SmsModule,
     ApsModule,
+    GdprModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

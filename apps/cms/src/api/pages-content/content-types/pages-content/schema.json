@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "pages_content",
+  "info": {
+    "singularName": "pages-content",
+    "pluralName": "pages-contents",
+    "displayName": "Page Content",
+    "description": "Singleton — editable copy for home hero, about section, APS note, and footer GDPR/accessibility text."
+  },
+  "options": { "draftAndPublish": false },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "heroBadge":      { "type": "string",   "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "heroTitle":      { "type": "string",   "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "heroSubtitle":   { "type": "text",     "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "aboutTitle":     { "type": "string",   "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "aboutBody":      { "type": "richtext", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "apsTitle":       { "type": "string",   "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "apsNote":        { "type": "text",     "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "gdprBody":       { "type": "richtext", "required": true, "pluginsOptions": { "i18n": { "localized": true } },
+                        "description": "GDPR statement shown at /kontakt#gdpr" },
+    "accessibilityBody": { "type": "richtext", "required": true, "pluginsOptions": { "i18n": { "localized": true } },
+                           "description": "Accessibility statement shown at /kontakt#pristupnost" }
+  }
+}

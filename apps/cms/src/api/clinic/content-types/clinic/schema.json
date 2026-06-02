@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "clinics",
+  "info": {
+    "singularName": "clinic",
+    "pluralName": "clinics",
+    "displayName": "Clinic (Ambulancia)",
+    "description": "Outpatient clinics — from DATA_MODEL.md. bookingDays Mon=1…Sun=0."
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "name":         { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "slug":         { "type": "uid",     "targetField": "name" },
+    "specialty":    { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "doctor":       { "type": "string",  "required": true },
+    "nurse":        { "type": "string" },
+    "location":     { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "phone":        { "type": "string" },
+    "status":       {
+      "type": "enumeration",
+      "enum": ["open", "new", "alert", "closed"],
+      "required": true,
+      "default": "open"
+    },
+    "bookable":     { "type": "boolean", "required": true, "default": false },
+    "referral":     { "type": "boolean", "required": true, "default": false },
+    "acceptingNew": { "type": "boolean", "default": false },
+    "bookingDays":  { "type": "json",    "description": "Array of weekday ints Mon=1…Sun=0, e.g. [1,2,3,4,5]" },
+    "bookingWindow":{ "type": "string",  "description": "e.g. 13:00–14:00" },
+    "schedule":     { "type": "json",    "pluginsOptions": { "i18n": { "localized": true } } },
+    "bookingRule":  { "type": "text",    "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "fee":          { "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
+    "opened":       { "type": "date" },
+    "physicians": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::physician.physician",
+      "mappedBy": "clinic"
+    }
+  }
+}

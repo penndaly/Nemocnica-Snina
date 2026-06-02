@@ -41,6 +41,7 @@ model Booking {
   status           BookingStatus  @default(PENDING)
   cancelToken      String         @unique
   smsVerified      Boolean        @default(false)
+  reminderSent     Boolean        @default(false)
   slot             AvailabilitySlot?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt

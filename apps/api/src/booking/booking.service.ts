@@ -53,27 +53,33 @@ export class BookingService {
     //    This is the line that must fire even if the client forges the request body.
     this.rules.validate(clinic, { clinicId: dto.clinicId, date: dto.date, time: dto.time });
 
-    // 5. Slot lock (prevent double-booking)
-    const slot = await this.prisma.availabilitySlot.findFirst({
-      where: { clinicId: dto.clinicId, date: dto.date, time: dto.time, booked: false },
-    });
-    if (!slot) {
-      throw new BadRequestException('The requested slot is no longer available');
-    }
-
-    // 6. Hash RC — plaintext never persisted
+    // 5. Slot lock — atomic claim prevents double-booking under concurrent requests.
+    //    A single UPDATE … WHERE booked = false RETURNING id is serializable at the
+    //    row level without a separate SELECT; two concurrent requests for the same
+    //    slot will race and only one will get a non-empty result set.
     const rcHash = await bcrypt.hash(dto.patientRc, RC_SALT_ROUNDS);
     const cancelToken = randomUUID();
+    const bookingId = randomUUID();
 
-    // 7. Atomic: mark slot booked + persist booking
     const result = await this.prisma.$transaction(async (tx) => {
-      await tx.availabilitySlot.update({
-        where: { id: slot.id },
-        data: { booked: true },
-      });
+      // Column names are quoted camelCase — Prisma writes them as-is (no @map on fields).
+      const claimed = await tx.$queryRaw<Array<{ id: string }>>`
+        UPDATE availability_slots
+        SET    "booked" = true
+        WHERE  "clinicId" = ${dto.clinicId}
+          AND  "date"     = ${dto.date}
+          AND  "time"     = ${dto.time}
+          AND  "booked"   = false
+        RETURNING id
+      `;
+      if (claimed.length === 0) {
+        throw new BadRequestException('The requested slot is no longer available');
+      }
+      const slotId = claimed[0]!.id;
+
       const booking = await tx.booking.create({
         data: {
-          id: randomUUID(),
+          id: bookingId,
           clinicId: dto.clinicId,
           patientName: dto.patientName,
           patientPhone: dto.patientPhone,
@@ -85,7 +91,7 @@ export class BookingService {
           referralConsent: dto.referralConsent,
           status: BookingStatus.PENDING,
           cancelToken,
-          slot: { connect: { id: slot.id } },
+          slot: { connect: { id: slotId } },
         },
       });
       return { id: booking.id, cancelToken };
