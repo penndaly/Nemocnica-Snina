@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CmsModule } from './cms/cms.module';
 import { PortalModule } from './portal/portal.module';
+import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { BookingModule } from './booking/booking.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
@@ -32,6 +33,7 @@ import { PaymentsModule } from './payments/payments.module';
     GdprModule,
     PaymentsModule,
     PortalModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

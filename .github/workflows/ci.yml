@@ -110,6 +110,43 @@ jobs:
         env:
           DATABASE_URL: ${{ env.DATABASE_URL_APP }}
 
+  # ── Edge-case tests (need real DB; concurrent slot + past date + mismatch) ──
+  test-edge:
+    name: Test (edge cases — real DB)
+    runs-on: ubuntu-latest
+    needs: [test]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nstest
+          POSTGRES_PASSWORD: nstest
+          POSTGRES_DB: nemocnica_test
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports: ["5432:5432"]
+    env:
+      DATABASE_URL: postgresql://nstest:nstest@localhost:5432/nemocnica_test
+      JWT_SECRET: test_secret_for_ci_only
+      NS_APP_PASSWORD: ns_app_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter=@ns/api db:push
+      - name: Apply audit log immutability
+        run: |
+          PGPASSWORD=nstest psql -h localhost -U nstest -d nemocnica_test \
+            -v NS_APP_PASSWORD="$NS_APP_PASSWORD" \
+            -f infra/postgres/audit-immutability.sql
+      - name: Edge-case tests (concurrent slot, past date, mismatch)
+        run: pnpm --filter=@ns/api test -- --testPathPattern="booking-edge-cases"
+
   # ── Build ─────────────────────────────────────────────────
   build:
     name: Build
@@ -128,3 +165,125 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: https://api.nemocnicasnina.sk
           NEXT_PUBLIC_CMS_URL: https://cms.nemocnicasnina.sk
+
+  # ── Integration smoke test against staging (L2 gate) ──────
+  # Runs only on main branch after a successful build.
+  # Requires STAGING_* secrets to be set in the repo.
+  # All integrations must pass (no mocks) before the E2E suite runs.
+  smoke-staging:
+    name: Integration smoke — staging
+    runs-on: ubuntu-latest
+    needs: [build, test, test-edge]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    env:
+      APP_BASE_URL:      ${{ secrets.STAGING_APP_URL }}
+      API_BASE_URL:      ${{ secrets.STAGING_API_URL }}
+      STRAPI_URL:        ${{ secrets.STAGING_STRAPI_URL }}
+      STRAPI_API_TOKEN:  ${{ secrets.STAGING_STRAPI_TOKEN }}
+      SMOKE_ADMIN_JWT:   ${{ secrets.STAGING_ADMIN_JWT }}
+      SMOKE_SMS_PHONE:   ${{ secrets.STAGING_SMOKE_PHONE }}
+      OIDC_ISSUER_URL:   ${{ secrets.STAGING_OIDC_ISSUER }}
+      GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Write GCP credentials
+        run: |
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/gcp-sa.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-sa.json" >> $GITHUB_ENV
+      - name: Run integration smoke tests
+        run: npx ts-node --project tsconfig.base.json scripts/smoke-test.ts
+
+  # ── E2E tests (Playwright, SPEC 1–9) ──────────────────────
+  # Runs after smoke-staging on main; also runs on PRs against a local stack.
+  e2e:
+    name: E2E — sk / en / mobile + axe
+    runs-on: ubuntu-latest
+    needs: [test, test-edge]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nstest
+          POSTGRES_PASSWORD: nstest
+          POSTGRES_DB: nemocnica_test
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports: ["5432:5432"]
+      redis:
+        image: redis:7-alpine
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-retries 5
+        ports: ["6379:6379"]
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        options: --health-cmd "rabbitmq-diagnostics ping" --health-interval 15s --health-retries 5
+        ports: ["5672:5672"]
+    env:
+      DATABASE_URL:     postgresql://nstest:nstest@localhost:5432/nemocnica_test
+      REDIS_URL:        redis://localhost:6379
+      RABBITMQ_URL:     amqp://guest:guest@localhost:5672
+      JWT_SECRET:       test_secret_for_ci_only
+      SMS_PROVIDER:     console
+      HIS_MOCK_ENABLED: "true"
+      OIDC_MOCK_ENABLED: "true"
+      OIDC_MOCK_PORT:   "4010"
+      APP_BASE_URL:     http://localhost:3000
+      API_BASE_URL:     http://localhost:3001
+      STRAPI_URL:       http://localhost:1337
+      STRAPI_API_TOKEN: dev-token
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NS_APP_PASSWORD: ns_app_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply DB schema + audit hardening
+        run: |
+          pnpm --filter=@ns/api db:push
+          PGPASSWORD=nstest psql -h localhost -U nstest -d nemocnica_test \
+            -v NS_APP_PASSWORD="$NS_APP_PASSWORD" \
+            -f infra/postgres/audit-immutability.sql
+
+      - name: Install Playwright browsers
+        run: pnpm --filter=@ns/web exec playwright install --with-deps chromium
+
+      - name: Start API server
+        run: pnpm --filter=@ns/api start &
+        env:
+          PORT: 3001
+
+      - name: Start web server
+        run: pnpm --filter=@ns/web start &
+        env:
+          PORT: 3000
+
+      - name: Wait for servers
+        run: |
+          npx wait-on http://localhost:3000/sk http://localhost:3001/api/health --timeout 60000
+
+      - name: Run E2E tests (sk + en + mobile)
+        run: pnpm --filter=@ns/web test:e2e
+        env:
+          CI: "true"
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

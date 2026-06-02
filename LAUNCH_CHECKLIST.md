@@ -87,3 +87,50 @@
 - [ ] Google Cloud Translation glossary configured (brand terms, clinic names, ICD codes)
 - [ ] Performance: Lighthouse ≥ 90 on Performance/SEO/Best-Practices/Accessibility
 - [ ] Press release / announcement news item published in CMS
+
+---
+
+## GDPR — DSAR/Erasure (L8 items)
+
+- [ ] DSAR access (Art. 15) tested end-to-end on production build: export runs, JSON downloaded, audit entry created
+- [ ] DSAR erasure (Art. 17) tested end-to-end: anonymization runs, retained-with-reason documented, audit entry created
+- [ ] RETENTION.md linked from /kontakt#gdpr
+- [ ] Cookie notice live on /kontakt#cookies (strictly-necessary only, no consent banner)
+- [ ] GDPR text on /kontakt#gdpr DPO-approved
+- [ ] Accessibility statement on /kontakt#pristupnost updated with L3 axe audit date and result
+- [ ] Staff editing runbook (docs/STAFF_EDITING_RUNBOOK.md) delivered to hospital communications
+
+---
+
+## Appendix — DSAR Operator Procedure
+
+**Who can run this:** Admin-role staff only. MFA is required. Every action is written to the immutable audit log.
+
+**Step-by-step — Right of Access (Art. 15):**
+
+1. Log in to `/admin` with your admin account + TOTP code.
+2. Navigate to **GDPR** in the admin sidebar.
+3. Enter the subject's **rodné číslo** (birth number) in the RC field. The field is masked — use Show/Hide to verify the entry.
+4. Click **Exportovať údaje** (Export data).
+5. The system searches all booking and onboarding records matching the RC hash. This may take 10–30 seconds.
+6. When the export is ready, click **Stiahnuť JSON** (Download JSON). Save the file.
+7. The JSON contains: all bookings, onboarding applications, and audit entries referencing those records.
+8. **Note in the response:** "Clinical records (diagnoses, medications, lab results) are held by the Hospital Information System (HIS) and are outside the scope of this export." Inform the subject to contact the HIS data controller for clinical records.
+9. Send the JSON to the subject (encrypted if by email).
+
+**Step-by-step — Right to Erasure (Art. 17):**
+
+1. Verify the subject's identity and confirm you have a lawful basis for erasure (no legitimate overriding interest, no legal retention obligation applies to THIS subject's records).
+2. Log in to `/admin` → **GDPR**.
+3. Enter the subject's RC.
+4. Read the **Čl. 17 — Právo na výmaz** section carefully. Check the confirmation checkbox: "I confirm I have verified the subject's identity and have a legal basis for erasure."
+5. Click **Anonymizovať údaje** (Anonymize data).
+6. The system anonymizes: `patientName → [ERASED]`, `patientPhone → 000000000`, `patientRcHash → [ERASED]` in all matching bookings and onboarding applications.
+7. **Records that are retained (not erased) with reason:**
+   - Audit log entries (5-year retention, Decree 179/2020 — immutable, cannot be deleted)
+   - Financial records in bookings (5-year retention, Act 431/2002)
+8. An audit log entry is created recording: operator email, timestamp, rows anonymized, rows retained with reason, and the erasure confirmation flag.
+9. Download the erasure result JSON as evidence.
+10. Notify the subject in writing that erasure was completed, listing what was erased and what was retained with legal basis.
+
+**Contact for escalation:** sekretariat@nemocnicasnina.sk / IT department

@@ -88,30 +88,53 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
                 <p style={{ margin: 0, fontSize: '.9rem' }}>{localizeField(aps.note, locale)}</p>
               </div>
 
+              {/* Cookie notice — strictly-necessary cookies only, no consent banner needed */}
+              <section id="cookies" tabIndex={-1} aria-labelledby="cookies-heading" style={{ marginBottom: '2rem' }}>
+                <h2 id="cookies-heading" style={{ marginBottom: '.75rem' }}>
+                  {locale === 'sk' ? 'Informácia o súboroch cookies' : 'Cookie notice'}
+                </h2>
+                <div className="card card-pad" style={{ fontSize: '.88rem', color: 'var(--ink-2)' }}>
+                  {locale === 'sk'
+                    ? 'Táto webová stránka používa výlučne nevyhnutné súbory cookies potrebné na fungovanie stránky (prihlásenie, zabezpečenie relácie). Nepoužívame analytické, reklamné ani sledovacie cookies. Súhlas so spracúvaním cookies nie je potrebný — funkčné cookies sú na základe oprávneného záujmu prevádzkovateľa v súlade s čl. 6(1)(f) GDPR.'
+                    : 'This website uses strictly necessary cookies only (login session, security). We do not use analytics, advertising, or tracking cookies. No cookie consent is required — functional cookies are used on the basis of legitimate interest under Art. 6(1)(f) GDPR.'}
+                </div>
+              </section>
+
               {/* GDPR section */}
               <section id="gdpr" tabIndex={-1} aria-labelledby="gdpr-heading">
                 <h2 id="gdpr-heading" style={{ marginBottom: '.75rem' }}>
                   {locale === 'sk' ? 'Ochrana osobných údajov (GDPR)' : 'Privacy policy (GDPR)'}
                 </h2>
-                <div className="card card-pad" style={{ marginBottom: '1.5rem' }}>
+                <div className="card card-pad" style={{ marginBottom: '1rem' }}>
                   <p style={{ color: 'var(--ink-2)', fontSize: '.92rem' }}>
                     {locale === 'sk'
                       ? 'Nemocnica Snina, s.r.o. spracúva osobné údaje v súlade s Nariadením (EÚ) 2016/679 (GDPR) a zákonom č. 18/2018 Z.z. o ochrane osobných údajov. Právnym základom spracúvania je plnenie zmluvy (čl. 6(1)(b) GDPR), zákonné povinnosti (čl. 6(1)(c)) a oprávnený záujem prevádzkovateľa (čl. 6(1)(f)). Spracúvanie zdravotných údajov prebieha na základe čl. 9(2)(h) GDPR. Ako dotknutá osoba máte právo na prístup, opravu, vymazanie a prenosnosť údajov, ako aj právo namietať spracúvanie. Žiadosti zasielajte na: sekretariat@nemocnicasnina.sk'
                       : 'Nemocnica Snina, s.r.o. processes personal data in accordance with Regulation (EU) 2016/679 (GDPR) and Act No. 18/2018 Coll. on the protection of personal data. The legal basis for processing is the performance of a contract (Art. 6(1)(b) GDPR), legal obligations (Art. 6(1)(c)) and legitimate interests (Art. 6(1)(f)). Processing of health data is based on Art. 9(2)(h) GDPR. As a data subject you have the right to access, rectification, erasure and portability, as well as the right to object. Send requests to: sekretariat@nemocnicasnina.sk'}
                   </p>
                 </div>
+                {/* Retention policy reference */}
+                <p style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>
+                  {locale === 'sk'
+                    ? <>Doby uchovávania osobných údajov a právne základy sú zdokumentované v <a href="/RETENTION.md" style={{ color: 'var(--blue-700)' }}>politike uchovávania údajov</a>. Žiadosti o prístup alebo výmaz (čl. 15 / 17 GDPR) zasielajte na vyššie uvedenú e-mailovú adresu.</>
+                    : <>Retention periods and legal bases are documented in our <a href="/RETENTION.md" style={{ color: 'var(--blue-700)' }}>data retention policy</a>. Access and erasure requests (Art. 15 / 17 GDPR) may be submitted to the email address above.</>}
+                </p>
               </section>
 
               {/* Accessibility statement */}
-              <section id="pristupnost" tabIndex={-1} aria-labelledby="a11y-heading">
+              <section id="pristupnost" tabIndex={-1} aria-labelledby="a11y-heading" style={{ marginTop: '2rem' }}>
                 <h2 id="a11y-heading" style={{ marginBottom: '.75rem' }}>
                   {locale === 'sk' ? 'Vyhlásenie o prístupnosti' : 'Accessibility statement'}
                 </h2>
                 <div className="card card-pad">
-                  <p style={{ color: 'var(--ink-2)', fontSize: '.92rem' }}>
+                  <p style={{ color: 'var(--ink-2)', fontSize: '.92rem', marginBottom: '.75rem' }}>
                     {locale === 'sk'
                       ? 'Nemocnica Snina, s.r.o. sa zaväzuje zabezpečiť prístupnosť svojho webového sídla v súlade so zákonom č. 351/2022 Z.z. o prístupnosti webových sídiel a mobilných aplikácií. Cieľom je splniť úroveň WCAG 2.1 AA. Ak máte problém s prístupnosťou stránky, kontaktujte nás na sekretariat@nemocnicasnina.sk. Na vašu správu odpovieme do 5 pracovných dní.'
                       : 'Nemocnica Snina, s.r.o. is committed to ensuring the accessibility of its website in accordance with Act No. 351/2022 Coll. on the accessibility of websites and mobile applications. The target conformance level is WCAG 2.1 AA. If you experience an accessibility issue, contact us at sekretariat@nemocnicasnina.sk. We will reply within 5 working days.'}
+                  </p>
+                  <p style={{ color: 'var(--ink-3)', fontSize: '.82rem' }}>
+                    {locale === 'sk'
+                      ? 'Posledný audit prístupnosti (axe-core/Playwright, WCAG 2.1 AA): aktualizujte po dokončení auditu L3 (pozri LAUNCH_CHECKLIST.md). Metóda hodnotenia: automatizovaná — axe DevTools + manuálna — klávesnica + čítač obrazovky (NVDA/VoiceOver).'
+                      : 'Last accessibility audit (axe-core/Playwright, WCAG 2.1 AA): update after L3 audit completion (see LAUNCH_CHECKLIST.md). Assessment method: automated — axe DevTools + manual — keyboard + screen reader (NVDA/VoiceOver).'}
                   </p>
                 </div>
               </section>
