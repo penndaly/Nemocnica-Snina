@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BookingRulesService } from './booking-rules.service';
 import { HisQueueService } from '../his/his-queue.service';
 import { SmsService } from '../sms/sms.service';
+import { AuditService } from '../audit/audit.service';
 import { validateRodneCislo } from '../common/rc-validation';
 import type { Clinic } from '@ns/types';
 
@@ -31,6 +32,7 @@ export class BookingService {
     private readonly rules: BookingRulesService,
     private readonly his: HisQueueService,
     private readonly sms: SmsService,
+    private readonly audit: AuditService,
   ) {}
 
   async createBooking(clinic: Clinic, dto: CreateBookingDto) {
@@ -98,6 +100,14 @@ export class BookingService {
     });
 
     // Post-transaction side effects (non-blocking; failures don't roll back the booking)
+    void this.audit.log({
+      actorEmail: dto.patientPhone, // no staff actor — patient is the subject
+      actorRole: 'patient',
+      action: 'booking_confirm',
+      resource: 'booking',
+      resourceId: result.id,
+      detail: { clinicId: dto.clinicId, date: dto.date, time: dto.time },
+    });
     void this.his.publish({
       type: 'booking.confirmed',
       idempotencyKey: result.id,
@@ -135,6 +145,13 @@ export class BookingService {
       }),
     ]);
 
+    void this.audit.log({
+      actorEmail: booking.patientPhone,
+      actorRole: 'patient',
+      action: 'booking_cancel',
+      resource: 'booking',
+      resourceId: booking.id,
+    });
     void this.his.publish({
       type: 'booking.cancelled',
       idempotencyKey: `cancel:${booking.id}`,

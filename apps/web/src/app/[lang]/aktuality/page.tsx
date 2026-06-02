@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getNewsItems } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -14,6 +14,7 @@ export default async function NewsPage({ params }: { params: Promise<{ lang: str
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
+  const news = await getNewsItems(locale);
 
   return (
     <SiteLayout activePath={`/${locale}/aktuality`}>
@@ -22,7 +23,7 @@ export default async function NewsPage({ params }: { params: Promise<{ lang: str
           <p className="eyebrow">{t('nav.news')}</p>
           <h1 style={{ marginBottom: '2rem' }}>{locale === 'sk' ? 'Aktuality' : 'News & announcements'}</h1>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {SEED.news.map((item) => (
+            {news.map((item) => (
               <article
                 key={item.id}
                 id={item.id}

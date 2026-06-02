@@ -6,43 +6,122 @@ import { useSearchParams } from 'next/navigation';
 import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import type { SupportedLocale } from '@/i18n/config';
-
-// FHIR demo data — replaced by real FHIR R4 endpoint in production
-const DEMO_PATIENT = {
-  name: 'Jozef Mak',
-  id: '850315/1234',
-  dob: '1985-03-15',
-  blood: 'A+',
-  insurance: 'VšZP (25)',
-};
-
-const DEMO_CONDITIONS = [
-  { id: 'c1', date: '2024-10-12', code: 'I10', dx: { sk: 'Esenciálna hypertenzia', en: 'Essential hypertension' }, status: 'active', doctor: 'MUDr. Jana Borščová' },
-  { id: 'c2', date: '2022-04-05', code: 'E11', dx: { sk: 'Diabetes mellitus 2. typu', en: 'Type 2 diabetes mellitus' }, status: 'active', doctor: 'MUDr. Lenka Lajtarová' },
-];
-
-const DEMO_MEDS = [
-  { id: 'm1', date: '2024-10-12', name: 'Nebivolol 5 mg', dose: { sk: '1× denne (ráno)', en: '1× daily (morning)' }, refills: 2 },
-  { id: 'm2', date: '2024-09-20', name: 'Metformín 850 mg', dose: { sk: '2× denne (s jedlom)', en: '2× daily (with meals)' }, refills: 1 },
-];
-
-const DEMO_LABS = [
-  { id: 'l1', date: '2024-09-28', test: { sk: 'Lipidový profil', en: 'Lipid panel' }, result: { sk: 'Cholesterol 5,8 mmol/l', en: 'Cholesterol 5.8 mmol/l' }, flag: 'high' as const, dept: { sk: 'Klinická biochémia', en: 'Clinical biochem' } },
-  { id: 'l2', date: '2024-09-28', test: { sk: 'HbA1c', en: 'HbA1c' }, result: { sk: '48 mmol/mol (6,5 %)', en: '48 mmol/mol (6.5%)' }, flag: 'normal' as const, dept: { sk: 'Klinická biochémia', en: 'Clinical biochem' } },
-];
-
-const DEMO_APPOINTMENTS = [
-  { id: 'a1', date: '2024-11-15', time: '09:30', clinic: { sk: 'Diabetologická ambulancia', en: 'Diabetology clinic' }, doctor: 'MUDr. Lenka Lajtarová' },
-];
+import type { FhirCondition, FhirMedicationRequest, FhirObservation, FhirAppointment } from '@ns/types';
 
 type Tab = 'overview' | 'records' | 'prescriptions' | 'labs';
 const FLAG_COLORS = { high: 'var(--amber)', low: 'var(--red)', normal: 'var(--green)', critical: 'var(--red)' };
+
+interface PatientRecords {
+  conditions:   FhirCondition[];
+  medications:  FhirMedicationRequest[];
+  observations: FhirObservation[];
+  appointments: FhirAppointment[];
+}
 
 function loc(obj: Record<string, string>, locale: SupportedLocale): string {
   return obj[locale] ?? obj['sk'] ?? '';
 }
 
 interface PatientIdentity { sub: string; name: string; }
+
+// ── Lab PDF step-up 2FA widget ────────────────────────────────
+
+function LabPdfButton({ observationId, locale }: { observationId: string; locale: SupportedLocale }) {
+  const [phase,   setPhase]   = useState<'idle' | 'phone' | 'otp' | 'busy' | 'done' | 'error'>('idle');
+  const [phone,   setPhone]   = useState('');
+  const [otp,     setOtp]     = useState('');
+  const [errMsg,  setErrMsg]  = useState('');
+
+  async function sendChallenge() {
+    setPhase('busy');
+    const r = await fetch(`/api/portal/labs?action=challenge&id=${observationId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    setPhase(r.ok ? 'otp' : 'error');
+    if (!r.ok) setErrMsg(locale === 'sk' ? 'Nepodarilo sa odoslať kód.' : 'Failed to send code.');
+  }
+
+  async function downloadPdf() {
+    setPhase('busy');
+    const r = await fetch(`/api/portal/labs?action=download&id=${observationId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp }),
+    });
+    if (!r.ok) {
+      const body = await r.json() as { message?: string };
+      setErrMsg(body.message ?? (locale === 'sk' ? 'Neplatný kód.' : 'Invalid code.'));
+      setPhase('error');
+      return;
+    }
+    // Trigger browser download from the blob
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `lab-result-${observationId}.pdf`; a.click();
+    URL.revokeObjectURL(url);
+    setPhase('done');
+  }
+
+  if (phase === 'idle') {
+    return (
+      <button className="btn btn-ghost btn-sm" onClick={() => setPhase('phone')} aria-haspopup="dialog">
+        <Download size={13} aria-hidden="true" />
+        {locale === 'sk' ? 'Stiahnuť PDF' : 'Download PDF'}
+      </button>
+    );
+  }
+
+  if (phase === 'phone') {
+    return (
+      <span style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
+        <input
+          type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+          placeholder="+421900…" aria-label={locale === 'sk' ? 'Telefón' : 'Phone'}
+          style={{ width: 120, padding: '.25rem .4rem', border: '1px solid var(--line)', borderRadius: 6, fontSize: '.82rem' }}
+        />
+        <button className="btn btn-primary btn-sm" onClick={() => void sendChallenge()}
+          disabled={!phone} aria-label={locale === 'sk' ? 'Odoslať kód' : 'Send code'}>
+          {locale === 'sk' ? 'Odoslať' : 'Send'}
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setPhase('idle')} aria-label="Cancel">✕</button>
+      </span>
+    );
+  }
+
+  if (phase === 'otp') {
+    return (
+      <span style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
+        <input
+          type="text" inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value)}
+          placeholder="123456" maxLength={6} aria-label={locale === 'sk' ? 'SMS kód' : 'SMS code'}
+          style={{ width: 80, padding: '.25rem .4rem', border: '1px solid var(--line)', borderRadius: 6, fontSize: '.82rem', fontFamily: 'monospace' }}
+        />
+        <button className="btn btn-primary btn-sm" onClick={() => void downloadPdf()}
+          disabled={otp.length < 6} aria-label={locale === 'sk' ? 'Overiť a stiahnuť' : 'Verify & download'}>
+          {locale === 'sk' ? 'Overiť' : 'Verify'}
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setPhase('idle')} aria-label="Cancel">✕</button>
+      </span>
+    );
+  }
+
+  if (phase === 'busy') {
+    return <span style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>…</span>;
+  }
+  if (phase === 'done') {
+    return <span className="badge badge-green" style={{ fontSize: '.78rem' }}>✓</span>;
+  }
+  // error
+  return (
+    <span style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
+      <span role="alert" style={{ color: 'var(--red)', fontSize: '.78rem' }}>{errMsg}</span>
+      <button className="btn btn-ghost btn-sm" onClick={() => { setPhase('idle'); setErrMsg(''); }}>
+        {locale === 'sk' ? 'Znovu' : 'Retry'}
+      </button>
+    </span>
+  );
+}
 
 const OIDC_ERROR_MESSAGES: Record<string, Record<SupportedLocale, string>> = {
   oidc_access_denied:  { sk: 'Prihlásenie cez eID bolo zamietnuté.',       en: 'eID login was denied.',               cs: 'Přihlášení přes eID bylo zamítnuto.', pl: 'Logowanie przez eID zostało odrzucone.', hu: 'Az eID bejelentkezést elutasították.', uk: 'Вхід через eID було відхилено.' },
@@ -58,6 +137,7 @@ export default function PortalPage() {
 
   const [identity, setIdentity] = useState<PatientIdentity | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [records, setRecords]   = useState<PatientRecords | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
   const oidcError = searchParams.get('error');
@@ -65,11 +145,20 @@ export default function PortalPage() {
     ? (OIDC_ERROR_MESSAGES[oidcError]?.[locale] ?? OIDC_ERROR_MESSAGES[oidcError]?.['sk'])
     : null;
 
-  // On mount: check if we already have a valid session cookie
+  // On mount: check session, then fetch FHIR records
   useEffect(() => {
     fetch('/api/portal/me')
       .then((r) => r.ok ? r.json() as Promise<PatientIdentity> : null)
-      .then((id) => { setIdentity(id); setSessionLoading(false); })
+      .then((id) => {
+        setIdentity(id);
+        setSessionLoading(false);
+        if (id) {
+          fetch('/api/portal/records')
+            .then((r) => r.ok ? r.json() as Promise<PatientRecords> : null)
+            .then((rec) => { if (rec) setRecords(rec); })
+            .catch(() => {});
+        }
+      })
       .catch(() => setSessionLoading(false));
   }, []);
 
@@ -198,12 +287,12 @@ export default function PortalPage() {
               {tab === 'overview' && (
                 <div>
                   <h3 style={{ marginBottom: '1rem' }}>{t('portal.overview')}</h3>
-                  {DEMO_APPOINTMENTS.length > 0 && (
+                  {(records?.appointments ?? []).length > 0 && (
                     <div className="card card-pad" style={{ marginBottom: '1rem' }}>
                       <p className="eyebrow" style={{ marginBottom: '.5rem' }}>
                         {locale === 'sk' ? 'Najbližší termín' : 'Upcoming appointment'}
                       </p>
-                      {DEMO_APPOINTMENTS.map((a) => (
+                      {(records?.appointments ?? []).map((a) => (
                         <div key={a.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                           <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--blue-50)', color: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <Calendar size={20} />
@@ -243,7 +332,7 @@ export default function PortalPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {DEMO_CONDITIONS.map((c) => (
+                        {(records?.conditions ?? []).map((c) => (
                           <tr key={c.id}>
                             <td>{c.date}</td>
                             <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{c.code}</td>
@@ -262,7 +351,7 @@ export default function PortalPage() {
                 <div>
                   <h3 style={{ marginBottom: '1rem' }}>{t('portal.prescriptions')}</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
-                    {DEMO_MEDS.map((m) => (
+                    {(records?.medications ?? []).map((m) => (
                       <div key={m.id} className="card card-pad" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                         <Pill size={20} color="var(--blue-600)" />
                         <div style={{ flex: 1 }}>
@@ -292,8 +381,8 @@ export default function PortalPage() {
                   >
                     <AlertTriangle size={14} />
                     {locale === 'sk'
-                      ? 'Stiahnutie PDF výsledkov vyžaduje overenie 2FA. (Demo: simulované)'
-                      : 'PDF download requires 2FA verification. (Demo: simulated)'}
+                      ? 'Stiahnutie PDF výsledkov vyžaduje overenie kódom z SMS.'
+                      : 'PDF download requires SMS verification code.'}
                   </div>
                   <div className="card" style={{ overflowX: 'auto' }}>
                     <table className="data">
@@ -307,7 +396,7 @@ export default function PortalPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {DEMO_LABS.map((l) => (
+                        {(records?.observations ?? []).map((l) => (
                           <tr key={l.id}>
                             <td>{l.date}</td>
                             <td style={{ fontWeight: 600 }}>{loc(l.test, locale)}</td>
@@ -318,10 +407,7 @@ export default function PortalPage() {
                             </td>
                             <td style={{ fontSize: '.82rem' }}>{loc(l.dept, locale)}</td>
                             <td>
-                              <button className="btn btn-ghost btn-sm" onClick={() => alert('2FA verification required')}>
-                                <Download size={13} />
-                                {t('portal.downloadPdf')}
-                              </button>
+                              <LabPdfButton observationId={l.id} locale={locale} />
                             </td>
                           </tr>
                         ))}

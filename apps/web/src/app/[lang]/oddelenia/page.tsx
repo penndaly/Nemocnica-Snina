@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { BedDouble, Users } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getDepartments } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -10,6 +10,7 @@ export default async function DepartmentsPage({ params }: { params: Promise<{ la
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
+  const departments = await getDepartments(locale);
 
   return (
     <SiteLayout activePath={`/${locale}/oddelenia`}>
@@ -26,7 +27,7 @@ export default async function DepartmentsPage({ params }: { params: Promise<{ la
               gap: '1.2rem',
             }}
           >
-            {SEED.departments.map((dept) => (
+            {departments.map((dept) => (
               <Link
                 key={dept.id}
                 href={`/${locale}/oddelenia/${dept.id}`}

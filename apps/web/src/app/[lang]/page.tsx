@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { StructuredData } from '@/components/StructuredData';
-import { SEED } from '@/lib/seed';
+import { getDepartments, getPhysicians, getNewsItems, getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -16,10 +16,10 @@ export async function generateMetadata({
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
-  const title = localizeField(SEED.pages.hero.title, locale);
+  const pages = await getPageContent(locale);
   return {
-    title: `Nemocnica Snina — ${title}`,
-    description: localizeField(SEED.pages.hero.subtitle, locale),
+    title: `Nemocnica Snina — ${localizeField(pages.hero.title, locale)}`,
+    description: localizeField(pages.hero.subtitle, locale),
   };
 }
 
@@ -28,12 +28,18 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
 
-  const hero = SEED.pages.hero;
-  const hospital = SEED.hospital;
-  const featuredDepts = SEED.departments.filter((d) => d.featured).slice(0, 3);
-  const acceptingPhysicians = SEED.physicians.filter((p) => p.accepting).slice(0, 3);
-  const recentNews = SEED.news.slice(0, 4);
-  const aps = SEED.pages.aps;
+  const [pages, hospital, allDepts, allPhysicians, recentNewsItems] = await Promise.all([
+    getPageContent(locale),
+    getHospitalInfo(locale),
+    getDepartments(locale),
+    getPhysicians(locale),
+    getNewsItems(locale),
+  ]);
+  const hero = pages.hero;
+  const aps  = pages.aps;
+  const featuredDepts       = allDepts.filter((d) => d.featured).slice(0, 3);
+  const acceptingPhysicians = allPhysicians.filter((p) => p.accepting).slice(0, 3);
+  const recentNews          = recentNewsItems.slice(0, 4);
 
   const newsTypeColor: Record<string, string> = {
     good: 'badge-green',
@@ -80,11 +86,11 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
               <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
                 <span className="chip">
                   <BedDouble size={14} />
-                  {SEED.departments.reduce((acc, d) => acc + d.beds, 0)} {t('beds')}
+                  {allDepts.reduce((acc, d) => acc + d.beds, 0)} {t('beds')}
                 </span>
                 <span className="chip">
                   <Users size={14} />
-                  {SEED.physicians.length} lekárov
+                  {allPhysicians.length} lekárov
                 </span>
               </div>
             </div>
@@ -188,7 +194,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
                 .map((w) => w[0])
                 .join('')
                 .toUpperCase();
-              const dept = physician.dept ? SEED.departments.find((d) => d.id === physician.dept) : null;
+              const dept = physician.dept ? allDepts.find((d) => d.id === physician.dept) : null;
               return (
                 <div key={physician.id} className="card card-pad" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                   <div className="avatar avatar-lg" aria-hidden>{initials}</div>

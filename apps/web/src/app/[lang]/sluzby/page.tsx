@@ -4,7 +4,7 @@ import {
   Scissors, Heart, Activity, Stethoscope, Zap, Shield, FlaskConical, ScanLine, Pill,
 } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getServices } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { ServiceIcon } from '@ns/types';
@@ -25,6 +25,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ lang:
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
+  const services = await getServices(locale);
 
   return (
     <SiteLayout activePath={`/${locale}/sluzby`}>
@@ -40,7 +41,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ lang:
       <div style={{ padding: '3rem 0' }}>
         <div className="container">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.2rem' }}>
-            {SEED.services.map((svc) => {
+            {services.map((svc) => {
               const linkHref = svc.dept
                 ? `/${locale}/oddelenia/${svc.dept}`
                 : svc.clinic

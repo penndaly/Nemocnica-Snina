@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -10,9 +10,12 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
-  const h = SEED.hospital;
-  const about = SEED.pages.about;
-  const aps = SEED.pages.aps;
+  const [h, pages] = await Promise.all([
+    getHospitalInfo(locale),
+    getPageContent(locale),
+  ]);
+  const about = pages.about;
+  const aps = pages.aps;
 
   return (
     <SiteLayout activePath={`/${locale}/kontakt`}>

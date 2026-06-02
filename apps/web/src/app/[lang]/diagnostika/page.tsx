@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Phone, Check } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getFacilities } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -9,6 +9,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ la
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
+  const facilities = await getFacilities(locale);
 
   return (
     <SiteLayout activePath={`/${locale}/diagnostika`}>
@@ -22,7 +23,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ la
       <div style={{ padding: '3rem 0 4rem' }}>
         <div className="container-narrow">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-            {SEED.facilities.map((facility) => {
+            {facilities.map((facility) => {
               const features = localizelist(facility.features, locale);
               return (
                 <div

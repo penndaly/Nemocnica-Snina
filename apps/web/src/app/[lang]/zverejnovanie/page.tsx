@@ -1,22 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Download, Search } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import type { Disclosure } from '@ns/types';
 
 type Filter = 'all' | 'contract' | 'invoice';
 
 export default function DisclosuresPage() {
   const t = useTranslations();
   const locale = useLocale() as SupportedLocale;
+  const [disclosures, setDisclosures] = useState<Disclosure[]>([]);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
-  const filtered = SEED.disclosures.filter((d) => {
+  useEffect(() => {
+    fetch(`/api/content?type=disclosures&locale=${locale}`)
+      .then((r) => r.json() as Promise<Disclosure[]>)
+      .then(setDisclosures)
+      .catch(() => {});
+  }, [locale]);
+
+  const filtered = disclosures.filter((d) => {
     const type = localizeField(d.type, locale).toLowerCase();
     const matchesFilter =
       filter === 'all' ||

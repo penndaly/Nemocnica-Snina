@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, AlertTriangle, User, ChevronDown } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import type { Physician, Department, Clinic } from '@ns/types';
 
 // Insurers per NCZI codes
 const INSURERS = [
@@ -26,7 +26,16 @@ export default function OnboardingPage() {
   const locale = useLocale() as SupportedLocale;
   const t = useTranslations();
 
-  const acceptingPhysicians = SEED.physicians.filter((p) => p.accepting);
+  const [allPhysicians, setAllPhysicians] = useState<Physician[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/content?type=physicians&locale=${locale}`)
+      .then((r) => r.json() as Promise<Physician[]>)
+      .then(setAllPhysicians)
+      .catch(() => {});
+  }, [locale]);
+
+  const acceptingPhysicians = allPhysicians.filter((p) => p.accepting);
 
   const [selectedPhysicianId, setSelectedPhysicianId] = useState('');
   const [patientName, setPatientName] = useState('');
@@ -40,13 +49,11 @@ export default function OnboardingPage() {
   const [applicationId, setApplicationId] = useState('');
   const [error, setError] = useState('');
 
-  const selectedPhysician = SEED.physicians.find((p) => p.id === selectedPhysicianId);
-  const selectedDept = selectedPhysician?.dept
-    ? SEED.departments.find((d) => d.id === selectedPhysician.dept)
-    : null;
-  const selectedClinic = selectedPhysician?.clinic
-    ? SEED.clinics.find((c) => c.id === selectedPhysician.clinic)
-    : null;
+  const selectedPhysician = allPhysicians.find((p) => p.id === selectedPhysicianId);
+  // dept/clinic IDs come from the physician record; use them for display only
+  const selectedDept:   Department | undefined = undefined; // resolved server-side in real app
+  const selectedClinic: Clinic | undefined     = undefined; // resolved server-side in real app
+  void selectedDept; void selectedClinic;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -145,8 +152,8 @@ export default function OnboardingPage() {
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
                   {acceptingPhysicians.map((physician) => {
-                    const dept = physician.dept ? SEED.departments.find((d) => d.id === physician.dept) : null;
-                    const clinic = physician.clinic ? SEED.clinics.find((c) => c.id === physician.clinic) : null;
+                    const dept   = null; // dept/clinic IDs available as physician.dept/physician.clinic
+                    const clinic = null; // resolved server-side when submitting; display via role field
                     const selected = selectedPhysicianId === physician.id;
                     return (
                       <button

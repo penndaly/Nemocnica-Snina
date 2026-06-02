@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Check, ChevronRight, Phone, MapPin, AlertTriangle, Clock } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Clinic } from '@ns/types';
@@ -90,22 +89,30 @@ export default function BookingPage() {
 
   const [step, setStep] = useState<Step>(1);
   const [booking, setBooking] = useState<BookingState>({ ...EMPTY_STATE });
+  const [clinics, setClinics] = useState<Clinic[]>([]);
   const [rcError, setRcError] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  useEffect(() => {
+    fetch(`/api/content?type=clinics&locale=${locale}`)
+      .then((r) => r.json() as Promise<Clinic[]>)
+      .then(setClinics)
+      .catch(() => {});
+  }, [locale]);
+
   // Deep-link: ?clinic=<id> jumps to step 2
   useEffect(() => {
     const cid = searchParams.get('clinic');
-    if (cid && SEED.clinics.find((c) => c.id === cid)?.bookable) {
+    if (cid && clinics.find((c) => c.id === cid)?.bookable) {
       setBooking((prev) => ({ ...prev, clinicId: cid }));
       setStep(2);
     }
-  }, [searchParams]);
+  }, [searchParams, clinics]);
 
-  const selectedClinic = SEED.clinics.find((c) => c.id === booking.clinicId);
+  const selectedClinic = clinics.find((c) => c.id === booking.clinicId);
   const availableDates = selectedClinic ? getNextAllowedDates(selectedClinic) : [];
   const slots = selectedClinic ? generateSlots(selectedClinic) : [];
 
@@ -142,7 +149,7 @@ export default function BookingPage() {
 
   // ─── Step 1: Choose clinic ────────────────────────────────
   if (step === 1) {
-    const bookable = SEED.clinics.filter((c) => c.bookable);
+    const bookable = clinics.filter((c) => c.bookable);
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div style={{ padding: '2rem 0 4rem' }}>

@@ -38,6 +38,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { HisQueueService } from '../his/his-queue.service';
 import { SmsService } from '../sms/sms.service';
 import { AuditService } from '../audit/audit.service';
+import { CmsClinicService } from '../cms/cms-clinic.service';
+import { CLINICS_SEED } from '../config/seed-clinics';
 
 // A valid Slovak RC that passes modulo-11 (used in all tests that aren't testing RC validation)
 const VALID_RC = '9001014719';
@@ -62,6 +64,13 @@ const mockSms = {
   verifyOtp: jest.fn().mockResolvedValue(true),
 };
 const mockAudit = { log: jest.fn().mockResolvedValue(undefined) };
+const mockCms = {
+  getAllClinics:  jest.fn().mockResolvedValue(CLINICS_SEED),
+  getClinicById: jest.fn().mockImplementation((id: string) =>
+    Promise.resolve(CLINICS_SEED.find((c) => c.id === id)),
+  ),
+  invalidate: jest.fn(),
+};
 
 // ── Next weekday helper ───────────────────────────────────────
 // Returns "YYYY-MM-DD" for the next occurrence of JS getDay() = target
@@ -102,10 +111,11 @@ describe('POST /api/booking — server-side rule enforcement', () => {
       providers: [
         BookingService,
         BookingRulesService,
-        { provide: PrismaService,   useValue: mockPrisma },
-        { provide: HisQueueService, useValue: mockHis },
-        { provide: SmsService,      useValue: mockSms },
-        { provide: AuditService,    useValue: mockAudit },
+        { provide: PrismaService,    useValue: mockPrisma },
+        { provide: HisQueueService,  useValue: mockHis },
+        { provide: SmsService,       useValue: mockSms },
+        { provide: AuditService,     useValue: mockAudit },
+        { provide: CmsClinicService, useValue: mockCms },
       ],
     }).compile();
 

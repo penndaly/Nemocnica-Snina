@@ -1,21 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { BookingService } from './booking.service';
 import { BookingRulesService } from './booking-rules.service';
-
-/** Stub: in production, clinics come from CMS/DB */
-import { CLINICS_SEED } from '../config/seed-clinics';
+import { CmsClinicService } from '../cms/cms-clinic.service';
 
 @Controller('api/booking')
 export class BookingController {
   constructor(
     private readonly bookingService: BookingService,
     private readonly rules: BookingRulesService,
+    private readonly cms: CmsClinicService,
   ) {}
 
   @Get('available-dates')
-  getAvailableDates(@Query('clinicId') clinicId: string) {
-    const clinic = CLINICS_SEED.find((c) => c.id === clinicId);
+  async getAvailableDates(@Query('clinicId') clinicId: string) {
+    const clinic = await this.cms.getClinicById(clinicId);
     if (!clinic) return { dates: [] };
     return { dates: this.rules.nextAvailableDates(clinic) };
   }
@@ -25,23 +24,35 @@ export class BookingController {
     return this.bookingService.getAvailableSlots(clinicId, date);
   }
 
+  @Get('clinics')
+  async listBookableClinics() {
+    const all = await this.cms.getAllClinics();
+    return all.filter((c) => c.bookable && c.status !== 'closed');
+  }
+
   @Post()
-  @Throttle({ default: { ttl: 60_000, limit: 5 } }) // 5 bookings/min per IP
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   async createBooking(@Body() body: Record<string, unknown>) {
     const clinicId = String(body['clinicId'] ?? '');
-    const clinic = CLINICS_SEED.find((c) => c.id === clinicId);
-    if (!clinic) throw new Error('Unknown clinic');
+    const clinic = await this.cms.getClinicById(clinicId);
+    if (!clinic) throw new NotFoundException(`Clinic not found: ${clinicId}`);
+
+    // Validate before handing off — gives a clear 400 if input is missing
+    if (!body['date'] || !body['time'] || !body['patientName'] || !body['patientPhone'] || !body['patientRc']) {
+      throw new BadRequestException('Missing required booking fields');
+    }
 
     return this.bookingService.createBooking(clinic, {
       clinicId,
-      date: String(body['date'] ?? ''),
-      time: String(body['time'] ?? ''),
-      patientName: String(body['patientName'] ?? ''),
-      patientPhone: String(body['patientPhone'] ?? ''),
-      patientRc: String(body['patientRc'] ?? ''),
-      hasReferral: Boolean(body['hasReferral']),
-      gdprConsent: Boolean(body['gdprConsent']),
-      referralConsent: Boolean(body['referralConsent']),
+      date:             String(body['date']   ?? ''),
+      time:             String(body['time']   ?? ''),
+      patientName:      String(body['patientName']  ?? ''),
+      patientPhone:     String(body['patientPhone'] ?? ''),
+      patientRc:        String(body['patientRc']    ?? ''),
+      hasReferral:      Boolean(body['hasReferral']),
+      gdprConsent:      Boolean(body['gdprConsent']),
+      referralConsent:  Boolean(body['referralConsent']),
+      locale:           body['locale'] ? String(body['locale']) : undefined,
     });
   }
 

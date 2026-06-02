@@ -183,6 +183,23 @@ export async function getFacilities(locale: Locale = 'sk'): Promise<Facility[]> 
   });
 }
 
+export async function getServices(locale: Locale = 'sk'): Promise<Service[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.services; }
+  const data = await strapiGet<Record<string, unknown>[]>('services?sort=name&populate=*', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id:       String(e['id'] ?? (a['slug'] as string)),
+      name:     { sk: String(a['name'] ?? '') },
+      desc:     { sk: String(a['desc'] ?? '') },
+      icon:     (a['icon'] as Service['icon']) ?? 'shield',
+      dept:     (a['department'] as Record<string, unknown>)?.['data'] ? String(((a['department'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
+      clinic:   (a['clinic']     as Record<string, unknown>)?.['data'] ? String(((a['clinic']     as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
+      facility: (a['facility']   as Record<string, unknown>)?.['data'] ? String(((a['facility']   as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
+    };
+  });
+}
+
 export async function getHospitalInfo(locale: Locale = 'sk'): Promise<Hospital> {
   if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.hospital; }
   const entry = await strapiGet<Record<string, unknown>>('hospital', locale);

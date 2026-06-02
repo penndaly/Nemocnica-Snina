@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Phone, MapPin, Clock } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getClinics } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { ClinicStatus } from '@ns/types';
@@ -18,6 +18,7 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
   const { lang } = await params;
   const locale = lang as SupportedLocale;
   const t = await getTranslations({ locale });
+  const clinics = await getClinics(locale);
 
   return (
     <SiteLayout activePath={`/${locale}/ambulancie`}>
@@ -39,7 +40,7 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-            {SEED.clinics.map((clinic) => {
+            {clinics.map((clinic) => {
               const sb = statusBadge[clinic.status];
               const scheduleItems = localizelist(clinic.schedule, locale);
               return (

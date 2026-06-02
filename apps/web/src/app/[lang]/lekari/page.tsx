@@ -1,22 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Search } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import type { Physician, Department, Clinic } from '@ns/types';
 import Link from 'next/link';
 
 export default function PhysiciansPage() {
   const t = useTranslations();
   const locale = useLocale() as SupportedLocale;
 
+  const [physicians,  setPhysicians]  = useState<Physician[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [clinics,     setClinics]     = useState<Clinic[]>([]);
   const [query, setQuery] = useState('');
   const [acceptingOnly, setAcceptingOnly] = useState(false);
 
-  const filtered = SEED.physicians.filter((p) => {
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/content?type=physicians&locale=${locale}`).then((r) => r.json() as Promise<Physician[]>),
+      fetch(`/api/content?type=clinics&locale=${locale}`).then((r) => r.json() as Promise<Clinic[]>),
+    ])
+      .then(([p, c]) => { setPhysicians(p); setClinics(c); })
+      .catch(() => {});
+  }, [locale]);
+
+  const filtered = physicians.filter((p) => {
     const matchesQuery =
       !query ||
       p.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -76,8 +88,8 @@ export default function PhysiciansPage() {
                   .map((w) => w[0])
                   .join('')
                   .toUpperCase();
-                const dept = physician.dept ? SEED.departments.find((d) => d.id === physician.dept) : null;
-                const clinic = physician.clinic ? SEED.clinics.find((c) => c.id === physician.clinic) : null;
+                const dept   = physician.dept   ? departments.find((d) => d.id === physician.dept)   : null;
+                const clinic = physician.clinic ? clinics.find((c)     => c.id === physician.clinic) : null;
 
                 return (
                   <div key={physician.id} className="card card-pad">

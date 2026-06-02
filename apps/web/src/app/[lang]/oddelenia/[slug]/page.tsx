@@ -3,13 +3,14 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { BedDouble, Phone, Mail, Clock, Check } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { SEED } from '@/lib/seed';
+import { getDepartments, getDepartmentBySlug, getPhysicians } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
 export async function generateStaticParams() {
-  return SEED.departments.flatMap((dept) =>
-    ['sk', 'en'].map((lang) => ({ lang, slug: dept.id })),
+  const departments = await getDepartments('sk');
+  return departments.flatMap((dept) =>
+    ['sk', 'cs', 'pl', 'hu', 'uk', 'en'].map((lang) => ({ lang, slug: dept.id })),
   );
 }
 
@@ -20,11 +21,14 @@ export default async function DepartmentDetailPage({
 }) {
   const { lang, slug } = await params;
   const locale = lang as SupportedLocale;
-  const dept = SEED.departments.find((d) => d.id === slug);
+  const [dept, allPhysicians] = await Promise.all([
+    getDepartmentBySlug(slug, locale),
+    getPhysicians(locale),
+  ]);
   if (!dept) notFound();
 
   const t = await getTranslations({ locale });
-  const relatedPhysicians = SEED.physicians.filter((p) => p.dept === dept.id);
+  const relatedPhysicians = allPhysicians.filter((p) => p.dept === dept.id);
   const facilities = localizelist(dept.facilities, locale);
 
   return (
