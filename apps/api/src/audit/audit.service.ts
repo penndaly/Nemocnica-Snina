@@ -1,9 +1,11 @@
 /**
- * Immutable audit log — every write is append-only.
- * Reads are restricted to admin role; no updates or deletes permitted.
+ * Immutable audit log — append-only.
+ * Application layer: only INSERT is called here.
+ * DB layer: see infra/postgres/audit-immutability.sql — the ns_app role
+ * has no UPDATE/DELETE grant, and a trigger raises an exception if attempted.
  */
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { randomUUID } from 'crypto';
 
 interface LogParams {
@@ -17,12 +19,12 @@ interface LogParams {
   actorId?: string;
 }
 
-const prisma = new PrismaClient();
-
 @Injectable()
 export class AuditService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async log(params: LogParams): Promise<void> {
-    await prisma.auditLog.create({
+    await this.prisma.auditLog.create({
       data: {
         id: randomUUID(),
         actorEmail: params.actorEmail,

@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaClient, OnboardingStatus } from '@prisma/client';
+import { OnboardingStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcryptjs';
+import { PrismaService } from '../prisma/prisma.service';
 import { validateRodneCislo } from '../common/rc-validation';
 import { NcziXmlService } from './nczi-xml.service';
 import { AuditService } from '../audit/audit.service';
@@ -15,11 +16,10 @@ interface ApplyDto {
   email?: string;
 }
 
-const prisma = new PrismaClient();
-
 @Injectable()
 export class OnboardingService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly ncziXml: NcziXmlService,
     private readonly audit: AuditService,
   ) {}
@@ -31,7 +31,7 @@ export class OnboardingService {
 
     const rcHash = await bcrypt.hash(dto.patientRc, 12);
 
-    const application = await prisma.onboardingApplication.create({
+    const application = await this.prisma.onboardingApplication.create({
       data: {
         id: randomUUID(),
         physicianId: dto.physicianId,
@@ -55,14 +55,14 @@ export class OnboardingService {
     reviewNote: string,
     ip: string,
   ) {
-    const app = await prisma.onboardingApplication.findUniqueOrThrow({
+    const app = await this.prisma.onboardingApplication.findUniqueOrThrow({
       where: { id: applicationId },
     });
 
     const newStatus =
       decision === 'accept' ? OnboardingStatus.ACCEPTED : OnboardingStatus.REJECTED;
 
-    await prisma.onboardingApplication.update({
+    await this.prisma.onboardingApplication.update({
       where: { id: applicationId },
       data: { status: newStatus, reviewNote },
     });
@@ -78,14 +78,12 @@ export class OnboardingService {
     });
 
     if (decision === 'accept') {
-      // Generate eDohoda XML for patient to sign via eID
       const xml = this.ncziXml.generateEDohoda({
         patientRc: '[REDACTED — retrieve via secure channel]',
         insurerCode: app.insurerCode,
         doctorCode: app.physicianId,
         validFrom: new Date().toISOString().substring(0, 10),
       });
-      // TODO: send xml + eID signing link to patient via SMS/email
       return { status: newStatus, edohodaXml: xml };
     }
 

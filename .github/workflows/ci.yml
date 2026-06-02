@@ -41,7 +41,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
-  # ── Unit tests ────────────────────────────────────────────
+  # ── Unit + Integration tests ──────────────────────────────
+  # Postgres runs as nstest (superuser equivalent in CI).
+  # After db:push we apply audit-immutability.sql which:
+  #   - Creates ns_app role with INSERT-only on audit_log
+  #   - Attaches the append-only trigger
+  # The audit-immutability.db.test.ts then connects as ns_app
+  # and proves UPDATE/DELETE are rejected at the DB layer.
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -60,8 +66,12 @@ jobs:
         ports:
           - 5432:5432
     env:
+      # Superuser URL — used by db:push and hardening step
       DATABASE_URL: postgresql://nstest:nstest@localhost:5432/nemocnica_test
+      # Application role URL — used by audit immutability test
+      DATABASE_URL_APP: postgresql://ns_app:ns_app_ci@localhost:5432/nemocnica_test
       JWT_SECRET: test_secret_for_ci_only
+      NS_APP_PASSWORD: ns_app_ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -71,8 +81,34 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter=@ns/api db:push
-      - run: pnpm test
+
+      # 1. Create schema (superuser)
+      - name: Apply Prisma migrations
+        run: pnpm --filter=@ns/api db:push
+
+      # 2. Apply audit immutability (trigger + role separation)
+      #    Uses superuser psql to set up ns_app role + trigger.
+      #    This is the step that makes the DB enforce immutability.
+      - name: Apply audit log immutability
+        run: |
+          PGPASSWORD=nstest psql \
+            -h localhost -U nstest -d nemocnica_test \
+            -v NS_APP_PASSWORD="$NS_APP_PASSWORD" \
+            -f infra/postgres/audit-immutability.sql
+
+      # 3. Pure unit tests (no DB required)
+      - name: Unit tests (rc-validation, booking-rules)
+        run: pnpm --filter=@ns/api test -- --testPathPattern="rc-validation|booking-rules\\.test"
+
+      # 4. HTTP integration tests (Prisma mocked, rules are REAL)
+      - name: HTTP integration tests — booking API rule enforcement
+        run: pnpm --filter=@ns/api test -- --testPathPattern="booking-api\\.e2e"
+
+      # 5. DB-level audit immutability test (uses ns_app role against real DB)
+      - name: DB-level audit immutability test
+        run: pnpm --filter=@ns/api test -- --testPathPattern="audit-immutability\\.db"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_APP }}
 
   # ── Build ─────────────────────────────────────────────────
   build:

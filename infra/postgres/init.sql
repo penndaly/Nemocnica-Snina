@@ -1,8 +1,9 @@
--- Create Strapi CMS database alongside the operational DB
+-- Runs on first container start (superuser context).
+
+-- Create Strapi CMS database
 CREATE DATABASE nemocnica_strapi;
 GRANT ALL PRIVILEGES ON DATABASE nemocnica_strapi TO nsadmin;
 
--- Enforce append-only audit log at the DB level
--- (app layer also enforces this; belt-and-suspenders)
--- Applied after Prisma migrations run.
--- DROP RULE will be blocked for audit_log via a separate POLICY.
+-- Note: audit-immutability.sql is run separately after Prisma migrations,
+-- because the audit_log table must exist first.
+-- See Makefile target: make db-harden
