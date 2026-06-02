@@ -1,0 +1,100 @@
+{
+  "brand": {
+    "name": "Nemocnica Snina",
+    "sub": "Polyclinic & Inpatient Care"
+  },
+  "emergency": "Emergency",
+  "callEmergency": "Call 112",
+  "central": "Switchboard",
+  "book": "Book appointment",
+  "portal": "Patient portal",
+  "login": "Log in",
+  "nav": {
+    "departments": "Departments",
+    "clinics": "Clinics",
+    "doctors": "Physicians",
+    "services": "Services",
+    "diagnostics": "Diagnostics",
+    "news": "News",
+    "contact": "Contact"
+  },
+  "footer": {
+    "care": "Care",
+    "patients": "For patients",
+    "legal": "Mandatory information",
+    "disclosures": "Contracts & invoices",
+    "privacy": "Privacy policy (GDPR)",
+    "accessibility": "Accessibility statement",
+    "admin": "Content administration",
+    "rights": "All rights reserved."
+  },
+  "status": {
+    "open": "Open",
+    "new": "New · accepting patients",
+    "alert": "Temporary measures",
+    "closed": "Closed"
+  },
+  "accepting": "Accepting new patients",
+  "notAccepting": "Not accepting new patients",
+  "referralReq": "Referral required",
+  "beds": "beds",
+  "head": "Head physician",
+  "more": "View details",
+  "bookHere": "Book here",
+  "phone": "Phone",
+  "location": "Location",
+  "schedule": "Operating hours",
+  "backHome": "Home",
+  "booking": {
+    "title": "Book appointment",
+    "step1": "Clinic",
+    "step2": "Date",
+    "step3": "Time",
+    "step4": "Details",
+    "step5": "Confirm",
+    "next": "Continue",
+    "back": "Back",
+    "confirm": "Confirm booking",
+    "referralNote": "This clinic requires a referral (výmenný lístok) from your GP.",
+    "gdprConsent": "I consent to the processing of personal data for the purposes of healthcare provision (Art. 9 GDPR).",
+    "referralConsent": "I confirm that I hold a valid referral.",
+    "nameLabel": "Full name",
+    "phoneLabel": "Phone number",
+    "rcLabel": "Birth number (rodné číslo)",
+    "successTitle": "Booking confirmed",
+    "successBody": "Your booking has been successfully registered. Booking ID:",
+    "cancelInfo": "You can cancel via the link in the confirmation SMS.",
+    "noSlots": "No available slots on this day.",
+    "closedNote": "This clinic does not currently accept online bookings.",
+    "otpLabel": "Verification code (SMS)",
+    "otpSend": "Send code",
+    "otpVerify": "Verify"
+  },
+  "portal": {
+    "title": "Patient portal",
+    "overview": "Overview",
+    "records": "Health records",
+    "prescriptions": "e-Prescriptions",
+    "labs": "Lab results",
+    "logout": "Log out",
+    "downloadPdf": "Download PDF",
+    "refillRequest": "Request refill"
+  },
+  "onboarding": {
+    "title": "New patient registration",
+    "subtitle": "eDohoda — digital capitation agreement",
+    "nameLabel": "Full name",
+    "rcLabel": "Birth number (rodné číslo)",
+    "insurerLabel": "Health insurer",
+    "submit": "Submit application",
+    "successTitle": "Application submitted",
+    "successBody": "Your registration application has been submitted. You will be notified of acceptance or rejection.",
+    "notAccepting": "This physician is not currently accepting new patients."
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content",
+    "openMenu": "Open navigation",
+    "closeMenu": "Close navigation",
+    "langSwitch": "Switch language"
+  }
+}

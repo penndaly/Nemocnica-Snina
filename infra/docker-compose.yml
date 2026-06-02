@@ -1,0 +1,126 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nsadmin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev}
+      POSTGRES_DB: nemocnica_snina
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nsadmin -d nemocnica_snina"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme_dev}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ (HIS queue) ──────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: nsqueue
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-changeme_dev}
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Strapi CMS ────────────────────────────────────────────
+  strapi:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run develop"
+    restart: unless-stopped
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: nemocnica_strapi
+      DATABASE_USERNAME: nsadmin
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev}
+      APP_KEYS: ${STRAPI_APP_KEYS:-toBeModified}
+      API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT:-toBeModified}
+      ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT:-toBeModified}
+      JWT_SECRET: ${STRAPI_JWT:-toBeModified}
+    ports:
+      - "1337:1337"
+    volumes:
+      - ../apps/cms:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── NestJS API ────────────────────────────────────────────
+  api:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://nsadmin:${POSTGRES_PASSWORD:-changeme_dev}@postgres:5432/nemocnica_snina
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_dev}@redis:6379
+      RABBITMQ_URL: amqp://nsqueue:${RABBITMQ_PASSWORD:-changeme_dev}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET:-changeme_dev}
+      ALLOWED_ORIGINS: http://localhost:3000
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:
+      - ../apps/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # ── Next.js web (dev) ─────────────────────────────────────
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_CMS_URL: http://localhost:1337
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/web:/app
+      - ../packages:/packages
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:

@@ -1,0 +1,7 @@
+node_modules
+.next
+dist
+.turbo
+pnpm-lock.yaml
+*.min.*
+design_handoff_nemocnica_snina

@@ -1,0 +1,148 @@
+// Nemocnica Snina — Prisma schema
+// PostgreSQL operational database (appointments, users, audit)
+// CMS content lives in Strapi; this schema owns operational/transactional data.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Booking ─────────────────────────────────────────────
+
+model AvailabilitySlot {
+  id        String   @id @default(uuid())
+  clinicId  String
+  date      String   // ISO date YYYY-MM-DD
+  time      String   // HH:MM
+  booked    Boolean  @default(false)
+  bookingId String?  @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([clinicId, date])
+  @@map("availability_slots")
+}
+
+model Booking {
+  id               String         @id @default(uuid())
+  clinicId         String
+  patientName      String
+  patientPhone     String
+  patientRcHash    String         // bcrypt hash — never store plaintext RC
+  date             String
+  time             String
+  hasReferral      Boolean        @default(false)
+  gdprConsent      Boolean        @default(false)
+  referralConsent  Boolean        @default(false)
+  status           BookingStatus  @default(PENDING)
+  cancelToken      String         @unique
+  smsVerified      Boolean        @default(false)
+  slot             AvailabilitySlot?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([clinicId, date])
+  @@index([cancelToken])
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ─── New-patient onboarding ───────────────────────────────
+
+model OnboardingApplication {
+  id           String              @id @default(uuid())
+  physicianId  String
+  patientName  String
+  patientRcHash String             // bcrypt hash
+  insurerCode  String
+  phone        String
+  email        String?
+  status       OnboardingStatus    @default(SUBMITTED)
+  reviewedById String?
+  reviewNote   String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([physicianId, status])
+  @@map("onboarding_applications")
+}
+
+enum OnboardingStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+// ─── Staff users ──────────────────────────────────────────
+
+model StaffUser {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  name          String
+  passwordHash  String
+  role          StaffRole  @default(EDITOR)
+  mfaEnabled    Boolean    @default(true)
+  mfaSecret     String?
+  active        Boolean    @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  auditLogs     AuditLog[]
+
+  @@map("staff_users")
+}
+
+enum StaffRole {
+  EDITOR
+  CLINICIAN
+  ADMIN
+}
+
+// ─── Immutable audit log ──────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  actor       StaffUser? @relation(fields: [actorId], references: [id])
+  actorEmail  String
+  actorRole   String
+  action      String
+  resource    String
+  resourceId  String
+  detail      Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  // Append-only: no update/delete — enforced at application layer + DB policy
+  @@index([resource, resourceId])
+  @@index([actorEmail])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ─── SMS OTP ──────────────────────────────────────────────
+
+model SmsOtp {
+  id        String   @id @default(uuid())
+  phone     String
+  codeHash  String
+  purpose   String   // "booking" | "login"
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone, purpose])
+  @@map("sms_otps")
+}
