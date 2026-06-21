@@ -3,9 +3,10 @@ import { HisQueueService } from './his-queue.service';
 import { HisSyncConsumer } from './his-sync.consumer';
 import { FhirReadService } from './fhir-read.service';
 import { AuditModule } from '../audit/audit.module';
+import { SmsModule } from '../sms/sms.module';
 
 @Module({
-  imports: [AuditModule],
+  imports: [AuditModule, SmsModule],
   providers: [HisQueueService, HisSyncConsumer, FhirReadService],
   exports: [HisQueueService, FhirReadService],
 })

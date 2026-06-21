@@ -149,3 +149,16 @@ model SmsOtp {
   @@index([phone, purpose])
   @@map("sms_otps")
 }
+
+// ─── Payment receipts ────────────────────────────────────────────────────────
+
+model PaymentReceipt {
+  id             String   @id @default(uuid())
+  transactionRef String   @unique
+  bookingId      String?
+  pdfContent     Bytes?              // inline PDF bytes; generated on payment.completed webhook
+  createdAt      DateTime @default(now())
+
+  @@index([bookingId])
+  @@map("payment_receipts")
+}

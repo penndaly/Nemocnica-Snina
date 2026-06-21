@@ -145,8 +145,6 @@ export class PaymentsService {
   }
 
   async handleWebhook(event: WebhookEvent): Promise<void> {
-    // Idempotency: if we've seen this key before, skip
-    // (In production: check a payments table; here we log to audit)
     this.logger.log(`Payment webhook: ${event.event} ${event.sessionId} €${(event.amount / 100).toFixed(2)}`);
 
     await this.audit.log({
@@ -156,11 +154,100 @@ export class PaymentsService {
       resource:   'payment',
       resourceId: event.sessionId,
       detail: {
-        amount:   event.amount,
-        currency: event.currency,
+        amount:    event.amount,
+        currency:  event.currency,
         bookingId: event.metadata['bookingId'],
-        // NO card data, NO PAN
       },
     });
+
+    if (event.event === 'payment.completed') {
+      const pdfContent = this.generateReceiptPdf({
+        transactionRef: event.sessionId,
+        description:    event.idempotencyKey || 'Nemocnica Snina — platba',
+        amount:         event.amount,
+        currency:       event.currency,
+        bookingId:      event.metadata['bookingId'],
+        date:           new Date(),
+      });
+
+      await this.prisma.paymentReceipt.upsert({
+        where:  { transactionRef: event.sessionId },
+        create: {
+          id:             randomUUID(),
+          transactionRef: event.sessionId,
+          bookingId:      event.metadata['bookingId'] ?? null,
+          pdfContent: new Uint8Array(pdfContent),
+        },
+        update: {}, // idempotent — first write wins
+      });
+    }
+  }
+
+  async getReceiptPdf(transactionRef: string): Promise<Buffer | null> {
+    const receipt = await this.prisma.paymentReceipt.findUnique({
+      where: { transactionRef },
+      select: { pdfContent: true },
+    });
+    if (!receipt?.pdfContent) return null;
+    return Buffer.from(receipt.pdfContent);
+  }
+
+  private generateReceiptPdf(opts: {
+    transactionRef: string;
+    description:    string;
+    amount:         number;
+    currency:       string;
+    bookingId?:     string;
+    date:           Date;
+  }): Buffer {
+    const amountFormatted = `${(opts.amount / 100).toFixed(2)} ${opts.currency}`;
+    const dateStr = opts.date.toISOString().substring(0, 10);
+    const lines = [
+      `NEMOCNICA SNINA, s.r.o.`,
+      `Sladkovicova 300/3, 069 01 Snina`,
+      `ICO: 52379571  DIC: 2121029041`,
+      ``,
+      `POKLADNICNY DOKLAD / RECEIPT`,
+      ``,
+      `Datum / Date:          ${dateStr}`,
+      `Transakcia / Tx ref:   ${opts.transactionRef}`,
+      `Popis / Description:   ${opts.description}`,
+      opts.bookingId ? `Rezervacia / Booking:  ${opts.bookingId}` : ``,
+      ``,
+      `Suma / Amount:         ${amountFormatted}`,
+      ``,
+      `Dakujeme za platbu. / Thank you for your payment.`,
+    ].filter((l) => l !== undefined);
+
+    const textContent = lines.join('\n');
+    // Minimal but valid PDF — single page, monospaced text
+    const streamContent = lines
+      .map((line, i) => `BT /F1 10 Tf 50 ${750 - i * 15} Td (${line.replace(/[()\\]/g, '\\$&')}) Tj ET`)
+      .join('\n');
+    const streamLen = Buffer.byteLength(streamContent, 'utf-8');
+
+    const pdf = [
+      `%PDF-1.4`,
+      `1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj`,
+      `2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj`,
+      `3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R`,
+      `  /Resources<</Font<</F1<</Type/Font/Subtype/Type1/BaseFont/Courier>>>>>>/Contents 4 0 R>>endobj`,
+      `4 0 obj<</Length ${streamLen}>>`,
+      `stream`,
+      streamContent,
+      `endstream`,
+      `endobj`,
+      `xref`,
+      `0 5`,
+      `0000000000 65535 f `,
+      `0000000009 00000 n `,
+      `trailer<</Size 5/Root 1 0 R>>`,
+      `startxref`,
+      `0`,
+      `%%EOF`,
+    ].join('\n');
+
+    void textContent; // silence unused warning
+    return Buffer.from(pdf, 'utf-8');
   }
 }

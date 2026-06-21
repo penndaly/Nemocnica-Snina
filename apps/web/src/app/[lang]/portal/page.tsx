@@ -3,13 +3,20 @@
 import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, CreditCard, X, ShieldCheck } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import type { SupportedLocale } from '@/i18n/config';
 import type { FhirCondition, FhirMedicationRequest, FhirObservation, FhirAppointment } from '@ns/types';
 
-type Tab = 'overview' | 'records' | 'prescriptions' | 'labs';
+type Tab = 'overview' | 'records' | 'prescriptions' | 'labs' | 'payments';
 const FLAG_COLORS = { high: 'var(--amber)', low: 'var(--red)', normal: 'var(--green)', critical: 'var(--red)' };
+
+interface PaymentReceiptRow {
+  id: string;
+  transactionRef: string;
+  bookingId?: string;
+  createdAt: string;
+}
 
 interface PatientRecords {
   conditions:   FhirCondition[];
@@ -123,6 +130,96 @@ function LabPdfButton({ observationId, locale }: { observationId: string; locale
   );
 }
 
+// ── Medication refill request button ─────────────────────────
+
+function RefillButton({ medicationId, locale }: { medicationId: string; locale: SupportedLocale }) {
+  const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
+
+  async function requestRefill() {
+    setState('busy');
+    try {
+      const r = await fetch('/api/portal/refill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ medicationRequestId: medicationId }),
+      });
+      setState(r.ok ? 'done' : 'error');
+    } catch {
+      setState('error');
+    }
+  }
+
+  if (state === 'done') {
+    return (
+      <span role="status" aria-live="polite" style={{ fontSize: '.82rem', color: 'var(--green)', fontWeight: 600 }}>
+        {locale === 'sk' ? 'Žiadosť odoslaná.' : 'Request sent.'}
+      </span>
+    );
+  }
+  if (state === 'error') {
+    return (
+      <span role="alert" aria-live="assertive" style={{ fontSize: '.82rem', color: 'var(--red)' }}>
+        {locale === 'sk' ? 'Chyba — skúste znovu.' : 'Error — please retry.'}
+      </span>
+    );
+  }
+  return (
+    <button
+      className="btn btn-ghost btn-sm"
+      onClick={() => void requestRefill()}
+      disabled={state === 'busy'}
+      aria-live="polite"
+    >
+      {state === 'busy'
+        ? (locale === 'sk' ? 'Odosielam…' : 'Sending…')
+        : (locale === 'sk' ? 'Obnoviť recept' : 'Request refill')}
+    </button>
+  );
+}
+
+// ── Cancel appointment link ───────────────────────────────────
+
+function CancelAppointmentLink({ bookingId, locale }: { bookingId: string; locale: SupportedLocale }) {
+  const [href, setHref] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function fetchCancelToken() {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/portal/appointments/${bookingId}/cancel-token`);
+      if (r.ok) {
+        const data = await r.json() as { cancelToken?: string };
+        if (data.cancelToken) {
+          setHref(`/${locale}/objednanie/zrusit/${data.cancelToken}`);
+        }
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  if (href) {
+    return (
+      <a href={href} style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem', fontSize: '.82rem', color: 'var(--red)', textDecoration: 'none' }}>
+        <X size={13} />
+        {locale === 'sk' ? 'Zrušiť termín' : 'Cancel appointment'}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      className="btn btn-ghost btn-sm"
+      onClick={() => void fetchCancelToken()}
+      disabled={loading}
+      style={{ color: 'var(--red)', fontSize: '.82rem' }}
+    >
+      {loading
+        ? '…'
+        : (locale === 'sk' ? 'Zrušiť termín' : 'Cancel appointment')}
+    </button>
+  );
+}
+
 const OIDC_ERROR_MESSAGES: Record<string, Record<SupportedLocale, string>> = {
   oidc_access_denied:  { sk: 'Prihlásenie cez eID bolo zamietnuté.',       en: 'eID login was denied.',               cs: 'Přihlášení přes eID bylo zamítnuto.', pl: 'Logowanie przez eID zostało odrzucone.', hu: 'Az eID bejelentkezést elutasították.', uk: 'Вхід через eID було відхилено.' },
   missing_code:        { sk: 'Neplatná odpoveď od prihlasovacieho servera.', en: 'Invalid response from login server.', cs: 'Neplatná odpověď od přihlašovacího serveru.', pl: 'Nieprawidłowa odpowiedź serwera logowania.', hu: 'Érvénytelen válasz a bejelentkezési szervertől.', uk: 'Недійсна відповідь від сервера входу.' },
@@ -138,6 +235,7 @@ export default function PortalPage() {
   const [identity, setIdentity] = useState<PatientIdentity | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [records, setRecords]   = useState<PatientRecords | null>(null);
+  const [receipts, setReceipts] = useState<PaymentReceiptRow[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
 
   const oidcError = searchParams.get('error');
@@ -156,6 +254,10 @@ export default function PortalPage() {
           fetch('/api/portal/records')
             .then((r) => r.ok ? r.json() as Promise<PatientRecords> : null)
             .then((rec) => { if (rec) setRecords(rec); })
+            .catch(() => {});
+          fetch('/api/portal/receipts')
+            .then((r) => r.ok ? r.json() as Promise<PaymentReceiptRow[]> : null)
+            .then((rows) => { if (rows) setReceipts(rows); })
             .catch(() => {});
         }
       })
@@ -213,10 +315,11 @@ export default function PortalPage() {
   }
 
   const tabConfig: Array<{ key: Tab; label: string; icon: React.ReactNode }> = [
-    { key: 'overview',      label: t('portal.overview'),      icon: <User     size={16} /> },
-    { key: 'records',       label: t('portal.records'),       icon: <Activity size={16} /> },
-    { key: 'prescriptions', label: t('portal.prescriptions'), icon: <Pill     size={16} /> },
+    { key: 'overview',      label: t('portal.overview'),      icon: <User         size={16} /> },
+    { key: 'records',       label: t('portal.records'),       icon: <Activity     size={16} /> },
+    { key: 'prescriptions', label: t('portal.prescriptions'), icon: <Pill         size={16} /> },
     { key: 'labs',          label: t('portal.labs'),          icon: <FlaskConical size={16} /> },
+    { key: 'payments',      label: locale === 'sk' ? 'Platby' : 'Payments', icon: <CreditCard size={16} /> },
   ];
 
   return (
@@ -297,10 +400,11 @@ export default function PortalPage() {
                           <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--blue-50)', color: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <Calendar size={20} />
                           </div>
-                          <div>
+                          <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 700 }}>{loc(a.clinic, locale)}</div>
                             <div style={{ fontSize: '.85rem', color: 'var(--ink-2)' }}>{a.date} {a.time} · {a.doctor}</div>
                           </div>
+                          <CancelAppointmentLink bookingId={a.id} locale={locale} />
                         </div>
                       ))}
                     </div>
@@ -358,9 +462,7 @@ export default function PortalPage() {
                           <div style={{ fontWeight: 700 }}>{m.name}</div>
                           <div style={{ fontSize: '.85rem', color: 'var(--ink-2)' }}>{loc(m.dose, locale)} · {locale === 'sk' ? `${m.refills} obnov.` : `${m.refills} refills`}</div>
                         </div>
-                        <button className="btn btn-ghost btn-sm">
-                          {t('portal.refillRequest')}
-                        </button>
+                        {m.refills > 0 && <RefillButton medicationId={m.id} locale={locale} />}
                       </div>
                     ))}
                   </div>
@@ -414,6 +516,49 @@ export default function PortalPage() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {tab === 'payments' && (
+                <div>
+                  <h3 style={{ marginBottom: '1rem' }}>{locale === 'sk' ? 'Platby a pokladničné doklady' : 'Payments & receipts'}</h3>
+                  {receipts.length === 0 ? (
+                    <div className="card card-pad" style={{ color: 'var(--ink-2)', fontSize: '.9rem' }}>
+                      {locale === 'sk' ? 'Žiadne platby.' : 'No payments found.'}
+                    </div>
+                  ) : (
+                    <div className="card" style={{ overflowX: 'auto' }}>
+                      <table className="data">
+                        <thead>
+                          <tr>
+                            <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
+                            <th>{locale === 'sk' ? 'Transakcia' : 'Transaction'}</th>
+                            <th>{locale === 'sk' ? 'Rezervácia' : 'Booking'}</th>
+                            <th>{locale === 'sk' ? 'Doklad' : 'Receipt'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {receipts.map((r) => (
+                            <tr key={r.id}>
+                              <td>{new Date(r.createdAt).toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-GB')}</td>
+                              <td style={{ fontFamily: 'monospace', fontSize: '.82rem' }}>{r.transactionRef.slice(0, 16)}…</td>
+                              <td style={{ fontSize: '.82rem' }}>{r.bookingId ?? '—'}</td>
+                              <td>
+                                <a
+                                  href={`/api/payments/receipt/${r.transactionRef}`}
+                                  download={`receipt-${r.transactionRef}.pdf`}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem', fontSize: '.82rem', color: 'var(--blue-700)', textDecoration: 'none' }}
+                                >
+                                  <Download size={13} />
+                                  PDF
+                                </a>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

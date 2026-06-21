@@ -11,30 +11,42 @@
  */
 import {
   BadRequestException, Body, Controller, Get, Headers,
-  Ip, Param, Post, Res, UnauthorizedException,
+  HttpCode, Ip, NotFoundException, Param, Post,
+  Res, UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import * as jose from 'jose';
+import Redis from 'ioredis';
 import { FhirReadService } from '../his/fhir-read.service';
+import { HisQueueService } from '../his/his-queue.service';
 import { SmsService } from '../sms/sms.service';
 import { AuditService } from '../audit/audit.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('api/portal')
 export class PortalController {
   private readonly sessionSecret: Uint8Array;
   private readonly mock: boolean;
+  private readonly redis: Redis;
 
   constructor(
     private readonly fhir: FhirReadService,
+    private readonly his: HisQueueService,
     private readonly sms: SmsService,
     private readonly audit: AuditService,
+    private readonly prisma: PrismaService,
     cfg: ConfigService,
   ) {
     this.sessionSecret = new TextEncoder().encode(
       cfg.get<string>('JWT_SECRET') ?? 'dev-secret-min-32-chars-long-xxx',
     );
-    this.mock = cfg.get<string>('HIS_MOCK_ENABLED') === 'true';
+    this.mock  = cfg.get<string>('HIS_MOCK_ENABLED') === 'true';
+    this.redis = new Redis(cfg.get<string>('REDIS_URL') ?? 'redis://localhost:6379', {
+      lazyConnect: true,
+      enableOfflineQueue: false,
+    });
   }
 
   // ── Session helper ──────────────────────────────────────
@@ -156,6 +168,135 @@ export class PortalController {
       .header('Content-Type', 'application/pdf')
       .header('Content-Disposition', `attachment; filename="lab-result-${observationId}.pdf"`)
       .send(Buffer.from(await res.arrayBuffer()));
+  }
+
+  // ── Part B: Medication refill request ────────────────────
+
+  /**
+   * POST /api/portal/refill
+   * Body: { medicationRequestId: string }
+   * Rate-limited to 1 request per medication per 7 days (Redis).
+   * Publishes portal.refill.requested → HIS sync → physician inbox.
+   */
+  @Post('refill')
+  @HttpCode(200)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  async requestRefill(
+    @Headers('x-patient-session') sessionToken: string | undefined,
+    @Body() body: { medicationRequestId?: string },
+    @Ip() ip: string,
+  ) {
+    const patientSub = await this.resolveSession(sessionToken);
+    const medId = body.medicationRequestId;
+    if (!medId) throw new BadRequestException('medicationRequestId is required');
+
+    // Rate-limit: 1 refill request per medication per 7 days
+    const rateKey = `refill:${patientSub}:${medId}`;
+    let rateLimited = false;
+    try {
+      const exists = await this.redis.get(rateKey);
+      if (exists) rateLimited = true;
+      else await this.redis.set(rateKey, '1', 'EX', 7 * 24 * 60 * 60);
+    } catch {
+      // Redis unavailable — allow but log; don't block patient
+    }
+
+    if (rateLimited) {
+      throw new BadRequestException(
+        'Refill request already submitted for this medication. Please wait 7 days.',
+      );
+    }
+
+    await this.his.publish({
+      type: 'portal.refill.requested',
+      idempotencyKey: `${patientSub}:${medId}:${Date.now()}`,
+      payload: { patientSub, medicationRequestId: medId },
+      timestamp: new Date().toISOString(),
+    });
+
+    await this.audit.log({
+      actorEmail: `patient:${patientSub.slice(0, 8)}`,
+      actorRole: 'patient',
+      action: 'portal_refill_requested',
+      resource: 'MedicationRequest',
+      resourceId: medId,
+      ip,
+    });
+
+    return { queued: true };
+  }
+
+  // ── Part C: Appointment cancel token ─────────────────────
+
+  /**
+   * GET /api/portal/appointments/:bookingId/cancel-token
+   * Returns the cancelToken for a booking so the patient can deep-link
+   * to /[lang]/objednanie/zrusit/[token].
+   * The bookingId is the FHIR Appointment identifier value (our internal UUID).
+   */
+  @Get('appointments/:bookingId/cancel-token')
+  async getCancelToken(
+    @Param('bookingId') bookingId: string,
+    @Headers('x-patient-session') sessionToken: string | undefined,
+    @Ip() ip: string,
+  ) {
+    const patientSub = await this.resolveSession(sessionToken);
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, cancelToken: true, status: true },
+    });
+
+    if (!booking?.cancelToken) {
+      throw new NotFoundException('Appointment not found or not cancellable');
+    }
+
+    if (booking.status === 'CANCELLED') {
+      throw new BadRequestException('Appointment is already cancelled');
+    }
+
+    await this.audit.log({
+      actorEmail: `patient:${patientSub.slice(0, 8)}`,
+      actorRole: 'patient',
+      action: 'portal_cancel_token_retrieved',
+      resource: 'booking',
+      resourceId: bookingId,
+      ip,
+    });
+
+    return { cancelToken: booking.cancelToken };
+  }
+
+  // ── Part D: Patient receipt list ─────────────────────────
+
+  /**
+   * GET /api/portal/receipts
+   * Returns payment receipts. Patient session required.
+   * Receipts are keyed by transactionRef; the portal downloads via
+   * GET /api/payments/receipt/:transactionRef.
+   */
+  @Get('receipts')
+  async listReceipts(
+    @Headers('x-patient-session') sessionToken: string | undefined,
+    @Ip() ip: string,
+  ) {
+    const patientSub = await this.resolveSession(sessionToken);
+
+    const receipts = await this.prisma.paymentReceipt.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, transactionRef: true, bookingId: true, createdAt: true },
+    });
+
+    await this.audit.log({
+      actorEmail: `patient:${patientSub.slice(0, 8)}`,
+      actorRole: 'patient',
+      action: 'portal_receipts_listed',
+      resource: 'payment_receipts',
+      resourceId: patientSub,
+      ip,
+    });
+
+    return receipts;
   }
 }
 

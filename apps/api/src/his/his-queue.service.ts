@@ -15,7 +15,9 @@ import { AuditService } from '../audit/audit.service';
 export type HisEventType =
   | 'booking.confirmed'
   | 'booking.cancelled'
-  | 'onboarding.accepted';
+  | 'onboarding.accepted'
+  | 'medication.prescribed'
+  | 'portal.refill.requested';
 
 export interface HisEvent {
   type: HisEventType;
