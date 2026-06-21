@@ -3,13 +3,48 @@
 import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, CreditCard, X, ShieldCheck } from 'lucide-react';
+import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, CreditCard, X, ShieldCheck, Video } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import type { SupportedLocale } from '@/i18n/config';
 import type { FhirCondition, FhirMedicationRequest, FhirObservation, FhirAppointment } from '@ns/types';
 
-type Tab = 'overview' | 'records' | 'prescriptions' | 'labs' | 'payments';
+type Tab = 'overview' | 'teleconsult' | 'records' | 'prescriptions' | 'labs' | 'payments';
 const FLAG_COLORS = { high: 'var(--amber)', low: 'var(--red)', normal: 'var(--green)', critical: 'var(--red)' };
+
+// ── Teleconsult types ─────────────────────────────────────────
+
+interface TeleconsultSession {
+  id: string;
+  scheduledAt: string;
+  status: 'scheduled' | 'waiting' | 'active' | 'ended' | 'no_show' | 'cancelled';
+  physicianName?: string;
+  physicianSpecialty?: string;
+  clinicName?: string;
+  durationSeconds?: number;
+}
+
+function minutesUntil(isoDate: string): number {
+  return Math.floor((new Date(isoDate).getTime() - Date.now()) / 60_000);
+}
+
+function fmtDuration(secs?: number): string {
+  if (!secs) return '—';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function statusBadgeClass(status: TeleconsultSession['status']): string {
+  switch (status) {
+    case 'scheduled': return 'badge-blue';
+    case 'waiting':   return 'badge-amber';
+    case 'active':    return 'badge-green';
+    case 'ended':     return 'badge-green';
+    case 'no_show':   return 'badge-gray';
+    case 'cancelled': return 'badge-gray';
+    default:          return 'badge-gray';
+  }
+}
 
 interface PaymentReceiptRow {
   id: string;
@@ -220,6 +255,89 @@ function CancelAppointmentLink({ bookingId, locale }: { bookingId: string; local
   );
 }
 
+// ── Teleconsult summary PDF step-up 2FA ─────────────────────
+
+function SummaryPdfButton({ sessionId, locale }: { sessionId: string; locale: SupportedLocale }) {
+  const [phase,  setPhase]  = useState<'idle' | 'phone' | 'otp' | 'busy' | 'done' | 'error'>('idle');
+  const [phone,  setPhone]  = useState('');
+  const [otp,    setOtp]    = useState('');
+  const [errMsg, setErrMsg] = useState('');
+
+  async function sendChallenge() {
+    setPhase('busy');
+    const r = await fetch(`/api/telehealth/sessions/${sessionId}/summary?action=pdf-challenge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    setPhase(r.ok ? 'otp' : 'error');
+    if (!r.ok) setErrMsg(locale === 'sk' ? 'Nepodarilo sa odoslať kód.' : 'Failed to send code.');
+  }
+
+  async function downloadPdf() {
+    setPhase('busy');
+    const r = await fetch(`/api/telehealth/sessions/${sessionId}/summary?action=pdf-download`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp }),
+    });
+    if (!r.ok) {
+      const body = await r.json() as { message?: string };
+      setErrMsg(body.message ?? (locale === 'sk' ? 'Neplatný kód.' : 'Invalid code.'));
+      setPhase('error');
+      return;
+    }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `summary-${sessionId}.pdf`; a.click();
+    URL.revokeObjectURL(url);
+    setPhase('done');
+  }
+
+  if (phase === 'idle') return (
+    <button className="btn btn-ghost btn-sm" onClick={() => setPhase('phone')} aria-haspopup="dialog">
+      <Download size={13} aria-hidden="true" />
+      {locale === 'sk' ? 'PDF' : 'PDF'}
+    </button>
+  );
+
+  if (phase === 'phone') return (
+    <span style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
+      <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+        placeholder="+421900…" aria-label={locale === 'sk' ? 'Telefón' : 'Phone'}
+        style={{ width: 120, padding: '.25rem .4rem', border: '1px solid var(--line)', borderRadius: 6, fontSize: '.82rem' }} />
+      <button className="btn btn-primary btn-sm" onClick={() => void sendChallenge()} disabled={!phone}>
+        {locale === 'sk' ? 'Odoslať' : 'Send'}
+      </button>
+      <button className="btn btn-ghost btn-sm" onClick={() => setPhase('idle')}>✕</button>
+    </span>
+  );
+
+  if (phase === 'otp') return (
+    <span style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
+      <input type="text" inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value)}
+        placeholder="123456" maxLength={6} aria-label={locale === 'sk' ? 'SMS kód' : 'SMS code'}
+        style={{ width: 80, padding: '.25rem .4rem', border: '1px solid var(--line)', borderRadius: 6, fontSize: '.82rem', fontFamily: 'monospace' }} />
+      <button className="btn btn-primary btn-sm" onClick={() => void downloadPdf()} disabled={otp.length < 6}>
+        {locale === 'sk' ? 'Overiť' : 'Verify'}
+      </button>
+      <button className="btn btn-ghost btn-sm" onClick={() => setPhase('idle')}>✕</button>
+    </span>
+  );
+
+  if (phase === 'busy') return <span style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>…</span>;
+  if (phase === 'done') return <span className="badge badge-green" style={{ fontSize: '.78rem' }}>✓</span>;
+  return (
+    <span style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
+      <span role="alert" style={{ color: 'var(--red)', fontSize: '.78rem' }}>{errMsg}</span>
+      <button className="btn btn-ghost btn-sm" onClick={() => { setPhase('idle'); setErrMsg(''); }}>
+        {locale === 'sk' ? 'Znovu' : 'Retry'}
+      </button>
+    </span>
+  );
+}
+
 const OIDC_ERROR_MESSAGES: Record<string, Record<SupportedLocale, string>> = {
   oidc_access_denied:  { sk: 'Prihlásenie cez eID bolo zamietnuté.',       en: 'eID login was denied.',               cs: 'Přihlášení přes eID bylo zamítnuto.', pl: 'Logowanie przez eID zostało odrzucone.', hu: 'Az eID bejelentkezést elutasították.', uk: 'Вхід через eID було відхилено.' },
   missing_code:        { sk: 'Neplatná odpoveď od prihlasovacieho servera.', en: 'Invalid response from login server.', cs: 'Neplatná odpověď od přihlašovacího serveru.', pl: 'Nieprawidłowa odpowiedź serwera logowania.', hu: 'Érvénytelen válasz a bejelentkezési szervertől.', uk: 'Недійсна відповідь від сервера входу.' },
@@ -237,6 +355,13 @@ export default function PortalPage() {
   const [records, setRecords]   = useState<PatientRecords | null>(null);
   const [receipts, setReceipts] = useState<PaymentReceiptRow[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
+
+  // Teleconsult state
+  const [tcUpcoming, setTcUpcoming] = useState<TeleconsultSession[]>([]);
+  const [tcPast,     setTcPast]     = useState<TeleconsultSession[]>([]);
+  const [tcSubTab,   setTcSubTab]   = useState<'upcoming' | 'past'>('upcoming');
+  const [expandedSummary, setExpandedSummary] = useState<string | null>(null);
+  const [summaryData, setSummaryData] = useState<Record<string, { clinicalNote?: string; followUpRecommendationSk?: string; followUpRecommendationEn?: string }>>({});
 
   const oidcError = searchParams.get('error');
   const oidcErrorMsg = oidcError
@@ -258,6 +383,14 @@ export default function PortalPage() {
           fetch('/api/portal/receipts')
             .then((r) => r.ok ? r.json() as Promise<PaymentReceiptRow[]> : null)
             .then((rows) => { if (rows) setReceipts(rows); })
+            .catch(() => {});
+          fetch('/api/telehealth/sessions?status=scheduled,waiting,active')
+            .then((r) => r.ok ? r.json() as Promise<TeleconsultSession[]> : null)
+            .then((rows) => { if (rows) setTcUpcoming(rows); })
+            .catch(() => {});
+          fetch('/api/telehealth/sessions?status=ended,no_show')
+            .then((r) => r.ok ? r.json() as Promise<TeleconsultSession[]> : null)
+            .then((rows) => { if (rows) setTcPast(rows); })
             .catch(() => {});
         }
       })
@@ -315,10 +448,11 @@ export default function PortalPage() {
   }
 
   const tabConfig: Array<{ key: Tab; label: string; icon: React.ReactNode }> = [
-    { key: 'overview',      label: t('portal.overview'),      icon: <User         size={16} /> },
-    { key: 'records',       label: t('portal.records'),       icon: <Activity     size={16} /> },
-    { key: 'prescriptions', label: t('portal.prescriptions'), icon: <Pill         size={16} /> },
-    { key: 'labs',          label: t('portal.labs'),          icon: <FlaskConical size={16} /> },
+    { key: 'overview',      label: t('portal.overview'),           icon: <User         size={16} /> },
+    { key: 'teleconsult',   label: t('portal.teleconsultTitle'),   icon: <Video        size={16} /> },
+    { key: 'records',       label: t('portal.records'),            icon: <Activity     size={16} /> },
+    { key: 'prescriptions', label: t('portal.prescriptions'),      icon: <Pill         size={16} /> },
+    { key: 'labs',          label: t('portal.labs'),               icon: <FlaskConical size={16} /> },
     { key: 'payments',      label: locale === 'sk' ? 'Platby' : 'Payments', icon: <CreditCard size={16} /> },
   ];
 
@@ -418,6 +552,231 @@ export default function PortalPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {tab === 'teleconsult' && (
+                <div>
+                  <h3 style={{ marginBottom: '1rem' }}>{t('portal.teleconsultTitle')}</h3>
+
+                  {/* Summary PDF note */}
+                  <div
+                    style={{
+                      background: 'var(--amber-50)', border: '1px solid var(--amber)',
+                      borderRadius: 'var(--radius-sm)', padding: '.6rem .9rem',
+                      display: 'flex', gap: '.5rem', alignItems: 'center',
+                      fontSize: '.85rem', color: 'var(--amber)', marginBottom: '1rem',
+                    }}
+                    role="note"
+                  >
+                    <AlertTriangle size={14} />
+                    {t('portal.summaryPdfNote')}
+                  </div>
+
+                  {/* Sub-tabs */}
+                  <div style={{ display: 'flex', gap: '.5rem', marginBottom: '1rem' }}>
+                    {(['upcoming', 'past'] as const).map((sub) => (
+                      <button
+                        key={sub}
+                        onClick={() => setTcSubTab(sub)}
+                        aria-pressed={tcSubTab === sub}
+                        style={{
+                          padding: '.4rem .9rem', borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--line)',
+                          background: tcSubTab === sub ? 'var(--blue-700)' : 'var(--surface)',
+                          color: tcSubTab === sub ? '#fff' : 'var(--ink-2)',
+                          fontFamily: 'Mulish, sans-serif', fontWeight: 600, fontSize: '.88rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {sub === 'upcoming' ? t('portal.teleconsultUpcoming') : t('portal.teleconsultPast')}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Upcoming */}
+                  {tcSubTab === 'upcoming' && (
+                    <>
+                      {tcUpcoming.length === 0 ? (
+                        <div className="card card-pad" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                          <Video size={32} color="var(--ink-3)" style={{ margin: '0 auto .75rem', display: 'block' }} aria-hidden="true" />
+                          <p style={{ color: 'var(--ink-2)', marginBottom: '1rem' }}>{t('portal.teleconsultEmptyUpcoming')}</p>
+                          <a href={`/${locale}/objednanie?mode=telehealth`} className="btn btn-primary btn-sm">
+                            {t('portal.teleconsultEmptyCta')}
+                          </a>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+                          {tcUpcoming.map((s) => {
+                            const mins = minutesUntil(s.scheduledAt);
+                            const joinActive = mins <= 10;
+                            const dateLabel = new Date(s.scheduledAt).toLocaleString(locale === 'sk' ? 'sk-SK' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+                            return (
+                              <div key={s.id} className="card card-pad" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--blue-50)', color: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <Video size={20} aria-hidden="true" />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 700 }}>{s.physicianName ?? '—'}</div>
+                                  <div style={{ fontSize: '.85rem', color: 'var(--ink-2)' }}>
+                                    {s.physicianSpecialty && <span style={{ marginRight: '.5rem' }}>{s.physicianSpecialty}</span>}
+                                    <span className="chip" style={{ fontSize: '.78rem' }}>{dateLabel}</span>
+                                  </div>
+                                </div>
+                                <span className={`badge ${statusBadgeClass(s.status)}`} style={{ flexShrink: 0 }}>
+                                  {s.status}
+                                </span>
+                                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexShrink: 0 }}>
+                                  {joinActive ? (
+                                    <a
+                                      href={`/${locale}/telehealth/konzultacia/${s.id}`}
+                                      className="btn btn-primary btn-sm"
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}
+                                    >
+                                      <Video size={13} aria-hidden="true" />
+                                      {t('portal.joinBtn')}
+                                    </a>
+                                  ) : (
+                                    <button
+                                      className="btn btn-ghost btn-sm"
+                                      disabled
+                                      aria-label={t('portal.joinCountdown').replace('{mins}', String(Math.max(0, mins)))}
+                                      title={t('portal.joinCountdown').replace('{mins}', String(Math.max(0, mins)))}
+                                    >
+                                      <Video size={13} aria-hidden="true" />
+                                      {mins > 0
+                                        ? t('portal.joinCountdown').replace('{mins}', String(mins))
+                                        : t('portal.joinBtn')}
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ color: 'var(--red)', fontSize: '.82rem' }}
+                                    onClick={() => {
+                                      if (confirm(locale === 'sk' ? 'Zrušiť konzultáciu?' : 'Cancel this consultation?')) {
+                                        fetch(`/api/telehealth/sessions/${s.id}/cancel`, { method: 'POST' }).catch(() => {});
+                                      }
+                                    }}
+                                  >
+                                    <X size={13} aria-hidden="true" />
+                                    {t('portal.cancelLink')}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Past */}
+                  {tcSubTab === 'past' && (
+                    <>
+                      {tcPast.length === 0 ? (
+                        <div className="card card-pad" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                          <p style={{ color: 'var(--ink-2)', marginBottom: '1rem' }}>
+                            {locale === 'sk' ? 'Žiadne minulé videokonzultácie.' : 'No past video consultations.'}
+                          </p>
+                          <a href={`/${locale}/objednanie?mode=telehealth`} className="btn btn-primary btn-sm">
+                            {t('portal.teleconsultEmptyCta')}
+                          </a>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+                          {tcPast.map((s) => {
+                            const dateLabel = new Date(s.scheduledAt).toLocaleString(locale === 'sk' ? 'sk-SK' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+                            const expanded = expandedSummary === s.id;
+                            const sumData  = summaryData[s.id];
+                            return (
+                              <div key={s.id} className="card" style={{ overflow: 'visible' }}>
+                                <div className="card-pad" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                  <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--warm-100)', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Video size={20} aria-hidden="true" />
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700 }}>{s.physicianName ?? '—'}</div>
+                                    <div style={{ fontSize: '.85rem', color: 'var(--ink-2)', display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.2rem' }}>
+                                      <span className="chip" style={{ fontSize: '.78rem' }}>{dateLabel}</span>
+                                      {s.durationSeconds != null && (
+                                        <span className="chip" style={{ fontSize: '.78rem' }}>
+                                          {t('portal.teleconsultDuration')}: {fmtDuration(s.durationSeconds)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <span className={`badge ${statusBadgeClass(s.status)}`} style={{ flexShrink: 0 }}>
+                                    {s.status === 'no_show' ? t('portal.teleconsultNoShow') : s.status}
+                                  </span>
+                                  <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexShrink: 0 }}>
+                                    <button
+                                      className="btn btn-ghost btn-sm"
+                                      aria-expanded={expanded}
+                                      onClick={async () => {
+                                        if (expanded) { setExpandedSummary(null); return; }
+                                        setExpandedSummary(s.id);
+                                        if (!summaryData[s.id]) {
+                                          try {
+                                            const r = await fetch(`/api/telehealth/sessions/${s.id}/summary`);
+                                            if (r.ok) {
+                                              const d = await r.json() as { clinicalNote?: string; followUpRecommendationSk?: string; followUpRecommendationEn?: string };
+                                              setSummaryData((prev) => ({ ...prev, [s.id]: d }));
+                                            }
+                                          } catch { /* non-blocking */ }
+                                        }
+                                      }}
+                                    >
+                                      {expanded
+                                        ? (locale === 'sk' ? 'Skryť' : 'Hide')
+                                        : t('portal.viewSummary')}
+                                    </button>
+                                    <SummaryPdfButton sessionId={s.id} locale={locale} />
+                                  </div>
+                                </div>
+                                {expanded && (
+                                  <div
+                                    style={{
+                                      borderTop: '1px solid var(--line)',
+                                      padding: '1rem 1.25rem',
+                                      background: 'var(--bg-2)',
+                                    }}
+                                    aria-live="polite"
+                                  >
+                                    {!sumData ? (
+                                      <p style={{ color: 'var(--ink-3)', fontSize: '.88rem', margin: 0 }}>
+                                        {locale === 'sk' ? 'Načítavam zhrnutie…' : 'Loading summary…'}
+                                      </p>
+                                    ) : (
+                                      <>
+                                        {sumData.clinicalNote && (
+                                          <div style={{ marginBottom: '.75rem' }}>
+                                            <p className="eyebrow" style={{ marginBottom: '.3rem', color: 'var(--ink-3)' }}>
+                                              {locale === 'sk' ? 'Klinická poznámka' : 'Clinical note'}
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '.9rem' }}>{sumData.clinicalNote}</p>
+                                          </div>
+                                        )}
+                                        {(sumData.followUpRecommendationSk ?? sumData.followUpRecommendationEn) && (
+                                          <div>
+                                            <p className="eyebrow" style={{ marginBottom: '.3rem', color: 'var(--ink-3)' }}>
+                                              {locale === 'sk' ? 'Odporúčanie' : 'Follow-up'}
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '.9rem' }}>
+                                              {locale === 'sk' ? sumData.followUpRecommendationSk : sumData.followUpRecommendationEn}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
