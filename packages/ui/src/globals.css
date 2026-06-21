@@ -319,3 +319,233 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* ── Video consultation room ─────────────────────────────────────────────── */
+.room {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: #0c0e13;
+  color: #e8ecf1;
+  font-family: 'Mulish', sans-serif;
+  overflow: hidden;
+}
+
+/* Top bar */
+.room-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1.25rem;
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  flex: 0 0 auto;
+  gap: 1rem;
+}
+.room-bar-status {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.room-timer {
+  display: flex;
+  align-items: center;
+  gap: .4em;
+  font-size: .85rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.7);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stage */
+.room-stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Video tiles */
+.video-tile {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1d24;
+}
+.video-tile-main {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+}
+.video-tile-pip {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  width: 180px;
+  height: 135px;
+  border: 2px solid rgba(255,255,255,.15);
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+  z-index: 10;
+}
+
+/* Waiting / post-call overlays */
+.waiting-overlay,
+.postcall-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0e13;
+  z-index: 5;
+}
+.waiting-card,
+.postcall-card {
+  background: #1a1d24;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+  color: #e8ecf1;
+}
+.waiting-card h3,
+.postcall-card h3 { color: #e8ecf1; margin-bottom: .5rem; }
+
+/* Pulsing dots — physician waiting animation */
+.waiting-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  margin: 1.25rem 0;
+}
+.waiting-dots span {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--blue-500);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+.waiting-dots span:nth-child(2) { animation-delay: .24s; }
+.waiting-dots span:nth-child(3) { animation-delay: .48s; }
+@keyframes pulse-dot {
+  0%, 80%, 100% { transform: scale(1); opacity: .6; }
+  40% { transform: scale(1.35); opacity: 1; }
+}
+
+/* Status dot variants */
+.dot-pulse {
+  animation: dot-pulse 1.6s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: .5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* Controls bar */
+.room-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  padding: 1rem;
+  background: rgba(255,255,255,.04);
+  border-top: 1px solid rgba(255,255,255,.08);
+  flex: 0 0 auto;
+}
+
+/* Control buttons */
+.ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.08);
+  color: #e8ecf1;
+  cursor: pointer;
+  transition: background .14s, border-color .14s, opacity .14s;
+  flex: 0 0 auto;
+}
+.ctrl-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,.16);
+  border-color: rgba(255,255,255,.3);
+}
+.ctrl-btn:focus-visible {
+  outline: 2.5px solid var(--blue-500);
+  outline-offset: 2px;
+}
+.ctrl-btn:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
+.ctrl-btn.ctrl-off {
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.4);
+  border-color: rgba(255,255,255,.08);
+}
+.ctrl-btn.ctrl-active {
+  background: rgba(37,99,168,.35);
+  border-color: var(--blue-500);
+  color: #90c8f7;
+}
+.ctrl-btn.ctrl-end {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  width: 56px; height: 56px;
+}
+.ctrl-btn.ctrl-end:hover:not(:disabled) {
+  background: #a93226;
+  border-color: #a93226;
+}
+
+/* Dialog overlay */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1010;
+  background: rgba(0,0,0,.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.dialog-box {
+  background: #1e2128;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 380px;
+  width: 100%;
+  color: #e8ecf1;
+}
+.dialog-box h4 { color: #e8ecf1; margin-bottom: .5rem; }
+
+/* Screen-reader only (WCAG) */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive PiP */
+@media (max-width: 600px) {
+  .video-tile-pip {
+    width: 120px;
+    height: 90px;
+    bottom: .75rem;
+    right: .75rem;
+  }
+  .ctrl-btn { width: 46px; height: 46px; }
+  .ctrl-btn.ctrl-end { width: 50px; height: 50px; }
+}
