@@ -28,6 +28,7 @@
 - [ ] Data subject access + erasure tooling available to DPO
 - [ ] NCZI registration complete for eDohody XML submission
 - [ ] HIS integration tested end-to-end: booking confirmed → RabbitMQ → HIS sync verified
+- [ ] HIS vendor confirms 20-year FHIR Encounter retention in writing (Act 576/2004 §24)
 
 ## CMS & Content
 - [ ] All 7 departments seeded and reviewed by hospital communications
@@ -73,6 +74,35 @@
 - [ ] Reminder SMS fires 48h before appointment (scheduler configured)
 - [ ] HIS queue: booking.confirmed event visible in RabbitMQ management UI
 
+## Monitoring — APS staleness alert (L5, Sprint S2)
+
+The APS cache TTL is controlled by `APS_CACHE_TTL_SECONDS` (default 600 s / 10 min).
+The live PSK feed is fetched on cache miss; on failure the Redis or in-memory cached
+value is served. If both are unavailable, the static fallback is returned (`isFallback: true`).
+
+**Alert rule:** trigger a P2 alert if the APS cache age exceeds 2× TTL (> 20 minutes by default).
+
+Prometheus / Datadog alert (pseudo-code):
+```
+alert: ApsCacheStale
+expr: (time() - aps_last_live_fetch_unix) > (APS_CACHE_TTL_SECONDS * 2)
+for: 1m
+labels: { severity: warning }
+annotations:
+  summary: "APS schedule stale for > {{ $value | humanizeDuration }}"
+  description: |
+    PSK APS live feed has not refreshed for > 2× TTL. Browser receives isFallback:true.
+    Check PSK_APS_API_URL reachability and REDIS_URL health.
+```
+
+Uptime monitor (Better Uptime / Uptime Robot):
+- Monitor `GET ${APP_BASE_URL}/api/aps` every 5 minutes.
+- Assert HTTP 200 and JSON `schedule` array length ≥ 1.
+- Alert if `isFallback: true` persists > 20 minutes.
+
+- [ ] APS staleness alert configured (trigger at cache age > 2× APS_CACHE_TTL_SECONDS, default 20 min)
+- [ ] Uptime monitor on `/api/aps` asserting parseable `schedule` array with ≥ 1 entry
+
 ## Soft launch (FRO first)
 - [ ] Enable booking only for FRO (Rehabilitation) in CMS
 - [ ] Reception staff trained on admin CMS (walkthrough of add/edit/delete for all collections)
@@ -99,6 +129,16 @@
 - [ ] GDPR text on /kontakt#gdpr DPO-approved
 - [ ] Accessibility statement on /kontakt#pristupnost updated with L3 axe audit date and result
 - [ ] Staff editing runbook (docs/STAFF_EDITING_RUNBOOK.md) delivered to hospital communications
+
+---
+
+## Compliance documentation gate (L9 items)
+
+These items must be signed off before go-live. All three documents must be complete, signed where indicated, and filed in the project compliance folder.
+
+- [ ] RETENTION.md updated; HIS vendor 20-year retention confirmed in writing (Act 576/2004 §24)
+- [ ] NIS2_INCIDENT_PROCEDURE.md: NKIBK contact filled, internal escalation contacts (IT Lead, DPO, Director, Legal, HIS vendor) named with phone numbers
+- [ ] MDR_SCOPE_EXCLUSION.md: signed by Quality/Regulatory Lead
 
 ---
 

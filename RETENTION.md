@@ -47,3 +47,36 @@ These jobs run under the `ns_app` role. They do **not** touch `audit_log`.
 ## Cross-border transfers
 
 All personal data is processed within the EU (hosting EU, Decree 179/2020). No data is transferred to third countries. Google Cloud Translation processes only non-personal UI strings (department names, UI labels) — not patient data.
+
+---
+
+## Medical records (HIS obligation)
+
+> FHIR Encounter in HIS = 20 years (Act 576/2004 §24) — this is the HIS vendor's obligation; our DB holds operational metadata only.
+
+The Nemocnica Snina web/API tier does **not** hold the authoritative medical record. Clinical records (diagnoses, medications, lab results, FHIR Encounter resources generated during in-person and telehealth consultations) are held by the Hospital Information System (HIS) and governed by Act 576/2004 §24, which mandates a minimum 20-year retention period. The HIS vendor must confirm this obligation in writing before go-live (see LAUNCH_CHECKLIST.md §L7).
+
+---
+
+## Telehealth data retention
+
+The following table applies to the telemedicine module (Sprints S6–S11). These are **operational rows only** — the authoritative clinical record is the FHIR Encounter written to HIS.
+
+| Data category | Table(s) | Retention period | Notes |
+|---|---|---|---|
+| Video session metadata | `telehealth_sessions` | **2 years** from session end (`ended_at`) | Operational metadata only; FHIR Encounter in HIS is the authoritative medical record |
+| Pre-consultation intake questionnaire | `telehealth_intake` | **2 years** from session end | Anonymised; `patientSub` is not stored — only the opaque `patient_token` FK |
+| Post-call clinical summaries (portal cache) | `telehealth_summaries` | Retain until `his_synced = true`, then **1 year** | Portal display cache; authoritative copy is in HIS |
+
+**Guard rule (non-negotiable):**
+
+> NEVER purge `telehealth_summaries` rows where `his_synced = false` — these are the only copy of the clinical record until HIS sync completes.
+
+Scheduled purge jobs for `telehealth_sessions` and `telehealth_intake` must also verify that any linked `telehealth_summaries` row has `his_synced = true` before deleting the parent session row. Any purge attempt on a session whose summary is not yet synced must abort and raise an alert.
+
+### Telehealth scheduled jobs
+
+| Job | Table | Action | Frequency | Guard |
+|---|---|---|---|---|
+| Session/intake sweep | `telehealth_sessions`, `telehealth_intake` | Anonymise or delete where `ended_at < NOW() - INTERVAL '2 years'` | Monthly | Skip rows where linked `telehealth_summaries.his_synced = false` |
+| Summary sweep | `telehealth_summaries` | Delete where `his_synced = true` AND `created_at < NOW() - INTERVAL '1 year'` | Monthly | Never touch rows where `his_synced = false` |
