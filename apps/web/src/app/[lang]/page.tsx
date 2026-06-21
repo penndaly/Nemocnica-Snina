@@ -196,14 +196,23 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
                 .join('')
                 .toUpperCase();
               const dept = physician.dept ? allDepts.find((d) => d.id === physician.dept) : null;
+              const bio = localizeField(physician.bio, locale);
               return (
-                <div key={physician.id} className="card card-pad" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                <Link
+                  key={physician.id}
+                  href={`/${locale}/lekari#${physician.id}`}
+                  className="card card-pad card-hover"
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', textDecoration: 'none', color: 'inherit' }}
+                >
                   <div className="avatar avatar-lg" aria-hidden>{initials}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, marginBottom: '.2rem' }}>{physician.name}</div>
                     <div style={{ fontSize: '.88rem', color: 'var(--ink-2)', marginBottom: '.5rem' }}>
                       {localizeField(physician.role, locale)}
                     </div>
+                    {bio && (
+                      <p style={{ fontSize: '.84rem', color: 'var(--ink-2)', marginBottom: '.5rem' }}>{bio}</p>
+                    )}
                     <span className="badge badge-green">
                       <span className="dot" aria-hidden />
                       {t('accepting')}
@@ -214,7 +223,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

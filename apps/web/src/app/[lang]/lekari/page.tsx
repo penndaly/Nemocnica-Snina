@@ -18,6 +18,7 @@ export default function PhysiciansPage() {
   const [clinics,     setClinics]     = useState<Clinic[]>([]);
   const [query, setQuery] = useState('');
   const [acceptingOnly, setAcceptingOnly] = useState(false);
+  const [langFilter, setLangFilter] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -28,13 +29,16 @@ export default function PhysiciansPage() {
       .catch(() => {});
   }, [locale]);
 
+  const allLangs = Array.from(new Set(physicians.flatMap((p) => p.langs))).sort();
+
   const filtered = physicians.filter((p) => {
     const matchesQuery =
       !query ||
       p.name.toLowerCase().includes(query.toLowerCase()) ||
       localizeField(p.role, locale).toLowerCase().includes(query.toLowerCase());
     const matchesAccepting = !acceptingOnly || p.accepting;
-    return matchesQuery && matchesAccepting;
+    const matchesLang = !langFilter || p.langs.includes(langFilter);
+    return matchesQuery && matchesAccepting && matchesLang;
   });
 
   return (
@@ -47,7 +51,7 @@ export default function PhysiciansPage() {
           </h1>
 
           {/* Toolbar */}
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: '1 1 300px' }}>
               <Search
                 size={16}
@@ -73,6 +77,37 @@ export default function PhysiciansPage() {
               {t('accepting')}
             </label>
           </div>
+
+          {/* Language filter chips */}
+          {allLangs.length > 0 && (
+            <div
+              role="group"
+              aria-label={locale === 'sk' ? 'Filtrovať podľa jazyka' : 'Filter by language'}
+              style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '2rem', alignItems: 'center' }}
+            >
+              <span style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--ink-3)', marginRight: '.2rem' }}>
+                {locale === 'sk' ? 'Jazyk:' : 'Language:'}
+              </span>
+              <button
+                onClick={() => setLangFilter(null)}
+                aria-pressed={langFilter === null}
+                className={`btn btn-sm ${langFilter === null ? 'btn-primary' : 'btn-ghost'}`}
+              >
+                {locale === 'sk' ? 'Všetky' : 'All'}
+              </button>
+              {allLangs.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLangFilter(langFilter === l ? null : l)}
+                  aria-pressed={langFilter === l}
+                  className={`btn btn-sm ${langFilter === l ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  <span className="lang-tag" aria-hidden>{l}</span>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
 
           {filtered.length === 0 ? (
             <p style={{ color: 'var(--ink-3)', textAlign: 'center', padding: '3rem 0' }}>

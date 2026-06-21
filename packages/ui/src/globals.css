@@ -293,6 +293,16 @@
   }
 }
 
+/* Department detail: 2-col grid → single col below 940px; sticky sidebar → static */
+@media (max-width: 940px) {
+  .detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .detail-sidebar {
+    position: static !important;
+  }
+}
+
 /* High-contrast mode support */
 @media (prefers-contrast: more) {
   :root {

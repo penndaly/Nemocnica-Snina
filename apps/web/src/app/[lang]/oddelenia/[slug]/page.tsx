@@ -79,7 +79,7 @@ export default async function DepartmentDetailPage({
       {/* Body: 2 col */}
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr .9fr', gap: '2.5rem', alignItems: 'start' }}>
+          <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr .9fr', gap: '2.5rem', alignItems: 'start' }}>
             {/* Left */}
             <div>
               <div
@@ -160,8 +160,8 @@ export default async function DepartmentDetailPage({
               )}
             </div>
 
-            {/* Right: sticky contact card */}
-            <div style={{ position: 'sticky', top: 'calc(var(--header-h) + 1rem)' }}>
+            {/* Right: sticky contact card — .detail-sidebar makes it static below 940px */}
+            <div className="detail-sidebar" style={{ position: 'sticky', top: 'calc(var(--header-h) + 1rem)' }}>
               <div
                 className="card card-pad"
                 style={{ borderTop: '4px solid var(--blue-600)' }}

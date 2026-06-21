@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { Phone, MapPin, Clock } from 'lucide-react';
+import { Phone, MapPin, Clock, Info } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getClinics } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
@@ -9,7 +9,7 @@ import type { ClinicStatus } from '@ns/types';
 
 const statusBadge: Record<ClinicStatus, { cls: string; dot: boolean }> = {
   open:   { cls: 'badge-green', dot: true },
-  new:    { cls: 'badge-blue',  dot: true },
+  new:    { cls: 'badge-terra', dot: true },
   alert:  { cls: 'badge-amber', dot: false },
   closed: { cls: 'badge-gray',  dot: false },
 };
@@ -84,20 +84,31 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
                         </span>
                       )}
                     </div>
-                    {/* Booking rule callout */}
-                    <div
-                      style={{
-                        background: 'var(--blue-50)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '.6rem .9rem',
-                        fontSize: '.86rem',
-                        color: 'var(--blue-700)',
-                        marginBottom: clinic.fee ? '.5rem' : 0,
-                      }}
-                      role="note"
-                    >
-                      {localizeField(clinic.bookingRule, locale)}
-                    </div>
+                    {/* Booking rule callout — only shown when rule text is present */}
+                    {localizeField(clinic.bookingRule, locale) && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '.6rem',
+                          alignItems: 'flex-start',
+                          background: 'var(--blue-50)',
+                          border: '1px solid var(--blue-100)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '.65rem .9rem',
+                          fontSize: '.88rem',
+                          color: 'var(--blue-900)',
+                          marginBottom: clinic.fee ? '.5rem' : 0,
+                        }}
+                        role="note"
+                      >
+                        <Info
+                          size={16}
+                          style={{ flexShrink: 0, marginTop: '2px', color: 'var(--blue-600)' }}
+                          aria-hidden
+                        />
+                        <span>{localizeField(clinic.bookingRule, locale)}</span>
+                      </div>
+                    )}
                     {clinic.fee && (
                       <p style={{ fontSize: '.82rem', color: 'var(--ink-3)', marginTop: '.4rem' }}>
                         {localizeField(clinic.fee, locale)}

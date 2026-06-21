@@ -157,11 +157,12 @@ export const SCHEMAS: Record<string, CollectionSchema> = {
   disclosures: {
     label: { sk: 'Zverejňovanie', en: 'Disclosures' }, icon: 'download', title: 'partner', idEditable: true,
     fields: [
-      { k: 'id',      t: 'text', label: { sk: 'Číslo dokumentu',  en: 'Document ID'       } },
-      { k: 'type',    t: 'biltext', label: { sk: 'Typ (Zmluva/Faktúra)', en: 'Type'        } },
-      { k: 'partner', t: 'text', label: { sk: 'Partner / Predmet', en: 'Partner / Subject' } },
-      { k: 'value',   t: 'text', label: { sk: 'Hodnota',           en: 'Value'             } },
-      { k: 'date',    t: 'date', label: { sk: 'Dátum',             en: 'Date'              } },
+      { k: 'id',      t: 'text',    label: { sk: 'Číslo dokumentu',   en: 'Document ID'        } },
+      { k: 'type',    t: 'biltext', label: { sk: 'Typ (Zmluva/Faktúra)', en: 'Type'             } },
+      { k: 'partner', t: 'text',    label: { sk: 'Partner / Predmet',  en: 'Partner / Subject'  } },
+      { k: 'value',   t: 'text',    label: { sk: 'Hodnota',            en: 'Value'              } },
+      { k: 'date',    t: 'date',    label: { sk: 'Dátum',              en: 'Date'               } },
+      { k: 'pdfUrl',  t: 'text',    label: { sk: 'URL súboru PDF',     en: 'PDF file URL'       } },
     ],
   },
 };

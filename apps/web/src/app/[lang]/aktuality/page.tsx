@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { NewsHashHighlight } from '@/components/NewsHashHighlight';
 import { getNewsItems } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -18,6 +19,7 @@ export default async function NewsPage({ params }: { params: Promise<{ lang: str
 
   return (
     <SiteLayout activePath={`/${locale}/aktuality`}>
+      <NewsHashHighlight />
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container-narrow">
           <p className="eyebrow">{t('nav.news')}</p>
