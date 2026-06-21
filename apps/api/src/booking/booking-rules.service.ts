@@ -35,6 +35,15 @@ export class BookingRulesService {
       throw new BadRequestException('Invalid date format');
     }
 
+    // Reject past dates (server clock, not client)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) {
+      throw new BadRequestException(
+        `Booking date ${proposed.date} is in the past. Only future dates are accepted.`,
+      );
+    }
+
     // JS getDay(): Sun=0, Mon=1 … Sat=6 — same encoding as prototype's bookingDays
     const jsDay = date.getDay() as Weekday;
 
@@ -82,7 +91,10 @@ export class BookingRulesService {
     while (dates.length < count) {
       const day = cursor.getDay() as Weekday;
       if (clinic.bookingDays.includes(day)) {
-        dates.push(cursor.toISOString().substring(0, 10));
+        const y = cursor.getFullYear();
+        const mo = String(cursor.getMonth() + 1).padStart(2, '0');
+        const d = String(cursor.getDate()).padStart(2, '0');
+        dates.push(`${y}-${mo}-${d}`);
       }
       cursor.setDate(cursor.getDate() + 1);
     }

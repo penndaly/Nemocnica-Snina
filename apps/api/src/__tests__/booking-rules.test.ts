@@ -4,6 +4,15 @@ import type { Clinic } from '@ns/types';
 
 const service = new BookingRulesService();
 
+// Returns the nearest future date (starting tomorrow) that falls on the given JS weekday (0=Sun…6=Sat)
+function futureDate(dayOfWeek: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() !== dayOfWeek) d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 const baseClinic: Clinic = {
   id: 'test',
   name: { sk: 'Test', en: 'Test' },
@@ -20,28 +29,25 @@ const baseClinic: Clinic = {
 
 describe('BookingRulesService.validate', () => {
   it('accepts a valid Monday booking when bookingDays=[1,2,3,4,5]', () => {
-    // 2024-01-08 is a Monday
     expect(() =>
-      service.validate(baseClinic, { clinicId: 'test', date: '2024-01-08', time: '09:00' }),
+      service.validate(baseClinic, { clinicId: 'test', date: futureDate(1), time: '09:00' }),
     ).not.toThrow();
   });
 
   it('rejects booking on Saturday when bookingDays=[1,2,3,4,5]', () => {
-    // 2024-01-06 is a Saturday
     expect(() =>
-      service.validate(baseClinic, { clinicId: 'test', date: '2024-01-06', time: '09:00' }),
+      service.validate(baseClinic, { clinicId: 'test', date: futureDate(6), time: '09:00' }),
     ).toThrow(BadRequestException);
   });
 
   it('enforces bookingDays:[2,4] for trauma surgery (Tue/Thu only)', () => {
     const traumaClinic: Clinic = { ...baseClinic, id: 'urazova-chirurgia', bookingDays: [2, 4] };
-    // 2024-01-09 is a Tuesday
     expect(() =>
-      service.validate(traumaClinic, { clinicId: 'urazova-chirurgia', date: '2024-01-09', time: '10:00' }),
+      service.validate(traumaClinic, { clinicId: 'urazova-chirurgia', date: futureDate(2), time: '10:00' }),
     ).not.toThrow();
-    // 2024-01-08 is a Monday — should fail
+    // Monday is not in [2,4] — should fail
     expect(() =>
-      service.validate(traumaClinic, { clinicId: 'urazova-chirurgia', date: '2024-01-08', time: '10:00' }),
+      service.validate(traumaClinic, { clinicId: 'urazova-chirurgia', date: futureDate(1), time: '10:00' }),
     ).toThrow(BadRequestException);
   });
 
@@ -53,13 +59,13 @@ describe('BookingRulesService.validate', () => {
       bookingWindow: '13:00–14:00',
       referral: true,
     };
-    // 2024-01-11 is a Thursday, 13:20 is within window
+    const nextThursday = futureDate(4);
     expect(() =>
-      service.validate(angioClinic, { clinicId: 'angiologicka', date: '2024-01-11', time: '13:20' }),
+      service.validate(angioClinic, { clinicId: 'angiologicka', date: nextThursday, time: '13:20' }),
     ).not.toThrow();
     // 09:00 is outside window
     expect(() =>
-      service.validate(angioClinic, { clinicId: 'angiologicka', date: '2024-01-11', time: '09:00' }),
+      service.validate(angioClinic, { clinicId: 'angiologicka', date: nextThursday, time: '09:00' }),
     ).toThrow(BadRequestException);
   });
 
@@ -82,6 +88,28 @@ describe('BookingRulesService.validate', () => {
     expect(() =>
       service.validate(notBookable, { clinicId: 'test', date: '2024-01-08', time: '09:00' }),
     ).toThrow(BadRequestException);
+  });
+
+  it('rejects a date in the past', () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const pastDate = yesterday.toISOString().substring(0, 10);
+    expect(() =>
+      service.validate(baseClinic, { clinicId: 'test', date: pastDate, time: '09:00' }),
+    ).toThrow(BadRequestException);
+  });
+
+  it('accepts todays date', () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Find a day in bookingDays=[1,2,3,4,5]
+    if ([1, 2, 3, 4, 5].includes(today.getDay())) {
+      const todayStr = today.toISOString().substring(0, 10);
+      expect(() =>
+        service.validate(baseClinic, { clinicId: 'test', date: todayStr, time: '09:00' }),
+      ).not.toThrow();
+    }
+    // Weekend: not in bookingDays, skip
   });
 });
 

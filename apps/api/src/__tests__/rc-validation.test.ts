@@ -1,8 +1,8 @@
 import { validateRodneCislo } from '../common/rc-validation';
 
 describe('validateRodneCislo', () => {
-  // Valid 10-digit RCs (modulo-11 = 0)
-  const valid10 = ['8503151234', '9001014719', '7552046518'];
+  // Valid 10-digit RCs (modulo-11 = 0); computed as smallest CCCC for each birth date
+  const valid10 = ['8503150007', '9001010007', '7552040001'];
   // Valid 9-digit (pre-1954, no check digit)
   const valid9 = ['530101001', '490615999'];
   // Invalid
@@ -21,9 +21,8 @@ describe('validateRodneCislo', () => {
   });
 
   it('strips slashes and spaces', () => {
-    // 8503151234 with slash
-    expect(validateRodneCislo('850315/1234')).toBe(true);
-    expect(validateRodneCislo('850315 1234')).toBe(true);
+    expect(validateRodneCislo('850315/0007')).toBe(true);
+    expect(validateRodneCislo('850315 0007')).toBe(true);
   });
 
   it('rejects wrong check digit', () => {
