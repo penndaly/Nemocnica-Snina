@@ -60,23 +60,26 @@ The Nemocnica Snina web/API tier does **not** hold the authoritative medical rec
 
 ## Telehealth data retention
 
-The following table applies to the telemedicine module (Sprints S6–S11). These are **operational rows only** — the authoritative clinical record is the FHIR Encounter written to HIS.
+Sprint S6 addition. **Critical distinction (Act 576/2004 §24):** the rows in our PostgreSQL DB are operational metadata. The authoritative medical record is the FHIR Encounter written to HIS.
 
-| Data category | Table(s) | Retention period | Notes |
-|---|---|---|---|
-| Video session metadata | `telehealth_sessions` | **2 years** from session end (`ended_at`) | Operational metadata only; FHIR Encounter in HIS is the authoritative medical record |
-| Pre-consultation intake questionnaire | `telehealth_intake` | **2 years** from session end | Anonymised; `patientSub` is not stored — only the opaque `patient_token` FK |
-| Post-call clinical summaries (portal cache) | `telehealth_summaries` | Retain until `his_synced = true`, then **1 year** | Portal display cache; authoritative copy is in HIS |
+| Data category | Table(s) | Retention period | Lawful basis | Notes |
+|---|---|---|---|---|
+| Video session metadata | `telehealth_sessions` | **5 years** from session `created_at` | Act 576/2004 — healthcare operational records | Operational metadata only. FHIR Encounter in HIS (20 years) is the authoritative medical record. `patient_token` is opaque — no RČ or personal identifier stored. |
+| Pre-call intake questionnaire | `telehealth_intake` | **5 years** (with session) | Act 576/2004 — pre-consultation questionnaire | Pre-call questionnaire; no diagnosis or clinical assessment stored. Clinical detail goes to HIS via FHIR. |
+| Post-call summary PDF files (`pdf_path`) | `telehealth_summaries.pdf_path` | **7 days** after `his_synced = true` | Portal display cache — HIS is the authoritative copy | `pdf_path` files are purged 7 days after successful HIS sync. **Never purge if `his_synced = false`.** |
+| Post-call summary rows | `telehealth_summaries` | **5 years** from `created_at` | Act 576/2004 | DB rows retained 5 years; only `pdf_path` files are subject to the 7-day purge. |
+| FHIR Encounter (teleconsultation) | HIS (external) | **20 years** (Act 576/2004 §24) | Act 576/2004 §24 — medical record | HIS vendor obligation. Must be confirmed in writing before go-live (see LAUNCH_CHECKLIST.md §L7). |
+| FHIR MedicationRequest (e-prescription) | HIS + NCZI eZdravie | **20 years** | Act 362/2011 — prescription record | NCZI eZdravie is the legally valid prescription. FHIR is the HIS copy. |
+| Video join tokens | `sessionStorage` (browser) | Ephemeral — session end | Data minimisation (GDPR Art. 5(1)(e)) | Never persisted to DB or server storage beyond session lifetime. |
 
-**Guard rule (non-negotiable):**
+**Non-negotiable guard (DB-level + application-layer):**
 
-> NEVER purge `telehealth_summaries` rows where `his_synced = false` — these are the only copy of the clinical record until HIS sync completes.
-
-Scheduled purge jobs for `telehealth_sessions` and `telehealth_intake` must also verify that any linked `telehealth_summaries` row has `his_synced = true` before deleting the parent session row. Any purge attempt on a session whose summary is not yet synced must abort and raise an alert.
+> `telehealth_summaries` rows where `his_synced = false` must **never** be eligible for purge — these hold the only copy of the clinical record until HIS sync completes. Any scheduled job must check `his_synced = true` before purging `pdf_path` files or cascade-deleting the parent session row.
 
 ### Telehealth scheduled jobs
 
 | Job | Table | Action | Frequency | Guard |
 |---|---|---|---|---|
-| Session/intake sweep | `telehealth_sessions`, `telehealth_intake` | Anonymise or delete where `ended_at < NOW() - INTERVAL '2 years'` | Monthly | Skip rows where linked `telehealth_summaries.his_synced = false` |
-| Summary sweep | `telehealth_summaries` | Delete where `his_synced = true` AND `created_at < NOW() - INTERVAL '1 year'` | Monthly | Never touch rows where `his_synced = false` |
+| PDF file purge | `telehealth_summaries` | Delete `pdf_path` files where `his_synced = true` AND session `ended_at < NOW() - INTERVAL '7 days'` | Daily | Skip all rows where `his_synced = false`; raise alert on any skipped rows |
+| Session/intake sweep | `telehealth_sessions`, `telehealth_intake` | Anonymise/delete where `created_at < NOW() - INTERVAL '5 years'` | Monthly | Abort and alert if linked `telehealth_summaries.his_synced = false` |
+| Summary sweep | `telehealth_summaries` | Delete where `created_at < NOW() - INTERVAL '5 years'` AND `his_synced = true` | Monthly | Never touch rows where `his_synced = false` |

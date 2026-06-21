@@ -20,6 +20,21 @@
     "gdprBody":       { "type": "richtext", "required": true, "pluginsOptions": { "i18n": { "localized": true } },
                         "description": "GDPR statement shown at /kontakt#gdpr" },
     "accessibilityBody": { "type": "richtext", "required": true, "pluginsOptions": { "i18n": { "localized": true } },
-                           "description": "Accessibility statement shown at /kontakt#pristupnost" }
+                           "description": "Accessibility statement shown at /kontakt#pristupnost" },
+    "telehealthHeroBadge": {
+      "type": "string",
+      "pluginsOptions": { "i18n": { "localized": true } },
+      "description": "Badge text on the /telehealth landing page hero, e.g. 'Videokonzultácia'"
+    },
+    "telehealthHeroTitle": {
+      "type": "string",
+      "pluginsOptions": { "i18n": { "localized": true } },
+      "description": "Main headline on the /telehealth landing page"
+    },
+    "telehealthHeroSubtitle": {
+      "type": "text",
+      "pluginsOptions": { "i18n": { "localized": true } },
+      "description": "Subtitle / lead copy on the /telehealth landing page"
+    }
   }
 }

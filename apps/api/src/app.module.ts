@@ -15,6 +15,7 @@ import { SmsModule } from './sms/sms.module';
 import { ApsModule } from './aps/aps.module';
 import { GdprModule } from './gdpr/gdpr.module';
 import { PaymentsModule } from './payments/payments.module';
+import { TelehealthModule } from './telehealth/telehealth.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PaymentsModule } from './payments/payments.module';
     ApsModule,
     GdprModule,
     PaymentsModule,
+    TelehealthModule,
     PortalModule,
     HealthModule,
   ],

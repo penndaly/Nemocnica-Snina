@@ -150,6 +150,80 @@ model SmsOtp {
   @@map("sms_otps")
 }
 
+// ─── Telehealth ───────────────────────────────────────────────────────────────
+
+enum TelehealthStatus {
+  scheduled
+  waiting
+  active
+  ended
+  cancelled
+  no_show
+
+  @@map("telehealth_status")
+}
+
+model TelehealthSession {
+  id                 String            @id @default(uuid())
+  bookingId          String
+  clinicId           String
+  physicianId        String
+  patientToken       String
+  scheduledAt        DateTime
+  status             TelehealthStatus  @default(scheduled)
+  startedAt          DateTime?
+  endedAt            DateTime?
+  durationSeconds    Int?
+  videoProvider      String            @default("livekit")
+  providerRoomId     String
+  patientJoinToken   String?
+  physicianJoinToken String?
+  tokensIssuedAt     DateTime?
+  intakeSubmitted    Boolean           @default(false)
+  hisSynced          Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  intake   TelehealthIntake?
+  summary  TelehealthSummary?
+
+  @@index([bookingId])
+  @@index([clinicId])
+  @@index([physicianId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("telehealth_sessions")
+}
+
+model TelehealthIntake {
+  id                  String            @id @default(uuid())
+  sessionId           String            @unique
+  session             TelehealthSession @relation(fields: [sessionId], references: [id])
+  reason              String
+  currentMedications  String
+  symptoms            String
+  vitalsNote          String?
+  submittedAt         DateTime
+
+  @@map("telehealth_intake")
+}
+
+model TelehealthSummary {
+  id                      String            @id @default(uuid())
+  sessionId               String            @unique
+  session                 TelehealthSession @relation(fields: [sessionId], references: [id])
+  clinicalNote            String
+  followUpRecommendationSk String?
+  followUpRecommendationEn String?
+  prescriptionIssued      Boolean           @default(false)
+  prescriptionRef         String?
+  pdfPath                 String?
+  hisEncounterId          String?
+  createdAt               DateTime          @default(now())
+
+  @@map("telehealth_summaries")
+}
+
 // ─── Payment receipts ────────────────────────────────────────────────────────
 
 model PaymentReceipt {

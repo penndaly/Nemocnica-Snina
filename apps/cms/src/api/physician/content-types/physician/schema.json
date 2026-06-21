@@ -33,6 +33,12 @@
       "target": "api::facility.facility",
       "inversedBy": "physicians"
     },
-    "avatar": { "type": "media", "multiple": false, "allowedTypes": ["images"] }
+    "avatar": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
+    "telehealth": {
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "Physician participates in telehealth video consultations"
+    }
   }
 }

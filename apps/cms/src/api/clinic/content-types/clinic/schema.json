@@ -37,6 +37,21 @@
       "relation": "oneToMany",
       "target": "api::physician.physician",
       "mappedBy": "clinic"
+    },
+    "telehealth": {
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "Does this clinic offer video consultations?"
+    },
+    "telehealthWindow": {
+      "type": "string",
+      "description": "Video-only time window if different from bookingWindow, e.g. Po-Pi 09:00-12:00"
+    },
+    "telehealthRule": {
+      "type": "text",
+      "pluginsOptions": { "i18n": { "localized": true } },
+      "description": "Human-readable telehealth booking rule shown in the booking wizard"
     }
   }
 }

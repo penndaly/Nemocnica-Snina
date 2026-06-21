@@ -94,6 +94,61 @@ export const ConfigSchema = z.object({
 
   // ── Observability ────────────────────────────────────
   LOG_LEVEL:          z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+  // ── Telehealth / Video ───────────────────────────────────────
+  TELEHEALTH_PROVIDER: z.string().default('mock').refine(
+    (v) => !isProduction || v !== 'mock',
+    { message: 'TELEHEALTH_PROVIDER must not be "mock" in production' },
+  ),
+
+  LIVEKIT_URL: z.string().default('wss://livekit.example.eu').refine(
+    (v) => !isProduction || v.startsWith('wss://'),
+    { message: 'LIVEKIT_URL must use wss:// (TLS) in production' },
+  ),
+
+  LIVEKIT_API_KEY:    noChangeme('LIVEKIT_API_KEY').default('CHANGEME'),
+  LIVEKIT_API_SECRET: noChangeme('LIVEKIT_API_SECRET').default('CHANGEME'),
+
+  LIVEKIT_TURN_REGION: z.string().default('eu').refine(
+    (v) => {
+      if (!isProduction) return true;
+      if (!v || v.trim() === '') return false;
+      const nonEuRegex = /^(us|ap|sa|af|me|ca|au)[-_]/i;
+      return !nonEuRegex.test(v);
+    },
+    {
+      message:
+        'LIVEKIT_TURN_REGION must be an EU-resident region (GDPR Art. 46 — health data must not transit non-EU TURN servers)',
+    },
+  ),
+
+  TELEHEALTH_SESSION_TTL_SECONDS:   z.coerce.number().default(3600),
+  TELEHEALTH_JOIN_WINDOW_SECONDS:   z.coerce.number().default(600),
+  TELEHEALTH_NO_SHOW_GRACE_MINUTES: z.coerce.number().default(15),
+
+  TELEHEALTH_RECORDING_ENABLED:     z.coerce.boolean().default(false),
+  TELEHEALTH_RECORDING_DPO_APPROVED: z.coerce.boolean().default(false),
+
+  TELEHEALTH_PDF_RETENTION_SECONDS: z.coerce.number().default(604800),
+
+  PDF_SERVICE_URL: z.string().default('http://localhost:3030').refine(
+    (v) => !isProduction || !v.includes('localhost'),
+    { message: 'PDF_SERVICE_URL must not be localhost in production' },
+  ),
+  PDF_SERVICE_API_KEY: noChangeme('PDF_SERVICE_API_KEY').default('CHANGEME'),
+
+  TELEHEALTH_SESSION_ENDED_ROUTING_KEY:     z.string().default('telehealth.session.ended'),
+  TELEHEALTH_BOOKING_CONFIRMED_ROUTING_KEY: z.string().default('telehealth.booking.confirmed'),
+}).superRefine((data, ctx) => {
+  // Recording gate: RECORDING_ENABLED=true requires DPO_APPROVED=true
+  if (data.TELEHEALTH_RECORDING_ENABLED && !data.TELEHEALTH_RECORDING_DPO_APPROVED) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['TELEHEALTH_RECORDING_ENABLED'],
+      message:
+        'TELEHEALTH_RECORDING_ENABLED=true requires TELEHEALTH_RECORDING_DPO_APPROVED=true (DPO sign-off required)',
+    });
+  }
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
