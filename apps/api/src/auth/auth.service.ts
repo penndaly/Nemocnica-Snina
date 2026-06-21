@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import * as totp from 'otplib';
+import * as otplib from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
@@ -33,7 +33,7 @@ export class AuthService {
     // MFA mandatory (Decree 179/2020)
     if (user.mfaEnabled) {
       if (!user.mfaSecret) throw new UnauthorizedException('MFA not configured');
-      const valid = totp.authenticator.verify({ token: totpCode, secret: user.mfaSecret });
+      const valid = (otplib as any).authenticator.verify({ token: totpCode, secret: user.mfaSecret }) as boolean;
       if (!valid) throw new UnauthorizedException('Invalid MFA code');
     }
 

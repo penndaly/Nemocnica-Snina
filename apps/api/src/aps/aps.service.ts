@@ -20,7 +20,7 @@ interface ApsEntry {
   type: 'adult' | 'child' | 'dental';
 }
 
-interface ApsResponse {
+export interface ApsResponse {
   source: 'live' | 'cache' | 'fallback';
   updatedAt: string;
   schedule: ApsEntry[];

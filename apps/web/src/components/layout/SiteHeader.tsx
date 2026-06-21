@@ -133,7 +133,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           style={{ display: 'flex', gap: '.6rem', alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}
         >
           <Link href={`/${locale}/portal`} className="btn btn-ghost btn-sm">
-            {t('portal')}
+            {t('portal.title')}
           </Link>
           <Link href={`/${locale}/objednanie`} className="btn btn-primary btn-sm">
             {t('book')}
@@ -199,7 +199,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           ))}
           <div style={{ borderTop: '1px solid var(--line)', marginTop: '.5rem', paddingTop: '.75rem', display: 'flex', gap: '.6rem' }}>
             <Link href={`/${locale}/portal`} className="btn btn-ghost btn-sm" style={{ flex: 1 }}>
-              {t('portal')}
+              {t('portal.title')}
             </Link>
             <Link href={`/${locale}/objednanie`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
               {t('book')}

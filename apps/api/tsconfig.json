@@ -11,7 +11,9 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "noEmitOnError": false,
+    "exactOptionalPropertyTypes": false
   },
   "include": ["src", "prisma"],
   "exclude": ["node_modules", "dist"]

@@ -22,8 +22,8 @@ const tlsRabbit = z.string().url().refine(
   { message: 'RABBITMQ_URL must use amqps:// (TLS) in production' },
 );
 
-const noChangeme = (name: string) =>
-  z.string().min(1).refine(
+const noChangeme = (name: string, minLen = 1) =>
+  z.string().min(minLen).refine(
     (v) => !isProduction || !v.toLowerCase().includes('changeme'),
     { message: `${name} must not contain placeholder value 'CHANGEME' in production` },
   );
@@ -46,7 +46,7 @@ export const ConfigSchema = z.object({
   REDIS_URL:              tlsRedis,
 
   // ── Auth: staff ─────────────────────────────────────
-  JWT_SECRET:         noChangeme('JWT_SECRET').min(32),
+  JWT_SECRET:         noChangeme('JWT_SECRET', 32),
   JWT_ACCESS_TTL:     z.coerce.number().default(900),
   MFA_REQUIRED:       z.coerce.boolean().refine(
     (v) => !isProduction || v === true,

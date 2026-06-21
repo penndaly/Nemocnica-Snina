@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   Building2, Calendar, User, Activity, FlaskConical, Newspaper,
   FileText, Shield, Edit3, Download, ExternalLink, LogOut, Plus,
-  Wrench,
+  Wrench, Lock,
 } from 'lucide-react';
 import { useAdminAuth } from './AdminAuthContext';
 import { SCHEMAS, SINGLETONS } from './admin-schemas';
@@ -184,6 +184,7 @@ export function AdminSidebar({ data }: AdminSidebarProps) {
 
         <SectionLabel text="Pacienti" />
         <NavItem href="/admin/onboarding" label="eDohody — Žiadosti" icon={<User size={16} />} count={0} />
+        <NavItem href="/admin/gdpr" label="GDPR — DSAR / Výmaz" icon={<Lock size={16} />} />
 
         <SectionLabel text="Nástroje" />
         <NavItem href="/admin/tools" label="Export / Import" icon={<Wrench size={16} />} />

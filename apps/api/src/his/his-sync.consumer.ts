@@ -1,31 +1,18 @@
-/**
- * HIS sync agent — consumes events from the RabbitMQ queue and writes
- * them to the Hospital Information System via HL7 FHIR R4 REST.
- *
- * Requirements (COMPLETION_BRIEF C2):
- *   - Idempotent processing using existing idempotency keys
- *   - Retry with exponential backoff
- *   - Dead-letter handling: events that exceed max retries go to DLQ
- *   - Reconciliation: on HIS recovery, the agent re-queues DLQ messages
- *   - Every sync attempt and patient-record access logged to audit_log
- *
- * When HIS_MOCK_ENABLED=true (dev/CI) the agent logs events without
- * actually calling the HIS endpoint.
- */
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as amqp from 'amqplib';
 import type { HisEvent } from './his-queue.service';
 import { AuditService } from '../audit/audit.service';
 
-const QUEUE = 'ns.his.events';
-const DLQ   = 'ns.his.events.dlq';
+const QUEUE     = 'ns.his.events';
+const DLQ       = 'ns.his.events.dlq';
+const EXCHANGE  = 'ns.his';
 const MAX_RETRIES = 5;
 
 @Injectable()
 export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(HisSyncConsumer.name);
-  private connection: amqp.Connection | null = null;
+  private connection: amqp.ChannelModel | null = null;
   private channel: amqp.Channel | null = null;
   private readonly mock: boolean;
   private readonly fhirBase: string;
@@ -39,9 +26,10 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() { await this.startConsuming(); }
+
   async onModuleDestroy() {
-    await this.channel?.close();
-    await this.connection?.close();
+    try { await this.channel?.close(); } catch { /* ignore */ }
+    try { await this.connection?.close(); } catch { /* ignore */ }
   }
 
   private async startConsuming() {
@@ -49,6 +37,25 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
     try {
       this.connection = await amqp.connect(url);
       this.channel    = await this.connection.createChannel();
+
+      this.channel.on('error', (err) => {
+        this.logger.warn(`RabbitMQ channel error: ${String(err)}`);
+      });
+
+      // Mirror publisher topology exactly — assertQueue args must match
+      await this.channel.assertExchange(`${EXCHANGE}.dlx`, 'direct', { durable: true });
+      await this.channel.assertQueue(DLQ, { durable: true });
+      await this.channel.bindQueue(DLQ, `${EXCHANGE}.dlx`, QUEUE);
+      await this.channel.assertExchange(EXCHANGE, 'direct', { durable: true });
+      await this.channel.assertQueue(QUEUE, {
+        durable: true,
+        arguments: {
+          'x-dead-letter-exchange':     `${EXCHANGE}.dlx`,
+          'x-dead-letter-routing-key':  QUEUE,
+          'x-message-ttl':              7 * 24 * 60 * 60 * 1000, // 7 days
+        },
+      });
+
       await this.channel.prefetch(1);
 
       this.channel.consume(QUEUE, async (msg) => {
@@ -57,15 +64,14 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
         try {
           event = JSON.parse(msg.content.toString()) as HisEvent;
         } catch {
-          this.channel?.nack(msg, false, false); // malformed — send to DLQ
+          this.channel?.nack(msg, false, false);
           return;
         }
-
         const success = await this.processWithRetry(event);
         if (success) {
           this.channel?.ack(msg);
         } else {
-          this.channel?.nack(msg, false, false); // exceeded retries → DLQ
+          this.channel?.nack(msg, false, false);
         }
       });
 
@@ -112,9 +118,7 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`[HIS mock] ${event.type} ${event.idempotencyKey}`);
       return;
     }
-
     const fhirToken = await this.getFhirToken();
-
     switch (event.type) {
       case 'booking.confirmed':
         await this.postFhir('Appointment', this.buildFhirAppointment(event), fhirToken);
