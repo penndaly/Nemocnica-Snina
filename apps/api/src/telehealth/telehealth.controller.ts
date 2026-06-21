@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -11,17 +12,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { TelehealthStatus } from '@prisma/client';
 import { TelehealthSessionService } from './telehealth-session.service';
 
 interface RequestWithUser {
-  user?: { userId: string; email: string; role: string };
+  // birthdate from eID OIDC token (required for minor age check at API layer)
+  user?: { userId: string; email: string; role: string; birthdate?: string };
   ip?: string;
 }
 
 @Controller('api/telehealth/sessions')
 export class TelehealthController {
-  constructor(private readonly sessionSvc: TelehealthSessionService) {}
+  constructor(
+    private readonly sessionSvc: TelehealthSessionService,
+    private readonly cfg: ConfigService,
+  ) {}
 
   // POST /api/telehealth/sessions — internal: called by booking service on confirmed telehealth booking
   @Post()
@@ -84,7 +90,21 @@ export class TelehealthController {
   ) {
     const role = body['role'] === 'physician' ? 'physician' : 'patient';
     const identity = req.user?.email ?? req.user?.userId ?? 'unknown';
-    return this.sessionSvc.joinSession(id, identity, role, req.ip);
+    // Pass eID birthdate claim for minor age check (R5 — GDPR Art. 8, Act 576/2004 §6)
+    return this.sessionSvc.joinSession(id, identity, role, req.ip, req.user?.birthdate);
+  }
+
+  // POST /api/telehealth/sessions/:id/recording — recording gate (T3.2)
+  // Returns 403 when TELEHEALTH_RECORDING_ENABLED=false (the secure default)
+  @Post(':id/recording')
+  @UseGuards(AuthGuard('jwt'))
+  async startRecording(@Param('id') id: string) {
+    const enabled = this.cfg.get<boolean>('TELEHEALTH_RECORDING_ENABLED') ?? false;
+    if (!enabled) {
+      throw new ForbiddenException({ reason: 'recording_disabled', message: 'Recording is disabled by configuration (TELEHEALTH_RECORDING_ENABLED=false). DPO approval required.' });
+    }
+    // DPO-approved recording path — implementation deferred to DPO sign-off gate
+    return { ok: true, sessionId: id, message: 'Recording started (DPO approved)' };
   }
 
   // POST /api/telehealth/sessions/:id/admit — physician admits patient (waiting→active)

@@ -132,13 +132,101 @@ Uptime monitor (Better Uptime / Uptime Robot):
 
 ---
 
+## Pen-test scope additions — telemedicine (L6, Sprint S10)
+
+These items extend the VAPT scope to cover the video module. All findings must be closed before the telemedicine L9 gate.
+
+- [ ] **Join-token isolation:** verify patient A cannot use their token to join session S2 (different session); verify token TTL (`TELEHEALTH_SESSION_TTL_SECONDS`) is enforced by LiveKit room
+- [ ] **Session-state enforcement:** verify illegal status transitions (e.g. cancelled → active) are rejected at API and DB layer
+- [ ] **Physician endpoint RBAC:** verify patients cannot call `/admit`, `/recording`, or admin session-cancel endpoints (expect 403)
+- [ ] **Recording gate:** verify `POST /api/telehealth/sessions/:id/recording` returns 403 when `TELEHEALTH_RECORDING_ENABLED=false`
+- [ ] **Consent gate:** verify `/api/telehealth/sessions/:id/join` returns 403 with `reason: consent_required` when no `telehealth_medical_record` consent on the booking
+- [ ] **NIS2/R1 — TURN server geography:** verify all ICE candidates during a call resolve to EU-resident IP ranges (no US/AP/SA TURN relay)
+- [ ] **NIS2/R1 — Incident detection:** confirm monitoring covers unauthorized video session access, join-token replay, HIS sync failure caused by a security event
+- [ ] **NIS2 Article 21 technical measures:** verify MFA (physician join), encryption (wss://, DTLS/SRTP), and access control for physician schedule and admin session views
+- [ ] **Minor access block:** verify patients under 16 (eID birthdate claim) cannot obtain a join token (expect 403 `minor_blocked`)
+- [ ] **Supply-chain (LiveKit):** confirm LiveKit DPA covers security incident notification; confirm EU-only TURN in writing or DPA
+
+---
+
 ## Compliance documentation gate (L9 items)
 
-These items must be signed off before go-live. All three documents must be complete, signed where indicated, and filed in the project compliance folder.
+These items must be signed off before go-live. All documents must be complete, signed where indicated, and filed in the project compliance folder.
 
+**Base platform:**
 - [ ] RETENTION.md updated; HIS vendor 20-year retention confirmed in writing (Act 576/2004 §24)
 - [ ] NIS2_INCIDENT_PROCEDURE.md: NKIBK contact filled, internal escalation contacts (IT Lead, DPO, Director, Legal, HIS vendor) named with phone numbers
 - [ ] MDR_SCOPE_EXCLUSION.md: signed by Quality/Regulatory Lead
+
+**Telemedicine module (Sprint S10):**
+- [ ] **DPIA completed and signed by DPO** (GDPR Art. 35 — mandatory for health-data video processing at scale) *Owner: DPO*
+- [ ] **HIS vendor confirms 20-year FHIR Encounter retention** for teleconsultations in writing (Act 576/2004 §24) — see also §L7 above *Owner: Hospital IT*
+- [ ] **DPAs signed for LiveKit** (cloud option) and PDF generation service (GDPR Art. 28) — include EU data residency, no third-country transfer, or SCCs if LiveKit parent entity is US *Owner: DPO + Ops*
+- [ ] **MDR scope exclusion document for telehealth software** signed by Quality/Regulatory Lead (EU MDR 2017/745, MDCG 2019-11 guidance) — see `docs/MDR_SCOPE_EXCLUSION.md` *Owner: Quality/Regulatory*
+- [ ] **NIS2 incident reporting procedure documented** and NKIBK contact registered; telemedicine-specific triggers added — see `docs/NIS2_INCIDENT_PROCEDURE.md` *Owner: Security + DPO*
+- [ ] **NCZI eZdravie teleconsultation encounter type confirmed** with Hospital IT: eZdravie accepts VR encounter class; FHIR MedicationRequest identifier conforms to SKHIS IG *Owner: Hospital IT*
+- [ ] **LiveKit DPA confirms EU-only TURN servers** (GDPR Art. 46 — no health-data transit through non-EU relay) or self-hosted EU TURN deployed *Owner: Ops*
+- [ ] **`TELEHEALTH_RECORDING_ENABLED=false`** verified in production config *Owner: DevOps*
+- [ ] **Telehealth pen-test items** (L6 scope above) all closed *Owner: Security*
+- [ ] **Consent + retention compliance verified** for video data: telehealth_medical_record consent stored on every telehealth booking; his_synced guard verified on telehealth_summaries
+
+---
+
+---
+
+## Telemedicine L9 gate (Sprint S11)
+
+All items below must be confirmed before enabling telehealth for any clinic in production.
+
+**Automated (CI must be green):**
+- [ ] SPEC TH-1 (Telehealth booking wizard) — all locales green in CI
+- [ ] SPEC TH-2 (Patient waiting room) — green in CI
+- [ ] SPEC TH-3 (Physician admit → active call) — green in CI
+- [ ] SPEC TH-4 (Post-call summary + HIS sync) — green in CI
+- [ ] SPEC TH-5 (Security: token isolation, recording gate, consent gate) — green in CI
+- [ ] SPEC TH-6 (Admin telehealth config) — green in CI
+- [ ] TH-A1/TH-A2 Accessibility — zero axe critical/serious on telehealth routes
+
+**Infrastructure:**
+- [ ] `TELEHEALTH_RECORDING_ENABLED=false` confirmed in production config *Owner: DevOps*
+- [ ] `TELEHEALTH_PROVIDER=livekit` (not mock) in production *Owner: DevOps*
+- [ ] `LIVEKIT_TURN_REGION=eu` set and config validator confirms non-US region *Owner: Ops*
+- [ ] Telehealth monitoring dashboards live: session join rate, admission latency, post-call HIS sync DLQ queue depth *Owner: Ops*
+- [ ] Alert added: HIS sync DLQ depth > 0 for telehealth events triggers P1 *Owner: Ops*
+
+**Compliance (from T3.2 and compliance review):**
+- [ ] DPIA completed and signed by DPO (GDPR Art. 35) *Owner: DPO*
+- [ ] HIS vendor confirms 20-year FHIR Encounter retention for VR encounters in writing *Owner: Hospital IT*
+- [ ] DPA signed with LiveKit (cloud) and PDF service (GDPR Art. 28) *Owner: DPO + Ops*
+- [ ] MDR scope exclusion document signed by Quality/Regulatory Lead *Owner: Quality*
+- [ ] NIS2 incident reporting procedure updated with telemedicine triggers *Owner: Security*
+- [ ] NCZI eZdravie VR encounter type confirmed with Hospital IT *Owner: Hospital IT*
+
+---
+
+## TH-Pilot soft-launch plan (Sprint S11)
+
+**Goal:** Validate telemedicine in a real production environment with a controlled cohort before rolling out to all enabled clinics.
+
+**Phase 1 — FRO only (2-week burn-in):**
+1. Enable `telehealth: true` for FRO (Rehabilitačné oddelenie) only via Admin → Telehealth → Clinics toggle.
+2. Assign 2–3 physicians with `telehealth: true` in Admin → Telehealth → Physicians.
+3. Soft-announce to a small cohort of returning patients (outbound SMS via the existing SMS gateway: ops task).
+4. Monitor daily:
+   - Session join rate (target ≥ 90% of booked sessions reach "active" within +5 min of scheduled_at)
+   - Admission latency P50/P95 (physician → patient admitted)
+   - Post-call HIS sync DLQ depth (target: 0 outstanding > 1 hour)
+   - Patient satisfaction (optional — short form via SMS after consultation)
+5. Review after 2 weeks: if no P0/P1 incidents and HIS sync rate ≥ 99%, proceed to Phase 2.
+
+**Phase 2 — All telehealth:true clinics:**
+- Toggle `telehealth: true` for remaining eligible clinics (interne, angiologicka) via admin.
+- Announce publicly via news item in CMS.
+- Enable telehealth link in the main nav if not already live (SiteHeader nav item was added in S7).
+
+**Rollback:**
+- Disable `telehealth: true` per clinic via Admin → Telehealth → Clinics toggle (immediate effect, no deploy).
+- Sessions already in "active" or "waiting" are unaffected until they end naturally.
 
 ---
 

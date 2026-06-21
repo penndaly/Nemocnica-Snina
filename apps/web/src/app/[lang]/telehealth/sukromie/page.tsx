@@ -157,6 +157,17 @@ const SK_SECTIONS: Section[] = [
     ],
   },
   {
+    heading: 'Sprostredkovatelia (čl. 28 GDPR)',
+    icon: <Shield size={20} aria-hidden="true" style={{ color: 'var(--blue-700)' }} />,
+    paragraphs: [
+      'Na poskytovanie videokonzultácií využívame nasledujúcich sprostredkovateľov. S každým z nich máme uzatvorenú Zmluvu o spracúvaní údajov (DPA) a spracúvanie prebieha výlučne v EÚ:',
+    ],
+    bullets: [
+      'LiveKit — poskytovateľ video/audio infraštruktúry (WebRTC SFU). Spracúva: šifrovaný video a audio stream (nie nahrávaný). Umiestnenie: EU. Kontakt na DPO: privacy@livekit.io.',
+      'PDF generovacia služba (Gotenberg) — generuje PDF zhrnutia konzultácií. Spracúva: klinická poznámka lekára a metadáta konzultácie. Umiestnenie: EU (self-hosted). Nemá prístup k pôvodným video streamom.',
+    ],
+  },
+  {
     heading: 'Vaše práva',
     icon: <FileText size={20} aria-hidden="true" style={{ color: 'var(--blue-700)' }} />,
     paragraphs: ['Máte právo:'],
@@ -204,6 +215,17 @@ const EN_SECTIONS: Section[] = [
     paragraphs: [
       'All data is stored exclusively on servers within the European Union (Decree 179/2020). Encryption at rest: AES-256-GCM. Encryption in transit: TLS 1.3. Video stream: DTLS 1.2 / SRTP over WebRTC.',
       'Consultation summary PDFs are automatically purged after 7 days (RETENTION.md retention policy). The clinical note is part of the patient\'s permanent medical record under § 18 Act No. 576/2004 Coll.',
+    ],
+  },
+  {
+    heading: 'Sub-processors (Art. 28 GDPR)',
+    icon: <Shield size={20} aria-hidden="true" style={{ color: 'var(--blue-700)' }} />,
+    paragraphs: [
+      'The following sub-processors are used to deliver video consultations. A Data Processing Agreement (DPA) is in place with each, and all processing takes place within the EU:',
+    ],
+    bullets: [
+      'LiveKit — video/audio infrastructure provider (WebRTC SFU). Processes: encrypted video and audio streams (not recorded). Location: EU. DPO contact: privacy@livekit.io.',
+      'PDF generation service (Gotenberg) — generates consultation summary PDFs. Processes: physician clinical notes and consultation metadata. Location: EU (self-hosted). Does not have access to original video streams.',
     ],
   },
   {

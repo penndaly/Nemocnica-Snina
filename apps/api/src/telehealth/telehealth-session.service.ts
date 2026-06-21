@@ -112,6 +112,7 @@ export class TelehealthSessionService {
     identity: string,
     role: 'patient' | 'physician',
     ip?: string,
+    patientBirthdate?: string,
   ): Promise<JoinResult> {
     const session = await this.prisma.telehealthSession.findUnique({
       where: { id: sessionId },
@@ -126,6 +127,47 @@ export class TelehealthSessionService {
     }
     if (session.status === TelehealthStatus.no_show) {
       throw new ForbiddenException('Session was marked as no-show');
+    }
+
+    // Consent gate (T3.2/R3): telehealth_medical_record consent required for patient join
+    if (role === 'patient') {
+      const consentExists = await this.prisma.bookingConsent.findFirst({
+        where: {
+          bookingId:   session.bookingId,
+          consentType: 'telehealth_medical_record',
+          granted:     true,
+        },
+      });
+      if (!consentExists) {
+        await this.audit.log({
+          actorEmail: identity,
+          actorRole:  'patient',
+          action:     'telehealth.join.blocked.consent_required',
+          resource:   'telehealth_session',
+          resourceId: sessionId,
+          ip,
+        });
+        throw new ForbiddenException({ reason: 'consent_required', message: 'Telehealth medical record consent not found' });
+      }
+    }
+
+    // Minor age block (T3.2/R5): patients under 16 may not join teleconsultations
+    // eID OIDC provides birthdate claim; in production the OIDC strategy must map it to req.user.birthdate
+    if (role === 'patient' && patientBirthdate) {
+      const birthYear = new Date(patientBirthdate).getFullYear();
+      const age = new Date().getFullYear() - birthYear;
+      if (age < 16) {
+        await this.audit.log({
+          actorEmail: identity,
+          actorRole:  'patient',
+          action:     'telehealth.join.blocked.minor_under_16',
+          resource:   'telehealth_session',
+          resourceId: sessionId,
+          detail:     { age },
+          ip,
+        });
+        throw new ForbiddenException({ reason: 'minor_blocked', message: 'Telehealth is not available for patients under 16' });
+      }
     }
 
     // Transition patient joining waiting room (scheduled → waiting)

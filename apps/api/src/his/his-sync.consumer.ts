@@ -4,6 +4,7 @@ import * as amqp from 'amqplib';
 import type { HisEvent } from './his-queue.service';
 import { AuditService } from '../audit/audit.service';
 import { SmsService } from '../sms/sms.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 const QUEUE          = 'ns.his.events';
 const DLQ            = 'ns.his.events.dlq';
@@ -26,6 +27,7 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly cfg: ConfigService,
     private readonly audit: AuditService,
     private readonly sms: SmsService,
+    private readonly prisma: PrismaService,
   ) {
     this.mock              = cfg.get<string>('HIS_MOCK_ENABLED') === 'true';
     this.fhirBase          = cfg.get<string>('HIS_FHIR_BASE_URL') ?? 'https://his-sandbox.local/fhir';
@@ -209,7 +211,190 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
         }, fhirToken);
         break;
       }
+
+      case 'telehealth.session.ended': {
+        await this.syncTelehealthSession(event, fhirToken);
+        break;
+      }
     }
+  }
+
+  private async syncTelehealthSession(event: HisEvent, fhirToken: string): Promise<void> {
+    const p = event.payload as Record<string, unknown>;
+    const sessionId = String(p['sessionId'] ?? event.idempotencyKey);
+
+    // Idempotency guard — skip if already synced
+    const session = await this.prisma.telehealthSession.findUnique({
+      where: { id: sessionId },
+      include: { summary: true },
+    });
+
+    if (!session) {
+      this.logger.warn(`telehealth.session.ended: session ${sessionId} not found, skipping`);
+      return;
+    }
+
+    if (session.hisSynced) {
+      this.logger.log(`telehealth.session.ended: session ${sessionId} already synced, acking`);
+      return;
+    }
+
+    if (this.mock) {
+      // HIS sandbox mock — record synthetic IDs and mark synced
+      const syntheticEncounterId = `MOCK-ENC-${sessionId.slice(0, 8).toUpperCase()}`;
+      await this.markSessionSynced(sessionId, syntheticEncounterId);
+      this.logger.log(`[HIS mock] telehealth.session.ended ${sessionId} → Encounter ${syntheticEncounterId}`);
+      return;
+    }
+
+    // 1. Write FHIR R4 Encounter (class=VR — virtual consultation)
+    const encounter = {
+      resourceType: 'Encounter',
+      status: 'finished',
+      class: {
+        system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+        code: 'VR',
+        display: 'virtual',
+      },
+      // EHDS-aligned SNOMED CT encounter type (Advisory A1)
+      type: [{
+        coding: [{
+          system: 'http://snomed.info/sct',
+          code: '448337001',
+          display: 'Telemedicine consultation with patient (procedure)',
+        }],
+      }],
+      identifier: [{ system: 'https://nemocnicasnina.sk/telehealth', value: sessionId }],
+      period: {
+        start: p['startedAt'] ?? p['scheduledAt'],
+        end:   p['endedAt'],
+      },
+      participant: [{
+        type: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType', code: 'PPRF' }] }],
+        individual: { identifier: { system: 'https://nemocnicasnina.sk/physician', value: String(p['physicianId'] ?? '') } },
+      }],
+      subject: {
+        // patient_token is opaque; not an RČ — GDPR data minimisation preserved
+        identifier: { system: 'https://nemocnicasnina.sk/patient-token', value: String(p['patientToken'] ?? '') },
+      },
+      serviceProvider: { identifier: { system: 'https://nemocnicasnina.sk/clinic', value: String(p['clinicId'] ?? '') } },
+      extension: [{
+        url: 'https://nemocnicasnina.sk/fhir/StructureDefinition/telehealth-duration-seconds',
+        valueInteger: typeof p['durationSeconds'] === 'number' ? p['durationSeconds'] : null,
+      }],
+    };
+
+    const encounterId = await this.postFhirReturnId('Encounter', encounter, fhirToken);
+
+    // 2. FHIR MedicationRequest + eZdravie if prescription was issued
+    if (session.summary?.prescriptionIssued) {
+      const medRequest = {
+        resourceType: 'MedicationRequest',
+        status: 'active',
+        intent: 'order',
+        encounter: { reference: `Encounter/${encounterId}` },
+        subject: {
+          identifier: { system: 'https://nemocnicasnina.sk/patient-token', value: session.patientToken },
+        },
+        authoredOn: new Date().toISOString(),
+        medicationCodeableConcept: {
+          text: session.summary.prescriptionRef ?? 'Telehealth e-prescription',
+        },
+        dosageInstruction: [{
+          text: session.summary.clinicalNote ?? '',
+        }],
+      };
+
+      const medRequestId = await this.postFhirReturnId('MedicationRequest', medRequest, fhirToken);
+
+      // Submit to NCZI eZdravie (B2 — Act 362/2011 legal requirement for telehealth)
+      // Hospital IT must confirm eZdravie accepts VR encounter type (see TODO comment)
+      // TODO: Confirm with Hospital IT that NCZI_EDOHODY_ENDPOINT accepts VR encounter type
+      try {
+        const prescCode = await this.submitToEzdravia(
+          {
+            medicationCode: session.summary.prescriptionRef ?? '',
+            medicationName: 'Telehealth prescription',
+            patientRcHash: session.patientToken, // opaque token; eZdravie uses doctorCode+hospitalIco to resolve patient
+            doctorCode: session.physicianId,
+            hospitalIco: '', // populated from Hospital singleton by HIS vendor
+          },
+          sessionId,
+        );
+
+        // Update FHIR MedicationRequest with eZdravie prescription code
+        await this.patchFhir(`MedicationRequest/${medRequestId}`, {
+          identifier: [{ system: 'urn:oid:nczi.ezdravia', value: prescCode }],
+        }, fhirToken);
+
+        // Store prescription code in our summary record
+        await this.prisma.telehealthSummary.update({
+          where: { sessionId },
+          data: { prescriptionRef: prescCode },
+        });
+
+        await this.audit.log({
+          actorEmail: 'system:his-sync',
+          actorRole: 'system',
+          action: 'ezdravia_telehealth_prescription_registered',
+          resource: 'TelehealthSummary',
+          resourceId: sessionId,
+          detail: { prescCode, medRequestId },
+        });
+      } catch (err) {
+        this.logger.error(`eZdravie telehealth submission failed for session ${sessionId}: ${String(err)}`);
+        await this.audit.log({
+          actorEmail: 'system:his-sync',
+          actorRole: 'system',
+          action: 'ezdravia_telehealth_prescription_failed',
+          resource: 'TelehealthSummary',
+          resourceId: sessionId,
+          detail: { error: String(err) },
+        });
+        // Dead-letter eZdravie failure separately — does NOT roll back the Encounter creation
+        this.publishEzdraviaDlq(event, String(err));
+      }
+    }
+
+    // 3. Write proposed FHIR Appointment if follow-up recommended
+    const followUp = session.summary?.followUpRecommendationSk ?? session.summary?.followUpRecommendationEn;
+    if (followUp) {
+      await this.postFhir('Appointment', {
+        resourceType: 'Appointment',
+        status: 'proposed',
+        description: followUp,
+        comment: `Follow-up from teleconsultation Encounter/${encounterId}`,
+        participant: [{
+          actor: { identifier: { system: 'https://nemocnicasnina.sk/patient-token', value: session.patientToken } },
+          status: 'needs-action',
+        }],
+      }, fhirToken);
+    }
+
+    // 4. Mark session as synced and store Encounter ID
+    await this.markSessionSynced(sessionId, encounterId);
+
+    await this.audit.log({
+      actorEmail: 'system:his-sync',
+      actorRole: 'system',
+      action: 'telehealth.his_sync.completed',
+      resource: 'telehealth_session',
+      resourceId: sessionId,
+      detail: { encounterId, prescriptionSynced: session.summary?.prescriptionIssued ?? false },
+    });
+  }
+
+  private async markSessionSynced(sessionId: string, encounterId: string): Promise<void> {
+    await this.prisma.telehealthSession.update({
+      where: { id: sessionId },
+      data: { hisSynced: true },
+    });
+
+    // Update summary with the FHIR Encounter ID (enables portal display + purge guard)
+    await this.prisma.telehealthSummary.updateMany({
+      where: { sessionId },
+      data: { hisEncounterId: encounterId },
+    });
   }
 
   private buildFhirMedRequest(p: Record<string, string>): Record<string, unknown> {
