@@ -61,18 +61,20 @@ enum BookingStatus {
 // ─── New-patient onboarding ───────────────────────────────
 
 model OnboardingApplication {
-  id           String              @id @default(uuid())
-  physicianId  String
-  patientName  String
-  patientRcHash String             // bcrypt hash
-  insurerCode  String
-  phone        String
-  email        String?
-  status       OnboardingStatus    @default(SUBMITTED)
-  reviewedById String?
-  reviewNote   String?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id              String              @id @default(uuid())
+  physicianId     String
+  patientName     String
+  patientRcHash   String              // bcrypt hash
+  insurerCode     String
+  phone           String
+  email           String?
+  status          OnboardingStatus    @default(SUBMITTED)
+  reviewedById    String?
+  reviewNote      String?
+  ncziXmlPayload  String?             // generated eDohoda XML on acceptance
+  signToken       String?             @unique // token for patient eID signing link
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   @@index([physicianId, status])
   @@map("onboarding_applications")

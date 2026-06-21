@@ -8,6 +8,7 @@
  */
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Channel, ChannelModel } from 'amqplib';
 import * as amqp from 'amqplib';
 import { AuditService } from '../audit/audit.service';
 
@@ -30,8 +31,8 @@ const DLQ      = 'ns.his.events.dlq';
 @Injectable()
 export class HisQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(HisQueueService.name);
-  private connection: amqp.Connection | null = null;
-  private channel: amqp.Channel | null = null;
+  private connection: ChannelModel | null = null;
+  private channel: Channel | null = null;
 
   constructor(
     private readonly cfg: ConfigService,
@@ -44,22 +45,23 @@ export class HisQueueService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.channel?.close();
-    await this.connection?.close();
+    await (this.connection as ChannelModel | null)?.close();
   }
 
   private async connect() {
     const url = this.cfg.get<string>('RABBITMQ_URL') ?? 'amqp://localhost:5672';
     try {
       this.connection = await amqp.connect(url);
-      this.channel = await this.connection.createChannel();
+      this.channel = await (this.connection as ChannelModel).createChannel();
 
       // Dead-letter exchange for failed messages
-      await this.channel.assertExchange(`${EXCHANGE}.dlx`, 'direct', { durable: true });
-      await this.channel.assertQueue(DLQ, { durable: true });
-      await this.channel.bindQueue(DLQ, `${EXCHANGE}.dlx`, QUEUE);
+      const ch = this.channel!;
+      await ch.assertExchange(`${EXCHANGE}.dlx`, 'direct', { durable: true });
+      await ch.assertQueue(DLQ, { durable: true });
+      await ch.bindQueue(DLQ, `${EXCHANGE}.dlx`, QUEUE);
 
-      await this.channel.assertExchange(EXCHANGE, 'direct', { durable: true });
-      await this.channel.assertQueue(QUEUE, {
+      await ch.assertExchange(EXCHANGE, 'direct', { durable: true });
+      await ch.assertQueue(QUEUE, {
         durable: true,
         arguments: {
           'x-dead-letter-exchange': `${EXCHANGE}.dlx`,
@@ -67,7 +69,7 @@ export class HisQueueService implements OnModuleInit, OnModuleDestroy {
           'x-message-ttl': 7 * 24 * 60 * 60 * 1000, // 7 days
         },
       });
-      await this.channel.bindQueue(QUEUE, EXCHANGE, QUEUE);
+      await ch.bindQueue(QUEUE, EXCHANGE, QUEUE);
 
       this.logger.log('Connected to RabbitMQ HIS queue');
     } catch (err) {

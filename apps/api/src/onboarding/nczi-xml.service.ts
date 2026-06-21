@@ -1,21 +1,18 @@
-/**
- * Generates the NCZI eDohoda XML per the schema in PRODUCTION_ARCHITECTURE.md.
- * Patient RC, insurer code, doctor code, validity date.
- * Output is handed off to the patient for eID signing — never stored here.
- */
 import { Injectable } from '@nestjs/common';
 
 interface EDohodoaParams {
   patientRc: string;
   insurerCode: string;
   doctorCode: string;
+  hospitalIco: string;
   validFrom: string; // YYYY-MM-DD
+  validTo: string;   // YYYY-MM-DD
 }
 
 @Injectable()
 export class NcziXmlService {
   generateEDohoda(params: EDohodoaParams): string {
-    const { patientRc, insurerCode, doctorCode, validFrom } = params;
+    const { patientRc, insurerCode, doctorCode, hospitalIco, validFrom, validTo } = params;
     return [
       '<?xml version="1.0" encoding="UTF-8"?>',
       '<eDohoda xmlns="urn:nczi:edohoda:1.0">',
@@ -29,7 +26,11 @@ export class NcziXmlService {
       `  <lekar>`,
       `    <kod>${escapeXml(doctorCode)}</kod>`,
       `  </lekar>`,
+      `  <nemocnica>`,
+      `    <ico>${escapeXml(hospitalIco)}</ico>`,
+      `  </nemocnica>`,
       `  <platnostOd>${escapeXml(validFrom)}</platnostOd>`,
+      `  <platnostDo>${escapeXml(validTo)}</platnostDo>`,
       `  <typ>kapitacna</typ>`,
       '</eDohoda>',
     ].join('\n');

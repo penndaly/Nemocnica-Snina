@@ -1,7 +1,13 @@
-import { Body, Controller, Ip, Param, Post, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Ip, Param, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { OnboardingService } from './onboarding.service';
+
+function assertClinician(req: { user: { role: string } }) {
+  if (req.user.role === 'EDITOR') {
+    throw new ForbiddenException('Clinician or Admin role required');
+  }
+}
 
 @Controller('api/onboarding')
 export class OnboardingController {
@@ -20,6 +26,13 @@ export class OnboardingController {
     });
   }
 
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  async list(@Request() req: { user: { role: string } }) {
+    assertClinician(req);
+    return this.onboarding.list();
+  }
+
   @Post(':id/review')
   @UseGuards(AuthGuard('jwt'))
   async review(
@@ -28,6 +41,7 @@ export class OnboardingController {
     @Request() req: { user: { email: string; role: string } },
     @Ip() ip: string,
   ) {
+    assertClinician(req);
     return this.onboarding.review(
       id,
       body.decision,

@@ -91,6 +91,10 @@ export class SmsService {
     await this.sendSms(phone, `Nemocnica Snina — objednávka ${bookingId} bola zrušená.`);
   }
 
+  async sendRaw(phone: string, message: string): Promise<void> {
+    await this.sendSms(phone, message);
+  }
+
   // ── Gateway call ──────────────────────────────────────────
 
   private async sendSms(to: string, body: string): Promise<void> {

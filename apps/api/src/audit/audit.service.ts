@@ -33,8 +33,8 @@ export class AuditService {
         resource: params.resource,
         resourceId: params.resourceId,
         detail: params.detail as never,
-        ip: params.ip,
-        actorId: params.actorId,
+        ip: params.ip ?? null,
+        actorId: params.actorId ?? null,
       },
     });
   }
