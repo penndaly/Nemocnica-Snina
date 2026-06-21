@@ -85,6 +85,10 @@ export const ConfigSchema = z.object({
   OTP_MAX_ATTEMPTS:   z.coerce.number().default(5),
   BOOKING_REMINDER_HOURS: z.coerce.number().default(48),
 
+  // ── APS (Ambulatory Emergency Service) ───────────────
+  PSK_APS_API_URL:        z.string().url().optional(),
+  APS_CACHE_TTL_SECONDS:  z.coerce.number().default(600),
+
   // ── Payments ─────────────────────────────────────────
   LSPP_FEE_EUR:       z.coerce.number().default(1.99),
 

@@ -149,11 +149,26 @@ await check('Payments: create LSPP session (test booking)', async () => {
 
 // ── 8. APS e-VÚC feed ────────────────────────────────────────
 
-await check('APS feed (live or CMS fallback)', async () => {
-  const r = await fetch(`${API}/api/aps`);
+await check('APS feed: NestJS returns 200 with parseable schedule', async () => {
+  const r = await fetch(`${API}/api/aps/schedule?district=snina`);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const body = await r.json() as { source?: string };
-  return `APS data received, source=${body.source ?? 'unknown'}`;
+  const body = await r.json() as { source?: string; schedule?: unknown[]; updatedAt?: string };
+  if (!Array.isArray(body.schedule)) throw new Error('Response missing schedule array');
+  if (body.schedule.length === 0) throw new Error('schedule array is empty — fallback or live must contain at least one entry');
+  const entry = body.schedule[0] as { facility?: string; phone?: string };
+  if (!entry.facility) throw new Error('schedule[0] missing facility field');
+  if (!entry.phone)    throw new Error('schedule[0] missing phone field');
+  return `source=${body.source ?? 'unknown'}, entries=${body.schedule.length}, updatedAt=${body.updatedAt ?? '?'}`;
+});
+
+await check('APS feed: Next.js /api/aps proxy returns 200 with parseable schedule', async () => {
+  const r = await fetch(`${APP}/api/aps`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const body = await r.json() as { source?: string; schedule?: unknown[]; isFallback?: boolean };
+  if (!Array.isArray(body.schedule)) throw new Error('Response missing schedule array');
+  if (body.schedule.length === 0) throw new Error('schedule array is empty');
+  const fallbackNote = body.isFallback ? ' (fallback)' : '';
+  return `source=${body.source ?? 'unknown'}${fallbackNote}, entries=${body.schedule.length}`;
 });
 
 // ── 9. Google Cloud Translation ──────────────────────────────

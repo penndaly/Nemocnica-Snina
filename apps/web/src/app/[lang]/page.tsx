@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { StructuredData } from '@/components/StructuredData';
+import { ApsCard } from '@/components/ApsCard';
 import { getDepartments, getPhysicians, getNewsItems, getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -325,17 +326,14 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
               </Link>
             </div>
 
-            {/* APS sidebar */}
+            {/* APS sidebar — live schedule via /api/aps (Sprint S2) */}
             <aside>
-              <div
-                className="card card-pad"
-                style={{ borderTop: '4px solid var(--blue-600)' }}
-                aria-label={localizeField(aps.title, locale)}
-              >
-                <p className="eyebrow">{localizeField(aps.title, locale)}</p>
-                <p style={{ fontSize: '.92rem', color: 'var(--ink-2)', marginBottom: '1rem' }}>
-                  {localizeField(aps.note, locale)}
-                </p>
+              <ApsCard
+                title={localizeField(aps.title, locale)}
+                note={localizeField(aps.note, locale)}
+                locale={locale}
+              />
+              <div style={{ marginTop: '.75rem' }}>
                 <Link href={`/${locale}/kontakt`} className="btn btn-ghost btn-sm btn-block">
                   {t('nav.contact')}
                 </Link>

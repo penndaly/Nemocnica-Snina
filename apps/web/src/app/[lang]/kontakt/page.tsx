@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { ApsCard } from '@/components/ApsCard';
 import { getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -70,22 +71,13 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
                 ))}
               </div>
 
-              {/* APS block */}
-              <div
-                style={{
-                  borderLeft: '4px solid var(--red)',
-                  padding: '.75rem 1rem',
-                  background: 'var(--red-50)',
-                  borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
-                  marginBottom: '2rem',
-                }}
-                role="complementary"
-                aria-label={localizeField(aps.title, locale)}
-              >
-                <p className="eyebrow" style={{ color: 'var(--red)', marginBottom: '.3rem' }}>
-                  {localizeField(aps.title, locale)}
-                </p>
-                <p style={{ margin: 0, fontSize: '.9rem' }}>{localizeField(aps.note, locale)}</p>
+              {/* APS block — live schedule via /api/aps (Sprint S2) */}
+              <div style={{ marginBottom: '2rem' }} role="complementary">
+                <ApsCard
+                  title={localizeField(aps.title, locale)}
+                  note={localizeField(aps.note, locale)}
+                  locale={locale}
+                />
               </div>
 
               {/* Cookie notice — strictly-necessary cookies only, no consent banner needed */}
