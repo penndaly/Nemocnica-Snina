@@ -42,17 +42,34 @@ export class BookingController {
       throw new BadRequestException('Missing required booking fields');
     }
 
+    const mode = body['mode'] ? String(body['mode']) : undefined;
+
+    // Server-side enforcement: telehealth mode requires telehealth:true on the clinic
+    if (mode === 'telehealth') {
+      if (!clinic.telehealth) {
+        throw new BadRequestException('This clinic does not support telehealth bookings');
+      }
+      if (!Boolean(body['telehealthConsent'])) {
+        throw new BadRequestException('Telehealth consent is required for video consultation bookings');
+      }
+    }
+
     return this.bookingService.createBooking(clinic, {
       clinicId,
-      date:             String(body['date']   ?? ''),
-      time:             String(body['time']   ?? ''),
-      patientName:      String(body['patientName']  ?? ''),
-      patientPhone:     String(body['patientPhone'] ?? ''),
-      patientRc:        String(body['patientRc']    ?? ''),
-      hasReferral:      Boolean(body['hasReferral']),
-      gdprConsent:      Boolean(body['gdprConsent']),
-      referralConsent:  Boolean(body['referralConsent']),
-      locale:           body['locale'] ? String(body['locale']) : undefined,
+      date:                  String(body['date']   ?? ''),
+      time:                  String(body['time']   ?? ''),
+      patientName:           String(body['patientName']  ?? ''),
+      patientPhone:          String(body['patientPhone'] ?? ''),
+      patientRc:             String(body['patientRc']    ?? ''),
+      hasReferral:           Boolean(body['hasReferral']),
+      gdprConsent:           Boolean(body['gdprConsent']),
+      referralConsent:       Boolean(body['referralConsent']),
+      locale:                body['locale'] ? String(body['locale']) : undefined,
+      ...(mode === 'telehealth' && {
+        mode:                'telehealth' as const,
+        telehealthConsent:   Boolean(body['telehealthConsent']),
+        minorGuardianConsent:Boolean(body['minorGuardianConsent']),
+      }),
     });
   }
 

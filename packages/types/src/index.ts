@@ -42,6 +42,11 @@ export interface Pages {
     title: Loc;
     note: Loc;
   };
+  telehealth?: {
+    badge: Loc;
+    title: Loc;
+    subtitle: Loc;
+  };
 }
 
 // ─── Collections ─────────────────────────────────────────
@@ -88,6 +93,9 @@ export interface Clinic {
   bookingRule: Loc;
   fee?: Loc;
   opened?: string;
+  telehealth?: boolean;
+  telehealthWindow?: string;
+  telehealthRule?: Loc;
 }
 
 export interface Physician {

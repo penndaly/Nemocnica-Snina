@@ -21,6 +21,9 @@ export interface CreateBookingDto {
   gdprConsent: boolean;
   referralConsent: boolean;
   locale?: string;
+  mode?: 'telehealth';
+  telehealthConsent?: boolean;
+  minorGuardianConsent?: boolean;
 }
 
 const RC_SALT_ROUNDS = 12;
@@ -91,11 +94,28 @@ export class BookingService {
           hasReferral: dto.hasReferral,
           gdprConsent: dto.gdprConsent,
           referralConsent: dto.referralConsent,
+          mode: dto.mode ?? null,
           status: BookingStatus.PENDING,
           cancelToken,
           slot: { connect: { id: slotId } },
         },
       });
+
+      // Append-only consent records
+      const consentRows = [
+        { consentType: 'gdpr', granted: dto.gdprConsent },
+        ...(dto.referralConsent ? [{ consentType: 'referral', granted: true }] : []),
+        ...(dto.mode === 'telehealth' && dto.telehealthConsent
+          ? [{ consentType: 'telehealth_medical_record', granted: true }]
+          : []),
+        ...(dto.mode === 'telehealth' && dto.minorGuardianConsent
+          ? [{ consentType: 'minor_guardian', granted: true }]
+          : []),
+      ];
+      await tx.bookingConsent.createMany({
+        data: consentRows.map((c) => ({ ...c, bookingId: booking.id })),
+      });
+
       return { id: booking.id, cancelToken };
     });
 
@@ -109,9 +129,15 @@ export class BookingService {
       detail: { clinicId: dto.clinicId, date: dto.date, time: dto.time },
     });
     void this.his.publish({
-      type: 'booking.confirmed',
+      type: dto.mode === 'telehealth' ? 'telehealth.booking.confirmed' : 'booking.confirmed',
       idempotencyKey: result.id,
-      payload: { clinicId: dto.clinicId, patientName: dto.patientName, date: dto.date, time: dto.time },
+      payload: {
+        clinicId: dto.clinicId,
+        patientName: dto.patientName,
+        date: dto.date,
+        time: dto.time,
+        ...(dto.mode === 'telehealth' && { mode: 'telehealth' }),
+      },
       timestamp: new Date().toISOString(),
     });
     void this.sms.sendBookingConfirmation({

@@ -22,6 +22,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
     { key: 'nav.clinics', href: `/${locale}/ambulancie` },
     { key: 'nav.doctors', href: `/${locale}/lekari` },
     { key: 'nav.services', href: `/${locale}/sluzby` },
+    { key: 'nav.telehealth', href: `/${locale}/telehealth` },
     { key: 'nav.diagnostics', href: `/${locale}/diagnostika` },
     { key: 'nav.news', href: `/${locale}/aktuality` },
     { key: 'nav.contact', href: `/${locale}/kontakt` },

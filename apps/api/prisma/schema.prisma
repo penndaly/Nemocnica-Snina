@@ -38,17 +38,31 @@ model Booking {
   hasReferral      Boolean        @default(false)
   gdprConsent      Boolean        @default(false)
   referralConsent  Boolean        @default(false)
+  mode             String?        // 'telehealth' | null
   status           BookingStatus  @default(PENDING)
   cancelToken      String         @unique
   smsVerified      Boolean        @default(false)
   reminderSent     Boolean        @default(false)
   slot             AvailabilitySlot?
+  consents         BookingConsent[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
   @@index([clinicId, date])
   @@index([cancelToken])
   @@map("bookings")
+}
+
+model BookingConsent {
+  id          String   @id @default(uuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  consentType String   // 'gdpr' | 'referral' | 'telehealth_medical_record' | 'minor_guardian'
+  granted     Boolean
+  grantedAt   DateTime @default(now())
+
+  @@index([bookingId])
+  @@map("booking_consents")
 }
 
 enum BookingStatus {

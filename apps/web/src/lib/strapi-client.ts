@@ -68,23 +68,26 @@ function mapDepartment(entry: Record<string, unknown>): Department {
 function mapClinic(entry: Record<string, unknown>): Clinic {
   const a = entry['attributes'] as Record<string, unknown> ?? entry;
   return {
-    id:           String(entry['id'] ?? a['slug']),
-    name:         { sk: String(a['name'] ?? '') },
-    specialty:    { sk: String(a['specialty'] ?? '') },
-    doctor:       String(a['doctor'] ?? ''),
-    nurse:        a['nurse'] ? String(a['nurse']) : undefined,
-    location:     { sk: String(a['location'] ?? '') },
-    phone:        a['phone'] ? String(a['phone']) : undefined,
-    status:       (a['status'] as 'open' | 'new' | 'alert' | 'closed') ?? 'open',
-    bookable:     Boolean(a['bookable']),
-    referral:     Boolean(a['referral']),
-    acceptingNew: Boolean(a['acceptingNew']),
-    bookingDays:  (a['bookingDays'] as number[]) ?? undefined,
-    bookingWindow:a['bookingWindow'] ? String(a['bookingWindow']) : undefined,
-    schedule:     { sk: (a['schedule'] as string[]) ?? [] },
-    bookingRule:  { sk: String(a['bookingRule'] ?? '') },
-    fee:          a['fee'] ? { sk: String(a['fee']) } : undefined,
-    opened:       a['opened'] ? String(a['opened']) : undefined,
+    id:               String(entry['id'] ?? a['slug']),
+    name:             { sk: String(a['name'] ?? '') },
+    specialty:        { sk: String(a['specialty'] ?? '') },
+    doctor:           String(a['doctor'] ?? ''),
+    nurse:            a['nurse'] ? String(a['nurse']) : undefined,
+    location:         { sk: String(a['location'] ?? '') },
+    phone:            a['phone'] ? String(a['phone']) : undefined,
+    status:           (a['status'] as 'open' | 'new' | 'alert' | 'closed') ?? 'open',
+    bookable:         Boolean(a['bookable']),
+    referral:         Boolean(a['referral']),
+    acceptingNew:     Boolean(a['acceptingNew']),
+    bookingDays:      (a['bookingDays'] as number[]) ?? undefined,
+    bookingWindow:    a['bookingWindow'] ? String(a['bookingWindow']) : undefined,
+    schedule:         { sk: (a['schedule'] as string[]) ?? [] },
+    bookingRule:      { sk: String(a['bookingRule'] ?? '') },
+    fee:              a['fee'] ? { sk: String(a['fee']) } : undefined,
+    opened:           a['opened'] ? String(a['opened']) : undefined,
+    telehealth:       a['telehealth'] ? Boolean(a['telehealth']) : undefined,
+    telehealthWindow: a['telehealthWindow'] ? String(a['telehealthWindow']) : undefined,
+    telehealthRule:   a['telehealthRule'] ? { sk: String(a['telehealthRule']) } : undefined,
   };
 }
 
@@ -238,4 +241,27 @@ export async function getPageContent(locale: Locale = 'sk'): Promise<Pages> {
       note:  { sk: String(a['apsNote']  ?? '') },
     },
   };
+}
+
+export async function getTelehealthPage(locale: Locale = 'sk'): Promise<NonNullable<Pages['telehealth']>> {
+  if (USE_FALLBACK) {
+    const { SEED } = await import('./seed');
+    return SEED.pages.telehealth ?? {
+      badge:    { sk: 'Telezdravotníctvo', en: 'Telehealth' },
+      title:    { sk: 'Videokonzultácia s lekárom z domu', en: 'Video consultation with your doctor from home' },
+      subtitle: { sk: 'Bezpečná, šifrovaná videokonzultácia.', en: 'Secure, encrypted video consultation.' },
+    };
+  }
+  const entry = await strapiGet<Record<string, unknown>>('pages-telehealth', locale);
+  const a = (entry['attributes'] as Record<string, unknown>) ?? entry;
+  return {
+    badge:    { [locale]: String(a['heroBadge']    ?? '') },
+    title:    { [locale]: String(a['heroTitle']    ?? '') },
+    subtitle: { [locale]: String(a['heroSubtitle'] ?? '') },
+  };
+}
+
+export async function getTelehealthClinics(locale: Locale = 'sk'): Promise<Clinic[]> {
+  const all = await getClinics(locale);
+  return all.filter((c) => c.telehealth && c.bookable && c.status !== 'closed');
 }

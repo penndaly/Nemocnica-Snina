@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Check, ChevronRight, Phone, MapPin, AlertTriangle, Clock } from 'lucide-react';
+import { Check, ChevronRight, AlertTriangle, Clock, Video, Camera, CameraOff, ExternalLink } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import { localizeField, localizelist } from '@/lib/i18n-utils';
+import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Clinic } from '@ns/types';
 
 type Step = 1 | 2 | 3 | 4 | 5;
+type DeviceState = 'idle' | 'checking' | 'ready' | 'denied';
 
 interface BookingState {
   clinicId: string;
@@ -21,6 +22,8 @@ interface BookingState {
   hasReferral: boolean;
   gdprConsent: boolean;
   referralConsent: boolean;
+  telehealthConsent: boolean;
+  minorGuardianConsent: boolean;
   otpVerified: boolean;
   bookingId: string;
 }
@@ -29,6 +32,7 @@ const EMPTY_STATE: BookingState = {
   clinicId: '', date: '', time: '',
   patientName: '', patientPhone: '', patientRc: '',
   hasReferral: false, gdprConsent: false, referralConsent: false,
+  telehealthConsent: false, minorGuardianConsent: false,
   otpVerified: false, bookingId: '',
 };
 
@@ -50,9 +54,10 @@ function getNextAllowedDates(clinic: Clinic, count = 8): string[] {
   return dates;
 }
 
-function generateSlots(clinic: Clinic): string[] {
-  if (clinic.bookingWindow) {
-    const [start, end] = clinic.bookingWindow.split('–');
+function generateSlots(clinic: Clinic, telehealth: boolean): string[] {
+  const window = telehealth ? (clinic.telehealthWindow ?? clinic.bookingWindow) : clinic.bookingWindow;
+  if (window) {
+    const [start, end] = window.split('–');
     if (!start || !end) return [];
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
@@ -82,19 +87,95 @@ function validateRc(rc: string): boolean {
   return parseInt(clean, 10) % 11 === 0;
 }
 
+function getAgeFromRc(rc: string): number | null {
+  const clean = rc.replace(/[\s/]/g, '');
+  if (!/^\d{9,10}$/.test(clean)) return null;
+  const yy = parseInt(clean.substring(0, 2), 10);
+  let mm = parseInt(clean.substring(2, 4), 10);
+  const dd = parseInt(clean.substring(4, 6), 10);
+  if (mm > 50) mm -= 50;
+  const currentYear = new Date().getFullYear();
+  const fullYear = yy + (yy > (currentYear % 100) ? 1900 : 2000);
+  const birthDate = new Date(fullYear, mm - 1, dd);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  if (today < new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())) age--;
+  return age;
+}
+
+function isJoinActive(date: string, time: string): boolean {
+  if (!date || !time) return false;
+  const scheduled = new Date(`${date}T${time}:00`);
+  const now = new Date();
+  const diff = scheduled.getTime() - now.getTime();
+  return diff <= 10 * 60 * 1000 && diff > -60 * 60 * 1000;
+}
+
+// ─── DeviceCheckCallout ───────────────────────────────────
+
+function DeviceCheckCallout({ state, onCheck }: { state: DeviceState; onCheck: () => void }) {
+  const t = useTranslations();
+  const colours = {
+    idle:     { bg: 'var(--blue-50)',   border: 'var(--blue-700)', text: 'var(--blue-700)' },
+    checking: { bg: 'var(--blue-50)',   border: 'var(--blue-700)', text: 'var(--blue-700)' },
+    ready:    { bg: 'var(--green-50)',  border: 'var(--green)',    text: 'var(--green)'    },
+    denied:   { bg: 'var(--amber-50)',  border: 'var(--amber)',    text: 'var(--amber)'    },
+  }[state];
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        background: colours.bg,
+        border: `1px solid ${colours.border}`,
+        borderRadius: 'var(--radius-sm)',
+        padding: '.75rem 1rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '.75rem',
+      }}
+    >
+      {state === 'ready'
+        ? <Camera size={18} color={colours.text} aria-hidden />
+        : <CameraOff size={18} color={colours.text} aria-hidden />}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, fontSize: '.88rem', color: colours.text }}>
+          {t(`booking.deviceCheck${state === 'ready' ? 'Ready' : state === 'denied' ? 'Denied' : 'Checking'}`)}
+        </div>
+      </div>
+      {state === 'idle' && (
+        <button
+          type="button"
+          onClick={onCheck}
+          style={{
+            fontSize: '.82rem', fontWeight: 700, color: colours.text,
+            background: 'none', border: `1px solid ${colours.border}`,
+            borderRadius: 'var(--radius-sm)', padding: '.3rem .7rem', cursor: 'pointer',
+          }}
+        >
+          {t('booking.deviceCheckChecking').replace('…', '')} ↗
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function BookingPage() {
   const locale = useLocale() as SupportedLocale;
   const t = useTranslations();
   const searchParams = useSearchParams();
+  const mode = searchParams.get('mode'); // 'telehealth' or null
+  const isTelehealth = mode === 'telehealth';
 
   const [step, setStep] = useState<Step>(1);
   const [booking, setBooking] = useState<BookingState>({ ...EMPTY_STATE });
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [rcError, setRcError] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpInput, setOtpInput] = useState('');
+  const [minorBlock, setMinorBlock] = useState<'under16' | '16to17' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [deviceState, setDeviceState] = useState<DeviceState>('idle');
 
   useEffect(() => {
     fetch(`/api/content?type=clinics&locale=${locale}`)
@@ -112,9 +193,31 @@ export default function BookingPage() {
     }
   }, [searchParams, clinics]);
 
+  const handleDeviceCheck = useCallback(() => {
+    setDeviceState('checking');
+    navigator.mediaDevices?.getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        stream.getTracks().forEach((t) => t.stop());
+        setDeviceState('ready');
+        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('th_device_ok', '1');
+      })
+      .catch(() => setDeviceState('denied'));
+  }, []);
+
+  // Kick off device check automatically on step 4 when in telehealth mode
+  useEffect(() => {
+    if (isTelehealth && step === 4 && deviceState === 'idle') {
+      handleDeviceCheck();
+    }
+  }, [isTelehealth, step, deviceState, handleDeviceCheck]);
+
+  const visibleClinics = isTelehealth
+    ? clinics.filter((c) => c.telehealth && c.bookable && c.status !== 'closed')
+    : clinics.filter((c) => c.bookable);
+
   const selectedClinic = clinics.find((c) => c.id === booking.clinicId);
   const availableDates = selectedClinic ? getNextAllowedDates(selectedClinic) : [];
-  const slots = selectedClinic ? generateSlots(selectedClinic) : [];
+  const slots = selectedClinic ? generateSlots(selectedClinic, isTelehealth) : [];
 
   const STEPS: { label: string }[] = [
     { label: t('booking.step1') },
@@ -149,16 +252,21 @@ export default function BookingPage() {
 
   // ─── Step 1: Choose clinic ────────────────────────────────
   if (step === 1) {
-    const bookable = clinics.filter((c) => c.bookable);
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div style={{ padding: '2rem 0 4rem' }}>
           <div className="container-narrow">
+            {isTelehealth && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.75rem' }}>
+                <Video size={18} color="var(--blue-700)" aria-hidden />
+                <span className="eyebrow" style={{ color: 'var(--blue-700)' }}>{t('booking.telehealthModeTitle')}</span>
+              </div>
+            )}
             <p className="eyebrow">{t('booking.title')}</p>
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step1')}</h1>
             <Stepper />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', marginTop: '1.5rem' }}>
-              {bookable.map((clinic) => (
+              {visibleClinics.map((clinic) => (
                 <button
                   key={clinic.id}
                   onClick={() => { setBooking((p) => ({ ...p, clinicId: clinic.id })); setStep(2); }}
@@ -174,15 +282,25 @@ export default function BookingPage() {
                     <div style={{ fontWeight: 700, marginBottom: '.2rem' }}>
                       {localizeField(clinic.name, locale)}
                     </div>
-                    <div style={{ fontSize: '.85rem', color: 'var(--ink-2)' }}>
+                    <div style={{ fontSize: '.85rem', color: 'var(--ink-2)', marginBottom: '.4rem' }}>
                       {clinic.doctor}
                     </div>
+                    <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+                      {(isTelehealth || clinic.telehealth) && (
+                        <span
+                          className="chip"
+                          style={{ color: 'var(--blue-700)', background: 'var(--blue-50)', display: 'inline-flex', alignItems: 'center', gap: '.3em' }}
+                        >
+                          <Video size={11} aria-hidden /> {t('booking.telehealthChip')}
+                        </span>
+                      )}
+                      {clinic.referral && (
+                        <span className="chip" style={{ color: 'var(--amber)', background: 'var(--amber-50)' }}>
+                          {t('referralReq')}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {clinic.referral && (
-                    <span className="chip" style={{ color: 'var(--amber)', background: 'var(--amber-50)', flexShrink: 0 }}>
-                      {t('referralReq')}
-                    </span>
-                  )}
                   <ChevronRight size={18} color="var(--blue-600)" aria-hidden />
                 </button>
               ))}
@@ -197,6 +315,10 @@ export default function BookingPage() {
 
   // ─── Step 2: Choose date ──────────────────────────────────
   if (step === 2) {
+    const windowNote = isTelehealth
+      ? (selectedClinic.telehealthWindow ?? selectedClinic.bookingWindow)
+      : selectedClinic.bookingWindow;
+
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div style={{ padding: '2rem 0 4rem' }}>
@@ -212,10 +334,24 @@ export default function BookingPage() {
                 fontSize: '.88rem',
                 color: 'var(--blue-700)',
                 margin: '1.25rem 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '.5rem',
               }}
               role="note"
             >
-              {localizeField(selectedClinic.bookingRule, locale)}
+              {isTelehealth && <Video size={15} aria-hidden />}
+              {isTelehealth
+                ? localizeField(selectedClinic.telehealthRule ?? selectedClinic.bookingRule, locale)
+                : localizeField(selectedClinic.bookingRule, locale)}
+              {windowNote && isTelehealth && (
+                <span
+                  className="chip"
+                  style={{ color: 'var(--blue-700)', background: 'rgba(255,255,255,.6)', marginLeft: 'auto', flexShrink: 0 }}
+                >
+                  Video · {windowNote}
+                </span>
+              )}
             </div>
             {availableDates.length === 0 ? (
               <p style={{ color: 'var(--ink-3)' }}>{t('booking.noSlots')}</p>
@@ -272,7 +408,7 @@ export default function BookingPage() {
             {slots.length === 0 ? (
               <p style={{ color: 'var(--ink-3)', marginTop: '1.5rem' }}>{t('booking.noSlots')}</p>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '.5rem', marginTop: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '.5rem', marginTop: '1.5rem' }}>
                 {slots.map((slot) => {
                   const active = booking.time === slot;
                   return (
@@ -293,8 +429,18 @@ export default function BookingPage() {
                         transition: 'all .14s',
                       }}
                     >
-                      <Clock size={13} aria-hidden style={{ display: 'block', margin: '0 auto .2rem' }} />
-                      {slot}
+                      {isTelehealth ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.2rem' }}>
+                          <Video size={13} aria-hidden />
+                          <span>{slot}</span>
+                          <span style={{ fontSize: '.72rem', opacity: .8 }}>{t('booking.telehealthVideoSlot')}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Clock size={13} aria-hidden style={{ display: 'block', margin: '0 auto .2rem' }} />
+                          {slot}
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -318,8 +464,27 @@ export default function BookingPage() {
         return;
       }
       setRcError('');
+
+      if (isTelehealth) {
+        const age = getAgeFromRc(booking.patientRc);
+        if (age !== null && age < 16) {
+          setMinorBlock('under16');
+          return;
+        }
+        if (age !== null && age < 18) {
+          setMinorBlock('16to17');
+          // Still proceed — but guardian checkbox is required (enforced by HTML required)
+        } else {
+          setMinorBlock(null);
+        }
+      }
+
       setStep(5);
     }
+
+    const age = booking.patientRc.replace(/[\s/]/g, '').length >= 9 ? getAgeFromRc(booking.patientRc) : null;
+    const isMinor = age !== null && age < 18;
+    const isBlockedMinor = age !== null && age < 16;
 
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
@@ -359,7 +524,11 @@ export default function BookingPage() {
                     <input
                       type="text"
                       value={booking.patientRc}
-                      onChange={(e) => { setBooking((p) => ({ ...p, patientRc: e.target.value })); setRcError(''); }}
+                      onChange={(e) => {
+                        setBooking((p) => ({ ...p, patientRc: e.target.value }));
+                        setRcError('');
+                        setMinorBlock(null);
+                      }}
                       required
                       inputMode="numeric"
                       placeholder="YYMMDD/CCCC"
@@ -373,6 +542,25 @@ export default function BookingPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Minor block for telehealth */}
+                {isTelehealth && minorBlock === 'under16' && (
+                  <div
+                    role="alert"
+                    style={{
+                      background: 'var(--amber-50)', border: '1px solid var(--amber)',
+                      borderRadius: 'var(--radius-sm)', padding: '.75rem 1rem',
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, color: 'var(--amber)', marginBottom: '.25rem' }}>
+                      <AlertTriangle size={14} style={{ display: 'inline', marginRight: '.4em' }} aria-hidden />
+                      {t('booking.minorBlockTitle')}
+                    </div>
+                    <p style={{ fontSize: '.88rem', color: 'var(--ink-2)', margin: 0 }}>
+                      {t('booking.minorBlockBody')}
+                    </p>
+                  </div>
+                )}
 
                 {/* Referral consent — conditional */}
                 {selectedClinic.referral && (
@@ -399,10 +587,64 @@ export default function BookingPage() {
                   />
                   <span style={{ fontSize: '.9rem' }}>{t('booking.gdprConsent')}</span>
                 </label>
+
+                {/* Telehealth-specific additions */}
+                {isTelehealth && (
+                  <>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '.25rem 0' }} />
+
+                    {/* Device check callout */}
+                    <DeviceCheckCallout state={deviceState} onCheck={handleDeviceCheck} />
+
+                    {/* Telehealth GDPR consent — mandatory */}
+                    <label style={{ display: 'flex', gap: '.7rem', cursor: 'pointer', alignItems: 'flex-start' }}>
+                      <input
+                        type="checkbox"
+                        checked={booking.telehealthConsent}
+                        onChange={(e) => setBooking((p) => ({ ...p, telehealthConsent: e.target.checked }))}
+                        required
+                        style={{ marginTop: 3, width: 18, height: 18, accentColor: 'var(--blue-700)' }}
+                        aria-describedby="telehealth-consent-desc"
+                      />
+                      <span id="telehealth-consent-desc" style={{ fontSize: '.9rem' }}>
+                        {t('booking.telehealthConsentLabel')}{' '}
+                        <a
+                          href={`/${locale}/telehealth/sukromie`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--blue-700)', fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: '.2em' }}
+                        >
+                          {t('booking.telehealthConsentLink')}
+                          <ExternalLink size={11} aria-hidden />
+                        </a>
+                      </span>
+                    </label>
+
+                    {/* Guardian consent for 16–17 */}
+                    {isMinor && !isBlockedMinor && (
+                      <label style={{ display: 'flex', gap: '.7rem', cursor: 'pointer', alignItems: 'flex-start' }}>
+                        <input
+                          type="checkbox"
+                          checked={booking.minorGuardianConsent}
+                          onChange={(e) => setBooking((p) => ({ ...p, minorGuardianConsent: e.target.checked }))}
+                          required
+                          style={{ marginTop: 3, width: 18, height: 18, accentColor: 'var(--blue-700)' }}
+                        />
+                        <span style={{ fontSize: '.9rem', color: 'var(--amber)' }}>
+                          {t('booking.minorGuardianLabel')}
+                        </span>
+                      </label>
+                    )}
+                  </>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '.75rem', marginTop: '1.25rem' }}>
-                <button type="submit" className="btn btn-primary btn-lg">
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-lg"
+                  disabled={isTelehealth && minorBlock === 'under16'}
+                >
                   {t('booking.next')} →
                 </button>
                 <button type="button" className="btn btn-ghost" onClick={() => setStep(3)}>
@@ -426,15 +668,20 @@ export default function BookingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clinicId:        booking.clinicId,
-          date:            booking.date,
-          time:            booking.time,
-          patientName:     booking.patientName,
-          patientPhone:    booking.patientPhone,
-          patientRc:       booking.patientRc,
-          hasReferral:     booking.referralConsent,
-          gdprConsent:     booking.gdprConsent,
-          referralConsent: booking.referralConsent,
+          clinicId:              booking.clinicId,
+          date:                  booking.date,
+          time:                  booking.time,
+          patientName:           booking.patientName,
+          patientPhone:          booking.patientPhone,
+          patientRc:             booking.patientRc,
+          hasReferral:           booking.referralConsent,
+          gdprConsent:           booking.gdprConsent,
+          referralConsent:       booking.referralConsent,
+          ...(isTelehealth && {
+            mode:                'telehealth',
+            telehealthConsent:   booking.telehealthConsent,
+            minorGuardianConsent:booking.minorGuardianConsent,
+          }),
         }),
       });
 
@@ -461,20 +708,16 @@ export default function BookingPage() {
   if (step === 5) {
     // Confirmed state
     if (booking.bookingId) {
+      const joinActive = isJoinActive(booking.date, booking.time);
       return (
         <SiteLayout activePath={`/${locale}/objednanie`}>
           <div style={{ padding: '3rem 0 5rem' }}>
             <div className="container-narrow" style={{ textAlign: 'center' }}>
               <div
                 style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  background: 'var(--green-50)',
-                  color: 'var(--green)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: 'var(--green-50)', color: 'var(--green)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 1.5rem',
                 }}
                 aria-hidden
@@ -492,6 +735,7 @@ export default function BookingPage() {
                 </div>
                 {[
                   { l: locale === 'sk' ? 'Ambulancia' : 'Clinic', v: localizeField(selectedClinic.name, locale) },
+                  { l: locale === 'sk' ? 'Typ' : 'Type', v: isTelehealth ? t('booking.telehealthChip') : (locale === 'sk' ? 'Osobná návšteva' : 'In-person visit') },
                   { l: locale === 'sk' ? 'Dátum' : 'Date', v: booking.date },
                   { l: locale === 'sk' ? 'Čas' : 'Time', v: booking.time },
                   { l: locale === 'sk' ? 'Pacient' : 'Patient', v: booking.patientName },
@@ -501,6 +745,37 @@ export default function BookingPage() {
                     <span style={{ fontWeight: 700 }}>{v}</span>
                   </div>
                 ))}
+
+                {/* Telehealth join button */}
+                {isTelehealth && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--line)' }}>
+                    {joinActive ? (
+                      <a
+                        href={`/${locale}/telehealth/konzultacia/${booking.bookingId}`}
+                        className="btn btn-primary"
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}
+                      >
+                        <Video size={16} aria-hidden />
+                        {t('booking.joinConsultation')}
+                      </a>
+                    ) : (
+                      <div>
+                        <button
+                          disabled
+                          className="btn btn-primary"
+                          style={{ width: '100%', opacity: .45, cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}
+                          aria-disabled="true"
+                        >
+                          <Video size={16} aria-hidden />
+                          {t('booking.joinConsultation')}
+                        </button>
+                        <p style={{ fontSize: '.82rem', color: 'var(--ink-3)', marginTop: '.4rem', textAlign: 'center' }}>
+                          {t('booking.joinActiveIn')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <p style={{ fontSize: '.88rem', color: 'var(--ink-3)', maxWidth: 400, margin: '0 auto' }}>
                 {t('booking.cancelInfo')}
@@ -522,6 +797,7 @@ export default function BookingPage() {
               <h3 style={{ marginBottom: '1rem' }}>{locale === 'sk' ? 'Zhrnutie objednávky' : 'Booking summary'}</h3>
               {[
                 { l: locale === 'sk' ? 'Ambulancia' : 'Clinic', v: localizeField(selectedClinic.name, locale) },
+                { l: locale === 'sk' ? 'Typ' : 'Type', v: isTelehealth ? t('booking.telehealthChip') : (locale === 'sk' ? 'Osobná návšteva' : 'In-person visit') },
                 { l: locale === 'sk' ? 'Dátum' : 'Date', v: booking.date },
                 { l: locale === 'sk' ? 'Čas' : 'Time', v: booking.time },
                 { l: locale === 'sk' ? 'Pacient' : 'Patient', v: booking.patientName },

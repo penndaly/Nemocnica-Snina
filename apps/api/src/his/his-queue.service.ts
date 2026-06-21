@@ -17,7 +17,9 @@ export type HisEventType =
   | 'booking.cancelled'
   | 'onboarding.accepted'
   | 'medication.prescribed'
-  | 'portal.refill.requested';
+  | 'portal.refill.requested'
+  | 'telehealth.booking.confirmed'
+  | 'telehealth.session.ended';
 
 export interface HisEvent {
   type: HisEventType;

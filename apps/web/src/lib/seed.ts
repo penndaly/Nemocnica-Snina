@@ -49,6 +49,20 @@ export const SEED: Seed = {
         en: 'The hospital organises the APS for adults and children in the Snina district. In a life-threatening emergency always call 112.',
       },
     },
+    telehealth: {
+      badge: {
+        sk: 'Telezdravotníctvo',
+        en: 'Telehealth',
+      },
+      title: {
+        sk: 'Videokonzultácia s lekárom z domu',
+        en: 'Video consultation with your doctor from home',
+      },
+      subtitle: {
+        sk: 'Bezpečná, šifrovaná videokonzultácia s lekárom Nemocnice Snina — bez čakárne, z pohodlia domova.',
+        en: 'Secure, encrypted video consultation with a Nemocnica Snina physician — no waiting room, from the comfort of home.',
+      },
+    },
   },
 
   departments: [
@@ -279,6 +293,9 @@ export const SEED: Seed = {
       bookingDays: [4, 5],
       bookingWindow: '13:00–14:00',
       bookingRule: { sk: 'Objednať sa možno iba vo štvrtok a piatok medzi 13:00 – 14:00. Vyžaduje sa výmenný lístok.', en: 'Booking is possible only Thursday & Friday between 13:00 – 14:00. A referral (výmenný lístok) is required.' },
+      telehealth: true,
+      telehealthWindow: '13:00–14:00',
+      telehealthRule: { sk: 'Videokonzultácie Štv/Pia 13:00 – 14:00. Vyžaduje sa výmenný lístok.', en: 'Video consultations Thu/Fri 13:00 – 14:00. A referral is required.' },
     },
     {
       id: 'neurologicka',
@@ -332,6 +349,27 @@ export const SEED: Seed = {
       schedule: { sk: ['Príjmová ambulancia interného oddelenia', 'Pondelok – Piatok 07:00 – 15:00'], en: ['Admission clinic for Internal Medicine', 'Monday – Friday 07:00 – 15:00'] },
       bookingDays: [1, 2, 3, 4, 5],
       bookingRule: { sk: 'Príjmová ambulancia interného oddelenia.', en: 'Admission clinic for the Internal Medicine department.' },
+      telehealth: true,
+      telehealthWindow: '09:00–11:00',
+      telehealthRule: { sk: 'Videokonzultácie Po–Pia 09:00 – 11:00. Vyžaduje sa výmenný lístok.', en: 'Video consultations Mon–Fri 09:00 – 11:00. A referral is required.' },
+    },
+    {
+      id: 'fro-konzultacia',
+      name: { sk: 'Rehabilitačná videokonzultácia (FRO)', en: 'Rehabilitation Video Consultation (FRO)' },
+      specialty: { sk: 'Fyziatria a rehabilitácia', en: 'Physiatry & rehabilitation' },
+      doctor: 'MUDr. Natália Kyjovská',
+      location: { sk: 'Fyziatricko-rehabilitačné oddelenie', en: 'Physiatry & Rehabilitation Department' },
+      phone: '057 / 7871 237',
+      status: 'open',
+      bookable: true,
+      referral: false,
+      schedule: { sk: ['Videokonzultácie: Po, Str, Pia 10:00 – 12:00'], en: ['Video consultations: Mon, Wed, Fri 10:00 – 12:00'] },
+      bookingDays: [1, 3, 5],
+      bookingWindow: '10:00–12:00',
+      bookingRule: { sk: 'Videokonzultácie sú dostupné v pondelok, stredu a piatok medzi 10:00 – 12:00.', en: 'Video consultations are available Monday, Wednesday and Friday between 10:00 – 12:00.' },
+      telehealth: true,
+      telehealthWindow: '10:00–12:00',
+      telehealthRule: { sk: 'Videokonzultácie Po/Str/Pia 10:00 – 12:00. Bez výmenného lístka.', en: 'Video consultations Mon/Wed/Fri 10:00 – 12:00. No referral required.' },
     },
   ],
 
