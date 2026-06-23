@@ -139,6 +139,31 @@ export async function getConsentAuditLog(deviceId?: string): Promise<ConsentAudi
   return jsonOrThrow(await fetch(`${BASE}/consents/audit${q}`, { cache: 'no-store' }));
 }
 
+export interface WearableNotification {
+  id: string;
+  type: string;
+  severity: string;
+  deviceId: string | null;
+  metricType: string | null;
+  value: string | null;
+  flag: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export async function getNotifications(type = 'wearable_alert'): Promise<WearableNotification[]> {
+  return jsonOrThrow(await fetch(`${BASE}/notifications?type=${type}`, { cache: 'no-store' }));
+}
+
+export async function getUnreadCount(type = 'wearable_alert'): Promise<number> {
+  const r = await jsonOrThrow<{ count: number }>(await fetch(`${BASE}/notifications/unread-count?type=${type}`, { cache: 'no-store' }));
+  return r.count;
+}
+
+export async function markNotificationsRead(type = 'wearable_alert'): Promise<void> {
+  await jsonOrThrow(await fetch(`${BASE}/notifications/read-all?type=${type}`, { method: 'PATCH' }));
+}
+
 export async function uploadDeviceData(
   platform: string,
   file: { filename: string; size: number },

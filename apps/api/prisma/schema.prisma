@@ -386,6 +386,7 @@ model DeviceAlertThreshold {
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
+  @@unique([patientToken, metricType])
   @@index([patientToken, metricType])
   @@map("device_alert_thresholds")
 }
@@ -404,6 +405,29 @@ model DeviceSyncJob {
   @@index([deviceId])
   @@index([status])
   @@map("device_sync_jobs")
+}
+
+// ─── Portal notifications (wearable alerts, token-expiry, consent re-confirm) ──
+// No patient identity stored — opaque patientToken only.
+
+model PortalNotification {
+  id           String    @id @default(uuid()) @db.Uuid
+  patientToken String    @map("patient_token")
+  type         String    // 'wearable_alert' | 'wearable_token_expired' | 'consent_reconfirmation_required'
+  severity     String    @default("info") // 'info' | 'low' | 'high' | 'critical'
+  deviceId     String?   @map("device_id") @db.Uuid
+  physicianId  String?   @map("physician_id")        // opaque TEXT; no physicians table
+  metricType   String?   @map("metric_type")
+  value        String?
+  flag         String?
+  message      String?
+  readAt       DateTime? @map("read_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([patientToken, readAt])
+  @@index([physicianId, createdAt])
+  @@index([type])
+  @@map("portal_notifications")
 }
 
 // ─── Payment receipts ────────────────────────────────────────────────────────

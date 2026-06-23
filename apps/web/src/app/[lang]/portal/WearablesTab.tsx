@@ -8,11 +8,13 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Activity, Watch, HeartPulse, ChevronDown, RefreshCw, ShieldCheck, Upload, X,
+  Activity, Watch, HeartPulse, ChevronDown, RefreshCw, ShieldCheck, Upload, X, Bell,
 } from 'lucide-react';
 import {
   getWearables, connectDevice, syncDevice, getSyncJob, updateConsent, uploadDeviceData,
+  getNotifications, markNotificationsRead,
   type WearablesResponse, type WearableDevice, type WearableReading, type AvailablePlatform,
+  type WearableNotification,
 } from '@/lib/wearables-api';
 
 type Locale = string;
@@ -102,6 +104,8 @@ export function WearablesTab({ locale }: Props) {
   const [availTab, setAvailTab] = useState<'medical' | 'consumer'>('medical');
   const [modal, setModal] = useState<{ kind: 'partnership' | 'ios' | 'upload'; platform: AvailablePlatform } | null>(null);
   const [liveMsg, setLiveMsg] = useState('');
+  const [notifs, setNotifs] = useState<WearableNotification[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -115,7 +119,11 @@ export function WearablesTab({ locale }: Props) {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  const loadNotifs = useCallback(async () => {
+    try { setNotifs(await getNotifications()); } catch { /* non-fatal */ }
+  }, []);
+
+  useEffect(() => { void load(); void loadNotifs(); }, [load, loadNotifs]);
   // Lightweight poll for last_sync_at updates (no SWR dependency in this repo).
   useEffect(() => {
     const id = setInterval(() => { void load(); }, 60_000);
@@ -155,12 +163,56 @@ export function WearablesTab({ locale }: Props) {
     return <div role="status" aria-live="polite" style={{ padding: '2rem', color: 'var(--ink-2)' }}>{locale === 'sk' ? 'Načítavam…' : 'Loading…'}</div>;
   }
 
+  const unread = notifs.filter((n) => !n.readAt).length;
+  const criticalRecent = notifs.find(
+    (n) => n.severity === 'critical' && Date.now() - new Date(n.createdAt).getTime() < 24 * 3600_000,
+  );
+  const sk = locale === 'sk';
+
+  async function openBell() {
+    const next = !bellOpen;
+    setBellOpen(next);
+    if (next && unread > 0) {
+      await markNotificationsRead().catch(() => {});
+      await loadNotifs();
+    }
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '1rem' }}>
         <h3 style={{ margin: 0 }}>{t.title}</h3>
         <span className="badge badge-gray" style={{ fontSize: '.72rem' }}>{t.optional}</span>
+        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => void openBell()} aria-expanded={bellOpen}
+            aria-label={`${sk ? 'Upozornenia' : 'Alerts'}${unread > 0 ? ` (${unread})` : ''}`}>
+            <Bell size={16} aria-hidden="true" />
+            {unread > 0 && <span className="badge badge-red" style={{ fontSize: '.66rem', marginLeft: '.3rem' }}>{unread}</span>}
+          </button>
+          {bellOpen && (
+            <div role="menu" style={{ position: 'absolute', right: 0, top: '110%', width: 300, maxHeight: 400, overflowY: 'auto', background: 'var(--surface)', boxShadow: 'var(--shadow-lg)', borderRadius: 'var(--radius)', zIndex: 50, padding: '.5rem' }}>
+              {notifs.length === 0 ? (
+                <p style={{ fontSize: '.82rem', color: 'var(--ink-3)', padding: '.5rem' }}>{sk ? 'Žiadne upozornenia.' : 'No alerts.'}</p>
+              ) : notifs.slice(0, 20).map((n) => (
+                <div key={n.id} style={{ display: 'flex', gap: '.5rem', alignItems: 'center', padding: '.4rem .5rem', borderBottom: '1px solid var(--warm-100)' }}>
+                  <span role="img" aria-label={flagText(n.flag ?? 'high', locale)} style={{ width: 8, height: 8, borderRadius: '50%', background: FLAG_COLOR[n.flag ?? 'high'] }} />
+                  <span style={{ flex: 1, fontSize: '.8rem' }}>{n.metricType} = {n.value}</span>
+                  <span style={{ fontSize: '.7rem', color: 'var(--ink-3)' }}>{timeAgo(n.createdAt, locale)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {criticalRecent && (
+        <div role="alert" className="card card-pad" style={{ background: 'var(--red-50)', borderColor: 'var(--red)', marginBottom: '1rem', display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+          <span role="img" aria-label={flagText('critical', locale)} style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--red)' }} />
+          <span style={{ fontSize: '.88rem', color: 'var(--red)' }}>
+            {sk ? 'Kritické upozornenie zo zariadenia' : 'Critical wearable alert'} — {criticalRecent.metricType} {criticalRecent.value} · {timeAgo(criticalRecent.createdAt, locale)}
+          </span>
+        </div>
+      )}
 
       {error && (
         <p role="alert" style={{ background: 'var(--red-50)', border: '1px solid var(--red)', borderRadius: 'var(--radius-sm)', padding: '.6rem .8rem', color: 'var(--red)', fontSize: '.88rem' }}>

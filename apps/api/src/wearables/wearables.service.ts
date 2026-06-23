@@ -11,7 +11,14 @@
  * without a separate seed step (window.NS_WEARABLES_DEMO is gone — this is the
  * live API path). The alert/FHIR-export hooks land in Sprint W5.
  */
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { DeviceReading, Prisma, WearableDevice } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -19,6 +26,8 @@ import { AuditService } from '../audit/audit.service';
 import { ConsentService } from './consent.service';
 import { TokenCryptoService } from './token-crypto.service';
 import { OAuthStateService } from './oauth-state.service';
+import { AlertService } from './alert.service';
+import { RK_READINGS_SYNCED, WearablesQueueService } from './wearables-queue.service';
 import {
   WEARABLE_ADAPTER,
   type RawReading,
@@ -47,6 +56,7 @@ export class WearablesService {
   private readonly logger = new Logger(WearablesService.name);
   private readonly provider: string;
   private readonly redirectBase: string;
+  private readonly accessWindowDays: number;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,11 +65,14 @@ export class WearablesService {
     private readonly crypto: TokenCryptoService,
     private readonly oauthState: OAuthStateService,
     private readonly cfg: ConfigService,
+    private readonly alerts: AlertService,
+    private readonly queue: WearablesQueueService,
     @Inject(WEARABLE_ADAPTER) private readonly adapter: WearablePlatformAdapter,
   ) {
     this.provider = this.cfg.get<string>('WEARABLES_PROVIDER') ?? 'mock';
     this.redirectBase =
       this.cfg.get<string>('WEARABLES_OAUTH_REDIRECT_BASE') ?? 'http://localhost:4000';
+    this.accessWindowDays = Number(this.cfg.get<string>('WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS') ?? 90);
   }
 
   private get isMock(): boolean {
@@ -196,10 +209,10 @@ export class WearablesService {
     try {
       const since = device.lastSyncAt ?? new Date(0);
       const raw = await this.adapter.syncReadings(device, since);
-      const inserted = await this.persistReadings(device, raw);
+      const ids = await this.ingestReadings(device, raw);
       const done = await this.prisma.deviceSyncJob.update({
         where: { id: job.id },
-        data: { status: 'completed', completedAt: new Date(), readingsFetched: inserted },
+        data: { status: 'completed', completedAt: new Date(), readingsFetched: ids.length },
       });
       await this.prisma.wearableDevice.update({
         where: { id: deviceId },
@@ -344,12 +357,188 @@ export class WearablesService {
     return { deviceId: device.id, readingsImported: inserted };
   }
 
-  // ── Physician view — implemented in Sprint W5 ─────────────────────────────
-  physicianView(_patientToken: string): never {
-    throw new NotFoundException('Physician view lands in Sprint W5');
+  // ── GET /api/wearables/physician/:patientToken (clinician JWT) ────────────
+  async physicianView(patientToken: string, physicianId: string): Promise<{ patientToken: string; devices: unknown[]; alerts: unknown[] }> {
+    await this.assertPhysicianAccess(physicianId, patientToken);
+
+    const devices = await this.prisma.wearableDevice.findMany({
+      where: { patientToken, shareWithPhysician: true, disconnectedAt: null },
+      include: { readings: { orderBy: { recordedAt: 'desc' }, take: 10 } },
+    });
+
+    const since = new Date(Date.now() - 7 * 86_400_000);
+    const alerts = await this.prisma.portalNotification.findMany({
+      where: { patientToken, type: 'wearable_alert', createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return {
+      patientToken,
+      devices: devices.map((d) => this.mapDevice(d, d.readings)),
+      alerts: alerts.map((a) => ({
+        id: a.id, deviceId: a.deviceId, metricType: a.metricType, value: a.value,
+        flag: a.flag, severity: a.severity, createdAt: a.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  /**
+   * Physician access gate (W5; tightened in W6). Allowed when the physician has a
+   * telehealth relationship with the patient within the access window. Throws
+   * 403 PHYSICIAN_ACCESS_DENIED otherwise. Also requires a granted
+   * physician_sharing consent for the patient.
+   */
+  async assertPhysicianAccess(physicianId: string, patientToken: string): Promise<void> {
+    const since = new Date(Date.now() - this.accessWindowDays * 86_400_000);
+    const session = await this.prisma.telehealthSession.findFirst({
+      where: { physicianId, patientToken, scheduledAt: { gte: since } },
+      select: { id: true },
+    });
+    if (!session) {
+      throw new ForbiddenException('PHYSICIAN_ACCESS_DENIED');
+    }
+    const consent = await this.prisma.deviceConsent.findFirst({
+      where: { patientToken, consentType: 'physician_sharing', granted: true, withdrawnAt: null },
+      select: { id: true },
+    });
+    if (!consent) {
+      throw new ForbiddenException('PHYSICIAN_ACCESS_DENIED');
+    }
+  }
+
+  // ── PUT /api/wearables/physician/:patientToken/thresholds (clinician role) ─
+  async setThresholds(
+    patientToken: string,
+    physicianId: string,
+    role: string,
+    metricType: string,
+    t: { high?: number | null; low?: number | null; criticalHigh?: number | null; criticalLow?: number | null },
+  ): Promise<{ ok: true }> {
+    if (role !== 'CLINICIAN' && role !== 'ADMIN') {
+      throw new ForbiddenException('THRESHOLD_PHYSICIAN_ONLY');
+    }
+    const data = {
+      thresholdHigh: t.high ?? null,
+      thresholdLow: t.low ?? null,
+      thresholdCriticalHigh: t.criticalHigh ?? null,
+      thresholdCriticalLow: t.criticalLow ?? null,
+      setByPhysicianId: physicianId,
+    };
+    await this.prisma.deviceAlertThreshold.upsert({
+      where: { patientToken_metricType: { patientToken, metricType } },
+      update: data,
+      create: { patientToken, metricType, ...data },
+    });
+    await this.audit.log({
+      actorEmail: `physician:${physicianId}`,
+      actorRole: role,
+      action: 'threshold_updated',
+      resource: 'device_alert_thresholds',
+      resourceId: `${patientToken}:${metricType}`,
+      detail: { metricType, ...t },
+    });
+    return { ok: true };
+  }
+
+  // ── POST /api/wearables/devices/:deviceId/export-fhir ─────────────────────
+  /** Re-publish unexported readings for FHIR export (manual physician trigger). */
+  async requestFhirExport(deviceId: string): Promise<{ queued: number }> {
+    const device = await this.prisma.wearableDevice.findUnique({ where: { id: deviceId } });
+    if (!device) throw new NotFoundException('DEVICE_NOT_FOUND');
+    const readings = await this.prisma.deviceReading.findMany({
+      where: { deviceId, fhirObservationId: null, supersededBy: null },
+      select: { id: true },
+    });
+    if (readings.length > 0) {
+      await this.queue.publish(RK_READINGS_SYNCED, {
+        deviceId,
+        patientToken: device.patientToken,
+        readingIds: readings.map((r) => r.id),
+      });
+    }
+    return { queued: readings.length };
+  }
+
+  // ── Admin/test reading injection — drives alert E2E (WR-W5-1 / WR-3) ──────
+  async injectReading(
+    deviceId: string,
+    payload: { metricType: string; value: number; unit?: string },
+  ): Promise<{ flag: string }> {
+    const device = await this.prisma.wearableDevice.findUnique({ where: { id: deviceId } });
+    if (!device) throw new NotFoundException('DEVICE_NOT_FOUND');
+    const ids = await this.ingestReadings(device, [{
+      metricType: payload.metricType,
+      metricLabel: { sk: payload.metricType, en: payload.metricType },
+      valueNumeric: payload.value,
+      unit: payload.unit ?? '',
+      recordedAt: new Date(),
+    }]);
+    const reading = await this.prisma.deviceReading.findUnique({ where: { id: ids[0] } });
+    return { flag: reading?.flag ?? 'normal' };
+  }
+
+  // ── Portal notifications (alert bell) ─────────────────────────────────────
+  async listNotifications(patientToken: string, type?: string) {
+    return this.prisma.portalNotification.findMany({
+      where: { patientToken, ...(type ? { type } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async unreadCount(patientToken: string, type?: string): Promise<number> {
+    return this.prisma.portalNotification.count({
+      where: { patientToken, readAt: null, ...(type ? { type } : {}) },
+    });
+  }
+
+  async markNotificationsRead(patientToken: string, type?: string): Promise<{ updated: number }> {
+    const res = await this.prisma.portalNotification.updateMany({
+      where: { patientToken, readAt: null, ...(type ? { type } : {}) },
+      data: { readAt: new Date() },
+    });
+    return { updated: res.count };
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
+
+  /**
+   * Insert readings one-by-one (to get ids), classify each via the alert engine
+   * (persisting the resolved flag + emitting alerts), then publish
+   * wearables.readings.synced to drive FHIR export. Returns the new reading ids.
+   */
+  private async ingestReadings(device: WearableDevice, raw: RawReading[]): Promise<string[]> {
+    const ids: string[] = [];
+    for (const r of raw) {
+      const created = await this.prisma.deviceReading.create({
+        data: {
+          deviceId: device.id,
+          patientToken: device.patientToken,
+          metricType: r.metricType,
+          metricLabel: r.metricLabel as Prisma.InputJsonValue,
+          valueNumeric: r.valueNumeric ?? null,
+          valueText: r.valueText ?? null,
+          unit: r.unit,
+          flag: r.flag ?? 'normal',
+          recordedAt: r.recordedAt,
+        },
+      });
+      const result = await this.alerts.processReading(device, created);
+      if (result.flag !== created.flag) {
+        await this.prisma.deviceReading.update({ where: { id: created.id }, data: { flag: result.flag } });
+      }
+      ids.push(created.id);
+    }
+    if (ids.length > 0) {
+      await this.queue.publish(RK_READINGS_SYNCED, {
+        deviceId: device.id,
+        patientToken: device.patientToken,
+        readingIds: ids,
+      });
+    }
+    return ids;
+  }
 
   private async assertOwnership(patientToken: string, deviceId: string): Promise<WearableDevice> {
     const device = await this.prisma.wearableDevice.findFirst({ where: { id: deviceId, patientToken } });

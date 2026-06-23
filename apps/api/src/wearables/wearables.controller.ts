@@ -16,6 +16,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -37,6 +38,10 @@ interface PatientRequest {
 
 interface RedirectResponse {
   redirect(url: string): void;
+}
+
+interface StaffRequest {
+  user: { userId: string; email: string; role: string };
 }
 
 function ipHashOf(req: PatientRequest): string {
@@ -154,10 +159,59 @@ export class WearablesController {
     });
   }
 
+  // GET /api/wearables/notifications?type= — patient alert inbox (bell)
+  @Get('notifications')
+  @UseGuards(ConsentGuard)
+  notifications(@Query('type') type: string | undefined, @Req() req: PatientRequest) {
+    return this.wearables.listNotifications(req.patientToken ?? '', type || undefined);
+  }
+
+  // GET /api/wearables/notifications/unread-count?type=
+  @Get('notifications/unread-count')
+  @UseGuards(ConsentGuard)
+  async unread(@Query('type') type: string | undefined, @Req() req: PatientRequest) {
+    return { count: await this.wearables.unreadCount(req.patientToken ?? '', type || undefined) };
+  }
+
+  // PATCH /api/wearables/notifications/read-all?type=
+  @Patch('notifications/read-all')
+  @UseGuards(ConsentGuard)
+  readAll(@Query('type') type: string | undefined, @Req() req: PatientRequest) {
+    return this.wearables.markNotificationsRead(req.patientToken ?? '', type || undefined);
+  }
+
+  // POST /api/wearables/devices/:deviceId/readings — admin/test injection (staff JWT)
+  @Post('devices/:deviceId/readings')
+  @UseGuards(AuthGuard('jwt'))
+  injectReading(
+    @Param('deviceId') deviceId: string,
+    @Body() body: { metricType: string; value: number; unit?: string },
+  ) {
+    return this.wearables.injectReading(deviceId, body);
+  }
+
+  // POST /api/wearables/devices/:deviceId/export-fhir — manual FHIR export (staff JWT)
+  @Post('devices/:deviceId/export-fhir')
+  @UseGuards(AuthGuard('jwt'))
+  exportFhir(@Param('deviceId') deviceId: string) {
+    return this.wearables.requestFhirExport(deviceId);
+  }
+
   // GET /api/wearables/physician/:patientToken — clinician summary (staff JWT)
   @Get('physician/:patientToken')
   @UseGuards(AuthGuard('jwt'))
-  physicianView(@Param('patientToken') patientToken: string) {
-    return this.wearables.physicianView(patientToken);
+  physicianView(@Param('patientToken') patientToken: string, @Req() req: StaffRequest) {
+    return this.wearables.physicianView(patientToken, req.user.userId);
+  }
+
+  // PUT /api/wearables/physician/:patientToken/thresholds — clinician role only
+  @Put('physician/:patientToken/thresholds')
+  @UseGuards(AuthGuard('jwt'))
+  setThresholds(
+    @Param('patientToken') patientToken: string,
+    @Body() body: { metricType: string; high?: number | null; low?: number | null; criticalHigh?: number | null; criticalLow?: number | null },
+    @Req() req: StaffRequest,
+  ) {
+    return this.wearables.setThresholds(patientToken, req.user.userId, req.user.role, body.metricType, body);
   }
 }
