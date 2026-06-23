@@ -22,6 +22,10 @@ const PROD_ENV: Record<string, string> = {
   PDF_SERVICE_URL: 'https://pdf.internal',
   PDF_SERVICE_API_KEY: 'realpdfkey',
   WEARABLES_TOKEN_KEY: 'a'.repeat(64),
+  // A2 staff secrets (all-zero default is rejected in production).
+  STAFF_JWT_SECRET: 'b'.repeat(64),
+  STAFF_MFA_SECRET: 'c'.repeat(64),
+  STAFF_TOTP_KEY: 'd'.repeat(64),
 };
 
 function validateWith(env: Record<string, string>): { ok: boolean; cmsIssue: boolean; messages: string[] } {

@@ -25,7 +25,7 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
-import { CmsAuthGuard } from './cms-auth.guard';
+import { StaffJwtGuard, ScopeGuard } from '../auth/staff-jwt.guard';
 import { StrapiCmsService, type UploadedMedia } from './strapi-cms.service';
 import { slugify } from './slugify';
 import { validateCollectionBody, validateSingletonBody } from './cms.dto';
@@ -36,7 +36,7 @@ interface MultipartRequest {
 }
 
 @Controller('api/cms')
-@UseGuards(CmsAuthGuard)
+@UseGuards(StaffJwtGuard, ScopeGuard)
 export class CmsController {
   constructor(private readonly strapi: StrapiCmsService) {}
 

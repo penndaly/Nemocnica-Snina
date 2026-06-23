@@ -33,6 +33,16 @@ await app.register(fastifyHelmet as any, {
     // @fastify/multipart unavailable — /api/cms/media returns 503 until installed.
   }
 
+  // Cookie support for the staff refresh token (HttpOnly). Best-effort: the
+  // staff auth controller falls back to a body token if the plugin is absent.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cookie = require('@fastify/cookie');
+    await app.register(cookie);
+  } catch {
+    // @fastify/cookie unavailable — refresh token returned in body (dev only).
+  }
+
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

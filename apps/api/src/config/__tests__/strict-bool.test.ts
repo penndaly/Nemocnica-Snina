@@ -34,6 +34,9 @@ const PROD_BASE = {
   PDF_SERVICE_URL: 'https://pdf.internal',
   PDF_SERVICE_API_KEY: 'realpdfkey',
   WEARABLES_TOKEN_KEY: 'a'.repeat(64),
+  STAFF_JWT_SECRET: 'b'.repeat(64),
+  STAFF_MFA_SECRET: 'c'.repeat(64),
+  STAFF_TOTP_KEY: 'd'.repeat(64),
 };
 
 interface ParseResult {

@@ -43,6 +43,25 @@ const strictBool = (defaultVal: boolean) =>
     return defaultVal;                              // unset / empty / typo
   });
 
+/**
+ * Hex secret of a fixed byte length (e.g. AES-256-GCM key = 32 bytes = 64 hex
+ * chars). The all-zero dev default is rejected in production. Mirrors the
+ * WEARABLES_TOKEN_KEY pattern.
+ */
+const hexSecret = (name: string, bytes: number) => {
+  const chars = bytes * 2;
+  const devDefault = '0'.repeat(chars);
+  return z
+    .string()
+    .default(devDefault)
+    .refine((v) => new RegExp(`^[0-9a-fA-F]{${chars}}$`).test(v), {
+      message: `${name} must be a ${bytes}-byte hex string (${chars} hex chars)`,
+    })
+    .refine((v) => !isProduction || v !== devDefault, {
+      message: `${name} must be set to a real key (not the dev all-zero default) in production`,
+    });
+};
+
 export const ConfigSchema = z.object({
   // ── Core ────────────────────────────────────────────
   NODE_ENV:           z.enum(['development', 'test', 'production']).default('development'),
@@ -102,6 +121,23 @@ export const ConfigSchema = z.object({
       (v) => !isProduction || v === false,
       { message: 'CMS_AUTH_BYPASS must be false in production (no auth bypass for staff CMS routes)' },
     ),
+
+  // ── Staff auth, MFA & RBAC (Sprint A2) ───────────────
+  // Staff JWT is fully separate from the patient JWT: own signing key
+  // (STAFF_JWT_SECRET) + aud claim (ns.staff), never accepted on patient routes.
+  // STAFF_TOTP_KEY is the AES-256-GCM key for TOTP-secret encryption — 32 bytes
+  // (64 hex chars), despite the sprint note's "32-char" shorthand.
+  STAFF_JWT_SECRET:        hexSecret('STAFF_JWT_SECRET', 32),
+  STAFF_MFA_SECRET:        hexSecret('STAFF_MFA_SECRET', 32),
+  STAFF_TOTP_KEY:          hexSecret('STAFF_TOTP_KEY', 32),
+  STAFF_JWT_EXPIRES_IN:    z.string().default('15m'),
+  STAFF_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  STAFF_MFA_CHALLENGE_TTL_SECONDS: z.coerce.number().default(300), // 5 min MFA challenge
+  STAFF_INVITE_EXPIRES_H:  z.coerce.number().default(72),
+  STAFF_RESET_EXPIRES_M:   z.coerce.number().default(30),
+  STAFF_LOGIN_MAX_FAILURES: z.coerce.number().default(10),         // per hour, then lock
+  STAFF_EMAIL_RATE_LIMIT:  z.coerce.number().default(3),           // invite/reset emails per address per hour
+  ADMIN_URL:               z.string().url().default('http://localhost:3000/admin'),
 
   // ── HIS / FHIR ──────────────────────────────────────
   RABBITMQ_URL:       tlsRabbit,

@@ -442,3 +442,79 @@ model PaymentReceipt {
   @@index([bookingId])
   @@map("payment_receipts")
 }
+
+// ─── Staff auth, MFA & RBAC (Sprint A2) ──────────────────
+// Richer staff account model than the legacy StaffUser: invite lifecycle,
+// AES-256-GCM-encrypted TOTP secret, bcrypt recovery codes, item-level access
+// scopes, revocable sessions. Roles are super_admin | administrator |
+// clinician | editor (string + DB CHECK; never the legacy StaffRole enum).
+// created_by is kept as a plain column (FK lives in SQL) to avoid a Prisma
+// self-relation. Staff account events are written to the existing append-only
+// AuditLog (A2 reuses it; A3 builds the full audit engine).
+
+model StaffAccount {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  name          String    @db.VarChar(255)
+  role          String    @db.VarChar(32) // super_admin|administrator|clinician|editor
+  passwordHash  String?   @map("password_hash") @db.VarChar(255) // bcrypt; null until invite accepted
+  totpSecret    String?   @map("totp_secret")                    // AES-256-GCM ciphertext; null until MFA setup
+  totpEnabled   Boolean   @default(false) @map("totp_enabled")
+  recoveryCodes String[]  @map("recovery_codes")                 // bcrypt-hashed; 10 codes
+  status        String    @default("invited") @db.VarChar(16)    // invited|active|disabled
+  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
+  lastLoginIp   String?   @map("last_login_ip") @db.Inet
+  createdById   String?   @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  scopes   StaffAccessScope[]
+  tokens   StaffAuthToken[]
+  sessions StaffSession[]
+
+  @@index([status])
+  @@map("staff_accounts")
+}
+
+model StaffAccessScope {
+  id            String   @id @default(uuid()) @db.Uuid
+  staffId       String   @map("staff_id") @db.Uuid
+  staff         StaffAccount @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  scopeType     String   @map("scope_type") @db.VarChar(32) // department|clinic|physician|facility
+  scopeTargetId String   @map("scope_target_id") @db.VarChar(64)
+  createdById   String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([staffId, scopeType, scopeTargetId])
+  @@index([staffId])
+  @@map("staff_access_scopes")
+}
+
+model StaffAuthToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  staffId   String    @map("staff_id") @db.Uuid
+  staff     StaffAccount @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  type      String    @db.VarChar(16) // invite|reset|mfa_reset
+  tokenHash String    @map("token_hash") @db.VarChar(255) // SHA-256 of raw token
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  usedAt    DateTime? @map("used_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tokenHash])
+  @@index([staffId])
+  @@map("staff_auth_tokens")
+}
+
+model StaffSession {
+  jti       String    @id @db.Uuid
+  staffId   String    @map("staff_id") @db.Uuid
+  staff     StaffAccount @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  issuedAt  DateTime  @map("issued_at") @db.Timestamptz
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+  userAgent String?   @map("user_agent")
+  ipAddress String?   @map("ip_address") @db.Inet
+
+  @@index([staffId])
+  @@map("staff_sessions")
+}

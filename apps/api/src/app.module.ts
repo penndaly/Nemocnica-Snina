@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CmsModule } from './cms/cms.module';
 import { PublicModule } from './public/public.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
 import { PortalModule } from './portal/portal.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +29,7 @@ import { WearablesModule } from './wearables/wearables.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
     AuthModule,
+    AdminUsersModule,
     AuditModule,
     BookingModule,
     OnboardingModule,

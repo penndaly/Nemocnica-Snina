@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { CmsClinicService } from './cms-clinic.service';
 import { StrapiCmsService } from './strapi-cms.service';
 import { CmsController } from './cms.controller';
@@ -12,6 +13,7 @@ import { CmsController } from './cms.controller';
  */
 @Global()
 @Module({
+  imports: [AuthModule], // StaffJwtGuard + ScopeGuard on the CMS write routes
   controllers: [CmsController],
   providers: [CmsClinicService, StrapiCmsService],
   exports: [CmsClinicService, StrapiCmsService],
