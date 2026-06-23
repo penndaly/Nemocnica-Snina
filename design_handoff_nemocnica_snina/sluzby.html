@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Služby — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phSub" style="max-width:62ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-2" id="grid"></div>
+    </div>
+  </section>
+
+  <section class="section band-blue">
+    <div class="container cta-band">
+      <div>
+        <h2 id="ctaTitle"></h2>
+        <p id="ctaSub" style="color:#c2d2e4;max-width:52ch"></p>
+      </div>
+      <a href="objednanie.html" class="btn btn-terra btn-lg" id="ctaBtn"></a>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "services" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.services");
+document.getElementById("phEyebrow").textContent = L({sk:"Klinická prax",en:"Clinical practice"});
+document.getElementById("phTitle").textContent = L({sk:"Služby a klinická prax",en:"Services & clinical practices"});
+document.getElementById("phSub").textContent = L({sk:"Od miniinvazívnej chirurgie cez humanizované pôrodníctvo až po cievnu diagnostiku — prehľad toho, čo u nás zabezpečujeme.",en:"From minimally-invasive surgery to humanised obstetrics to vascular diagnostics — an overview of what we provide."});
+
+document.getElementById("grid").innerHTML = DB.list("services").map(s => {
+  const link = s.dept ? `oddelenie.html?id=${s.dept}` : (s.clinic ? `ambulancie.html#${s.clinic}` : (s.facility ? `diagnostika.html#${s.facility}` : "#"));
+  const linkLabel = s.dept ? L({sk:"Zobraziť oddelenie",en:"View department"}) : (s.clinic ? L({sk:"Zobraziť ambulanciu",en:"View clinic"}) : L({sk:"Zobraziť diagnostiku",en:"View diagnostics"}));
+  return `
+  <div class="card card-pad service-card reveal">
+    <span class="svc-icon">${icon(s.icon||"activity")}</span>
+    <div class="svc-body">
+      <h3>${esc(L(s.name))}</h3>
+      <p class="muted">${esc(L(s.desc))}</p>
+      <a href="${link}" class="link-more">${esc(linkLabel)} ${icon("chevron")}</a>
+    </div>
+  </div>`;
+}).join("");
+
+document.getElementById("ctaTitle").textContent = L({sk:"Potrebujete vyšetrenie?",en:"Need an appointment?"});
+document.getElementById("ctaSub").textContent = L({sk:"Objednajte sa online tam, kde to ambulancia umožňuje — systém zohľadní ordinačné hodiny aj pravidlá daného pracoviska.",en:"Book online where the clinic allows — the system respects each clinic's operating hours and rules."});
+document.getElementById("ctaBtn").innerHTML = icon("calendar") + " " + esc(t("book"));
+</script>
+
+<style>
+.service-card { display:flex; gap:20px; align-items:flex-start; }
+.svc-icon { display:inline-flex; width:54px;height:54px;border-radius:13px;background:var(--blue-50);color:var(--blue-700);align-items:center;justify-content:center;flex:0 0 auto; }
+.svc-icon svg { width:28px;height:28px; }
+.svc-body h3 { font-size:1.2rem; }
+.link-more { font-weight:700; font-size:.9rem; display:inline-flex; align-items:center; gap:4px; }
+.link-more svg { width:18px;height:18px; }
+.cta-band { display:flex; justify-content:space-between; align-items:center; gap:28px; flex-wrap:wrap; }
+@media (max-width:620px){ .service-card{flex-direction:column;gap:12px;} }
+</style>
+</body>
+</html>

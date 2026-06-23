@@ -10,6 +10,8 @@
     "paths": { "@/*": ["./src/*"] },
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noEmitOnError": false,

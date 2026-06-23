@@ -16,6 +16,7 @@ import { ApsModule } from './aps/aps.module';
 import { GdprModule } from './gdpr/gdpr.module';
 import { PaymentsModule } from './payments/payments.module';
 import { TelehealthModule } from './telehealth/telehealth.module';
+import { WearablesModule } from './wearables/wearables.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { TelehealthModule } from './telehealth/telehealth.module';
     GdprModule,
     PaymentsModule,
     TelehealthModule,
+    WearablesModule,
     PortalModule,
     HealthModule,
   ],

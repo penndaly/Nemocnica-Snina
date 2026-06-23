@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kontakt — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="aboutTitle"></h1>
+      <p class="lede" id="aboutBody" style="max-width:70ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container contact-grid">
+      <div>
+        <div class="ph ph-16x9 mb-3" data-label="mapa areálu / Google Maps"></div>
+        <h2 id="findTitle"></h2>
+        <div class="grid grid-2 mt-2" id="contactCards"></div>
+
+        <h2 class="mt-4" id="apsHeading"></h2>
+        <div class="card card-pad aps-block">
+          <span class="aps-ic" id="apsIc"></span>
+          <p id="apsNote" class="mb-0"></p>
+        </div>
+      </div>
+      <aside>
+        <div class="card card-pad side-card">
+          <h4 id="reachTitle"></h4>
+          <div id="reachRows"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section band-warm">
+    <div class="container container-narrow">
+      <div class="card card-pad" id="gdpr" style="scroll-margin-top:90px">
+        <span class="legal-ic">${''}</span>
+        <h2 id="gdprTitle"></h2>
+        <p id="gdprBody" class="mb-0"></p>
+      </div>
+      <div class="card card-pad mt-3" id="pristupnost" style="scroll-margin-top:90px">
+        <h2 id="a11yTitle"></h2>
+        <p id="a11yBody"></p>
+        <div class="flex gap-sm wrap" id="a11yChips"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "contact" });
+const H = DB.get("hospital");
+const P = DB.get("pages");
+
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.contact");
+document.getElementById("phEyebrow").textContent = L({sk:"Kontakt a informácie",en:"Contact & information"});
+document.getElementById("aboutTitle").textContent = L(P.about.title);
+document.getElementById("aboutBody").textContent = L(P.about.body);
+
+document.getElementById("findTitle").textContent = L({sk:"Kde nás nájdete",en:"Where to find us"});
+document.getElementById("contactCards").innerHTML = [
+  ["pin", {sk:"Adresa",en:"Address"}, H.address],
+  ["phone", {sk:"Centrála",en:"Switchboard"}, H.phone],
+  ["shield", {sk:"Centrálna recepcia",en:"Central reception"}, H.reception],
+  ["pill", {sk:"Lekáreň",en:"Pharmacy"}, H.pharmacy]
+].map(([ic,lbl,val]) => `
+  <div class="card card-pad mini-contact">
+    <span class="mini-ic">${icon(ic)}</span>
+    <div><span class="small muted">${esc(L(lbl))}</span><br><b>${esc(val)}</b></div>
+  </div>`).join("");
+
+document.getElementById("apsHeading").textContent = L(P.aps.title);
+document.getElementById("apsIc").innerHTML = icon("alert");
+document.getElementById("apsNote").textContent = L(P.aps.note);
+
+document.getElementById("reachTitle").textContent = L({sk:"Rýchly kontakt",en:"Quick contact"});
+document.getElementById("reachRows").innerHTML = `
+  <div class="icon-row">${icon("phone")}<div><a href="tel:112" style="font-weight:800;color:var(--red)">112</a><br><span class="small muted">${esc(L({sk:"Tieseň",en:"Emergency"}))}</span></div></div>
+  <div class="icon-row">${icon("phone")}<div><b>${esc(H.phone)}</b><br><span class="small muted">${esc(t("central"))}</span></div></div>
+  <div class="icon-row">${icon("doc")}<div><a href="mailto:${esc(H.email)}">${esc(H.email)}</a><br><span class="small muted">${esc(L({sk:"Sekretariát",en:"Secretariat"}))}</span></div></div>
+  <div class="icon-row">${icon("building")}<div><b>${esc(H.name)}</b><br><span class="small muted">IČO ${esc(H.ico)} · DIČ ${esc(H.dic)}</span></div></div>
+  <a href="objednanie.html" class="btn btn-primary btn-block mt-2">${icon("calendar")} ${esc(t("book"))}</a>`;
+
+document.getElementById("gdprTitle").textContent = L({sk:"Ochrana osobných údajov (GDPR)",en:"Personal data protection (GDPR)"});
+document.getElementById("gdprBody").textContent = L({sk:"Vaše osobné a zdravotné údaje spracúvame v súlade s Nariadením GDPR a zákonom č. 18/2018 Z. z. Údaje uchovávame v rámci EÚ, šifrované pri prenose aj v úložisku. Spracúvame len nevyhnutné údaje na zabezpečenie vyšetrenia a zdravotnej starostlivosti.",en:"We process your personal and health data in accordance with the GDPR and Act No. 18/2018. Data is stored within the EU and encrypted in transit and at rest. We process only the data necessary to provide your appointment and care."});
+
+document.getElementById("a11yTitle").textContent = L({sk:"Vyhlásenie o prístupnosti",en:"Accessibility statement"});
+document.getElementById("a11yBody").textContent = L({sk:"Web spĺňa štandardy WCAG 2.1 úrovne AA v zmysle zákona č. 351/2022 Z. z. Stránky sú ovládateľné klávesnicou, kompatibilné s čítačmi obrazovky a poskytujú dostatočný kontrast.",en:"This website meets WCAG 2.1 Level AA standards under Act No. 351/2022. Pages are keyboard-operable, screen-reader compatible and provide sufficient contrast."});
+document.getElementById("a11yChips").innerHTML = [
+  {sk:"Ovládanie klávesnicou",en:"Keyboard operable"},
+  {sk:"Kompatibilita s čítačmi",en:"Screen-reader compatible"},
+  {sk:"Vysoký kontrast textu",en:"High text contrast"},
+  {sk:"Responzívny dizajn",en:"Responsive design"}
+].map(c => `<span class="chip">${icon("check")} ${esc(L(c))}</span>`).join("");
+
+if (location.hash) { const el = document.querySelector(location.hash); if (el) setTimeout(()=>el.scrollIntoView({behavior:"smooth",block:"start"}),200); }
+</script>
+
+<style>
+.contact-grid { display:grid; grid-template-columns: 1.7fr .9fr; gap:44px; align-items:start; }
+.mini-contact { display:flex; gap:14px; align-items:center; }
+.mini-ic { display:inline-flex; width:42px;height:42px;border-radius:11px;background:var(--blue-50);color:var(--blue-700);align-items:center;justify-content:center;flex:0 0 auto; }
+.mini-ic svg { width:22px;height:22px; }
+.side-card { position:sticky; top:96px; border-top:4px solid var(--blue-600); }
+.side-card .icon-row { padding:11px 0; border-bottom:1px solid var(--line); margin-bottom:0; }
+.side-card .icon-row:last-of-type { border-bottom:none; }
+.aps-block { display:flex; gap:16px; align-items:flex-start; border-left:4px solid var(--red); }
+.aps-ic { display:inline-flex; width:44px;height:44px;border-radius:11px;background:var(--red-50);color:var(--red);align-items:center;justify-content:center;flex:0 0 auto; }
+.aps-ic svg { width:24px;height:24px; }
+.feature-item svg{color:var(--green);}
+@media (max-width:940px){ .contact-grid{grid-template-columns:1fr;} .side-card{position:static;} }
+</style>
+</body>
+</html>

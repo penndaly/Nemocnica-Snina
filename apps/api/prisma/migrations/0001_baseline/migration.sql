@@ -1,0 +1,1 @@
+-- Baseline: existing schema pre-wearables (tables created outside Prisma migration history)

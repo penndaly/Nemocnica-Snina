@@ -238,6 +238,174 @@ model TelehealthSummary {
   @@map("telehealth_summaries")
 }
 
+// ─── Wearables & Remote Monitoring ────────────────────────────────────────────
+// No patient identity stored — opaque patientToken only (eID-derived).
+// OAuth tokens are AES-256-GCM encrypted at the application layer.
+
+enum WearablePlatform {
+  abbott_libre
+  dexcom
+  medtronic_cgm
+  medtronic_cardiac
+  abbott_cardiac
+  boston_scientific
+  alivecor
+  withings
+  omron
+  apple_health
+  google_health
+  samsung_health
+  fitbit
+  garmin
+  huawei
+  xiaomi
+  meta
+
+  @@map("wearable_platforms")
+}
+
+enum WearableCategory {
+  medical
+  consumer
+
+  @@map("wearable_category")
+}
+
+enum WearableDeviceType {
+  cgm
+  pacemaker
+  ecg
+  bp
+  smartwatch
+  fitness
+  hybrid
+  other
+
+  @@map("device_type")
+}
+
+enum WearableSyncStatus {
+  ok
+  error
+  pending
+  revoked
+
+  @@map("wearable_sync_status")
+}
+
+enum ReadingFlag {
+  normal
+  high
+  low
+  critical
+  info
+
+  @@map("reading_flag")
+}
+
+model WearableDevice {
+  id                   String              @id @default(uuid()) @db.Uuid
+  patientToken         String              @map("patient_token")
+  platform             WearablePlatform
+  deviceLabel          String              @map("device_label")
+  category             WearableCategory
+  deviceType           WearableDeviceType  @map("device_type")
+  oauthAccessTokenEnc  String?             @map("oauth_access_token_enc")
+  oauthRefreshTokenEnc String?             @map("oauth_refresh_token_enc")
+  oauthExpiresAt       DateTime?           @map("oauth_expires_at") @db.Timestamptz
+  shareWithPhysician   Boolean             @default(true) @map("share_with_physician")
+  lastSyncAt           DateTime?           @map("last_sync_at") @db.Timestamptz
+  syncStatus           WearableSyncStatus  @default(pending) @map("sync_status")
+  syncError            String?             @map("sync_error")
+  partnershipRequired  Boolean             @default(false) @map("partnership_required")
+  connectedAt          DateTime            @default(now()) @map("connected_at") @db.Timestamptz
+  disconnectedAt       DateTime?           @map("disconnected_at") @db.Timestamptz
+  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  readings   DeviceReading[]
+  consents   DeviceConsent[]
+  syncJobs   DeviceSyncJob[]
+
+  @@index([patientToken])
+  @@index([platform])
+  @@index([syncStatus])
+  @@map("wearable_devices")
+}
+
+model DeviceReading {
+  id                String         @id @default(uuid()) @db.Uuid
+  deviceId          String         @map("device_id") @db.Uuid
+  device            WearableDevice @relation(fields: [deviceId], references: [id])
+  patientToken      String         @map("patient_token")
+  metricType        String         @map("metric_type")
+  metricLabel       Json           @map("metric_label")
+  valueNumeric      Decimal?       @map("value_numeric") @db.Decimal(12, 4)
+  valueText         String?        @map("value_text")
+  unit              String         @default("")
+  flag              ReadingFlag    @default(normal)
+  recordedAt        DateTime       @map("recorded_at") @db.Timestamptz
+  receivedAt        DateTime       @default(now()) @map("received_at") @db.Timestamptz
+  fhirObservationId String?        @map("fhir_observation_id")
+  supersededBy      String?        @map("superseded_by") @db.Uuid
+  supersededByRef   DeviceReading? @relation("ReadingSupersession", fields: [supersededBy], references: [id])
+  supersedes        DeviceReading[] @relation("ReadingSupersession")
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([deviceId, recordedAt(sort: Desc)], map: "idx_dr_device_recorded")
+  @@index([patientToken, recordedAt(sort: Desc)], map: "idx_dr_patient_recorded")
+  @@map("device_readings")
+}
+
+model DeviceConsent {
+  id           String         @id @default(uuid()) @db.Uuid
+  patientToken String         @map("patient_token")
+  deviceId     String         @map("device_id") @db.Uuid
+  device       WearableDevice @relation(fields: [deviceId], references: [id])
+  consentType  String         @map("consent_type") // 'data_storage' | 'physician_sharing' | 'his_export'
+  granted      Boolean
+  grantedAt    DateTime       @default(now()) @map("granted_at") @db.Timestamptz
+  withdrawnAt  DateTime?      @map("withdrawn_at") @db.Timestamptz
+  ipHash       String         @map("ip_hash")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([patientToken])
+  @@index([deviceId])
+  @@map("device_consent")
+}
+
+model DeviceAlertThreshold {
+  id                    String   @id @default(uuid()) @db.Uuid
+  patientToken          String   @map("patient_token")
+  metricType            String   @map("metric_type")
+  thresholdHigh         Decimal? @map("threshold_high") @db.Decimal(12, 4)
+  thresholdLow          Decimal? @map("threshold_low") @db.Decimal(12, 4)
+  thresholdCriticalHigh Decimal? @map("threshold_critical_high") @db.Decimal(12, 4)
+  thresholdCriticalLow  Decimal? @map("threshold_critical_low") @db.Decimal(12, 4)
+  setByPhysicianId      String   @map("set_by_physician_id") // opaque physician id (TEXT)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([patientToken, metricType])
+  @@map("device_alert_thresholds")
+}
+
+model DeviceSyncJob {
+  id              String         @id @default(uuid()) @db.Uuid
+  deviceId        String         @map("device_id") @db.Uuid
+  device          WearableDevice @relation(fields: [deviceId], references: [id])
+  status          String         // 'pending'|'running'|'completed'|'failed'
+  startedAt       DateTime?      @map("started_at") @db.Timestamptz
+  completedAt     DateTime?      @map("completed_at") @db.Timestamptz
+  readingsFetched Int            @default(0) @map("readings_fetched")
+  error           String?
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([deviceId])
+  @@index([status])
+  @@map("device_sync_jobs")
+}
+
 // ─── Payment receipts ────────────────────────────────────────────────────────
 
 model PaymentReceipt {

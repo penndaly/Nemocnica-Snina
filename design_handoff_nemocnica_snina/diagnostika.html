@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostika a zariadenia — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phSub" style="max-width:64ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="flex-col gap-lg" id="list"></div>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "diagnostics" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.diagnostics");
+document.getElementById("phEyebrow").textContent = L({sk:"SVaLZ · podporné pracoviská",en:"Shared diagnostic & support units"});
+document.getElementById("phTitle").textContent = L({sk:"Diagnostika a zariadenia",en:"Diagnostics & facilities"});
+document.getElementById("phSub").textContent = L({sk:"Spoločné vyšetrovacie a liečebné zložky podporujú lôžkové oddelenia aj ambulancie — vrátane laboratórií, zobrazovania, recepcie a lekárne.",en:"Shared examination and treatment units support both wards and clinics — including labs, imaging, reception and the pharmacy."});
+
+const facIcon = { lab:"flask", rdg:"scan", recepcia:"shield", lekaren:"pill" };
+document.getElementById("list").innerHTML = DB.list("facilities").map(f => {
+  const feats = L(f.features) || [];
+  return `
+  <div class="card fac-card reveal" id="${f.id}">
+    <div class="fac-left">
+      <span class="fac-icon">${icon(facIcon[f.id]||"building")}</span>
+    </div>
+    <div class="fac-body">
+      <div class="flex-between wrap gap-sm mb-1">
+        <span class="eyebrow mb-0">${esc(L(f.kind))}</span>
+        ${f.phone ? `<span class="chip">${icon("phone")} ${esc(f.phone)}</span>` : ``}
+      </div>
+      <h3 class="mb-1">${esc(L(f.name))}</h3>
+      ${f.lead ? `<p class="small muted mb-2">${icon("user")} ${esc(f.lead)}</p>` : ``}
+      <p>${esc(L(f.desc))}</p>
+      <div class="feature-list">
+        ${feats.map(x => `<div class="feature-item">${icon("check")} <span>${esc(x)}</span></div>`).join("")}
+      </div>
+    </div>
+  </div>`;
+}).join("");
+</script>
+
+<style>
+.fac-card { display:grid; grid-template-columns: 120px 1fr; gap:0; overflow:hidden; }
+.fac-left { background:var(--bg-2); display:flex; align-items:center; justify-content:center; border-right:1px solid var(--line); }
+.fac-icon { display:inline-flex; width:64px;height:64px;border-radius:16px;background:var(--surface);color:var(--blue-700);align-items:center;justify-content:center;box-shadow:var(--shadow-sm); }
+.fac-icon svg { width:34px;height:34px; }
+.fac-body { padding:26px; }
+.feature-list { display:flex; flex-wrap:wrap; gap:8px 26px; margin-top:12px; }
+.feature-item { display:flex; gap:8px; align-items:center; font-size:.92rem; color:var(--ink-2); }
+.feature-item svg { width:18px;height:18px;color:var(--green);flex:0 0 auto; }
+.fac-body p svg, .fac-body .small svg { width:16px;height:16px;vertical-align:-3px;color:var(--ink-3); }
+@media (max-width:620px){ .fac-card{grid-template-columns:1fr;} .fac-left{padding:20px 0;border-right:none;border-bottom:1px solid var(--line);} }
+</style>
+</body>
+</html>

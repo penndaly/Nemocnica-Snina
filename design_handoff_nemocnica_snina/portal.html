@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacientsky portál — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main id="main"></main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "" });
+const pat = DB.get("patient");
+const main = document.getElementById("main");
+let loggedIn = sessionStorage.getItem("ns_portal") === "1";
+let view = "overview";
+
+function render() {
+  if (!loggedIn) { renderLogin(); return; }
+  renderDashboard();
+}
+
+function renderLogin() {
+  main.innerHTML = `
+  <section class="section">
+    <div class="container" style="max-width:460px">
+      <div class="card login-card">
+        <div class="login-head">
+          <span class="login-ic">${icon("shield")}</span>
+          <h2>${esc(L({sk:"Zabezpečený vstup",en:"Secure login"}))}</h2>
+          <p class="small" style="color:#cfe">${esc(L({sk:"Prihlásenie cez rodné číslo a SMS kód (eZdravie).",en:"Sign in with your National ID and SMS code (eHealth)."}))}</p>
+        </div>
+        <form id="loginForm" class="card-pad">
+          <label class="field"><span>${esc(L({sk:"Rodné číslo",en:"National ID"}))}</span>
+            <input type="text" placeholder="850315/1234" required></label>
+          <label class="field"><span>${esc(L({sk:"Bezpečnostný PIN / SMS kód",en:"Security PIN / SMS code"}))}</span>
+            <input type="password" placeholder="••••••" required></label>
+          <button type="submit" class="btn btn-primary btn-lg btn-block mt-1">${icon("lock")} ${esc(L({sk:"Autorizovať a vstúpiť",en:"Authenticate & enter"}))}</button>
+          <p class="small muted text-center mt-2 mb-0">${esc(L({sk:"Overené cez Identitu · údaje šifrované (CMEK).",en:"Verified via Identity · data encrypted (CMEK)."}))}</p>
+        </form>
+      </div>
+      <p class="small muted text-center mt-2">${esc(L({sk:"Ukážkový portál — zadajte čokoľvek pre vstup.",en:"Demo portal — enter anything to continue."}))}</p>
+    </div>
+  </section>`;
+  document.getElementById("loginForm").onsubmit = (e) => { e.preventDefault(); loggedIn = true; sessionStorage.setItem("ns_portal","1"); render(); };
+}
+
+function navBtn(key, label, ic) {
+  return `<button class="pnav-btn ${view===key?'active':''}" data-v="${key}">${icon(ic)} ${esc(L(label))}</button>`;
+}
+
+function renderDashboard() {
+  main.innerHTML = `
+  <section class="section">
+    <div class="container">
+      <div class="card card-pad portal-header">
+        <div class="flex-center gap">
+          <span class="avatar avatar-lg">${esc(initials(pat.name))}</span>
+          <div>
+            <h2 class="mb-0" style="font-size:1.5rem">${esc(L({sk:"Vitajte",en:"Welcome"}))}, ${esc(pat.name)}</h2>
+            <div class="flex gap wrap small muted mt-1">
+              <span>${esc(L({sk:"RČ",en:"ID"}))}: ${esc(pat.id)}</span>
+              <span>${esc(L({sk:"Krvná skupina",en:"Blood"}))}: <b style="color:var(--red)">${esc(pat.blood)}</b></span>
+              <span>${esc(pat.insurance)}</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logout">${icon("lock")} ${esc(L({sk:"Odhlásiť",en:"Sign out"}))}</button>
+      </div>
+
+      <div class="portal-grid mt-3">
+        <aside class="pnav">
+          ${navBtn("overview",{sk:"Prehľad",en:"Overview"},"activity")}
+          ${navBtn("records",{sk:"Zdravotné záznamy",en:"Health records"},"doc")}
+          ${navBtn("meds",{sk:"e-Recepty",en:"e-Prescriptions"},"pill")}
+          ${navBtn("labs",{sk:"Výsledky",en:"Lab results"},"flask")}
+        </aside>
+        <div id="pview"></div>
+      </div>
+    </div>
+  </section>`;
+  document.getElementById("logout").onclick = () => { loggedIn = false; sessionStorage.removeItem("ns_portal"); render(); };
+  main.querySelectorAll(".pnav-btn").forEach(b => b.onclick = () => { view = b.dataset.v; renderDashboard(); });
+  renderView();
+}
+
+function renderView() {
+  const v = document.getElementById("pview");
+  if (view === "overview") {
+    const ap = pat.appointments[0];
+    v.innerHTML = `
+      <div class="grid grid-2">
+        <div class="card card-pad" style="border-top:4px solid var(--green)">
+          <h4 class="flex-center gap-sm">${icon("calendar")} ${esc(L({sk:"Najbližší termín",en:"Upcoming appointment"}))}</h4>
+          ${ap?`<p class="mb-0" style="font-size:1.15rem;font-weight:700">${esc(L(ap.clinic))}</p>
+            <p class="muted mb-1">${esc(fmtDate(ap.date))} · ${esc(ap.time)}</p>
+            <p class="small muted mb-2">${esc(ap.doctor)}</p>
+            <a href="objednanie.html" class="small" style="font-weight:700">${esc(L({sk:"Preobjednať",en:"Reschedule"}))}</a>`
+            :`<p class="muted">${esc(L({sk:"Žiadne plánované termíny.",en:"No upcoming appointments."}))}</p>`}
+        </div>
+        <div class="card card-pad" style="border-top:4px solid var(--blue-600)">
+          <h4 class="flex-center gap-sm">${icon("activity")} ${esc(L({sk:"Posledná aktivita",en:"Recent activity"}))}</h4>
+          <ul class="activity-list">
+            <li><span>${esc(L({sk:"Lipidový profil — výsledok",en:"Lipid panel — result"}))}</span><a href="#" onclick="view='labs';renderDashboard();return false">${esc(L({sk:"Zobraziť",en:"View"}))}</a></li>
+            <li><span>${esc(L({sk:"e-Recept: Nebivolol",en:"e-Prescription: Nebivolol"}))}</span><span class="muted">${esc(L({sk:"Spracované",en:"Processed"}))}</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card card-pad mt-3 quick-req">
+        <div><h4 class="mb-0">${esc(L({sk:"Digitálne žiadosti",en:"Digital requests"}))}</h4>
+        <p class="small muted mb-0">${esc(L({sk:"Požiadajte o e-Recept alebo administratívny dokument bez návštevy.",en:"Request an e-prescription or document without a visit."}))}</p></div>
+        <div class="flex gap-sm wrap">
+          <button class="btn btn-ghost btn-sm" onclick="view='meds';renderDashboard()">${icon("pill")} e-Recept</button>
+          <a href="objednanie.html" class="btn btn-primary btn-sm">${icon("calendar")} ${esc(t("book"))}</a>
+        </div>
+      </div>`;
+  }
+  else if (view === "records") {
+    v.innerHTML = sectionCard(L({sk:"Aktívne diagnózy (FHIR: Condition)",en:"Active conditions (FHIR: Condition)"}),
+      pat.conditions.map(c => `
+        <div class="rec-row">
+          <div>
+            <h4 class="mb-0">${esc(L(c.dx))}</h4>
+            <p class="small muted mb-0">ICD-10: ${esc(c.code)} · ${esc(L({sk:"diagnostikované",en:"diagnosed"}))} ${esc(fmtDate(c.date))} · ${esc(c.doctor)}</p>
+          </div>
+          <span class="badge badge-green"><span class="dot"></span>${esc(L({sk:"Aktívna",en:"Active"}))}</span>
+        </div>`).join(""));
+  }
+  else if (view === "meds") {
+    v.innerHTML = sectionCard(L({sk:"Aktívne e-Recepty (FHIR: MedicationRequest)",en:"Active e-Prescriptions (FHIR: MedicationRequest)"}),
+      pat.meds.map(m => `
+        <div class="rec-row">
+          <div>
+            <h4 class="mb-0" style="color:var(--blue-800)">${esc(m.name)}</h4>
+            <p class="small muted mb-0">${esc(L(m.dose))} · ${esc(L({sk:"predpísané",en:"prescribed"}))} ${esc(fmtDate(m.date))}</p>
+          </div>
+          <div class="flex-center gap-sm">
+            <span class="small muted">${esc(L({sk:"Opakovania",en:"Refills"}))}: ${m.refills}</span>
+            <button class="btn btn-ghost btn-sm" onclick="alert('${esc(L({sk:"Žiadosť o opakovanie odoslaná lekárovi.",en:"Refill request sent to your physician."}))}')">${esc(L({sk:"Požiadať",en:"Request"}))}</button>
+          </div>
+        </div>`).join(""));
+  }
+  else if (view === "labs") {
+    v.innerHTML = sectionCard(L({sk:"Laboratórne výsledky (FHIR: Observation)",en:"Lab results (FHIR: Observation)"}),
+      pat.labs.map(l => `
+        <div class="rec-row">
+          <div>
+            <h4 class="mb-0">${esc(L(l.test))}</h4>
+            <p class="small muted mb-0">${esc(fmtDate(l.date))} · ${esc(L(l.dept))}</p>
+          </div>
+          <div class="text-right flex-center gap-sm">
+            <div>
+              <div style="font-weight:700;font-size:1.05rem;color:${l.flag==='high'?'var(--red)':'var(--ink)'}">${esc(L(l.result))}</div>
+              <div class="small" style="font-weight:700;color:${l.flag==='high'?'var(--red)':'var(--green)'}">${esc(l.flag==='high'?L({sk:"Zvýšené",en:"High"}):L({sk:"V norme",en:"Normal"}))}</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="return false">${icon("download")} PDF</button>
+          </div>
+        </div>`).join(""));
+  }
+}
+function sectionCard(title, inner) {
+  return `<div class="card"><div class="sec-head">${esc(title)}</div><div class="sec-body">${inner}</div></div>`;
+}
+function initials(n){ return n.replace(/MUDr\.|Mgr\.|Bc\.|MBA|,/g,"").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase(); }
+render();
+</script>
+
+<style>
+.login-card { overflow:hidden; box-shadow:var(--shadow-lg); }
+.login-head { background:var(--blue-900); color:#fff; padding:30px; text-align:center; }
+.login-head h2 { color:#fff; margin-bottom:4px; }
+.login-ic { display:inline-flex;width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,.12);color:#bcd6f0;align-items:center;justify-content:center;margin-bottom:8px; }
+.login-ic svg{width:30px;height:30px;}
+.portal-header { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+.portal-grid { display:grid; grid-template-columns:230px 1fr; gap:24px; align-items:start; }
+.pnav { display:flex; flex-direction:column; gap:4px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:8px; position:sticky; top:96px; }
+.pnav-btn { display:flex; align-items:center; gap:11px; text-align:left; padding:12px 14px; border:none; background:none; border-radius:9px; font-family:'Mulish',sans-serif; font-weight:600; font-size:.95rem; color:var(--ink-2); cursor:pointer; transition:all .14s; }
+.pnav-btn svg{width:19px;height:19px;flex:0 0 auto;}
+.pnav-btn:hover { background:var(--warm-100); color:var(--ink); }
+.pnav-btn.active { background:var(--blue-50); color:var(--blue-700); }
+.activity-list { list-style:none; margin:0; padding:0; }
+.activity-list li { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-size:.92rem; }
+.activity-list li:last-child{border-bottom:none;}
+.activity-list a { font-weight:700; }
+.quick-req { display:flex; justify-content:space-between; align-items:center; gap:18px; flex-wrap:wrap; }
+.sec-head { padding:16px 22px; background:var(--bg-2); border-bottom:1px solid var(--line); font-weight:700; font-family:'Mulish',sans-serif; }
+.rec-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 22px; border-bottom:1px solid var(--line); }
+.rec-row:last-child{border-bottom:none;}
+@media (max-width:780px){ .portal-grid{grid-template-columns:1fr;} .pnav{flex-direction:row;flex-wrap:wrap;position:static;} .pnav-btn{flex:1;justify-content:center;} }
+</style>
+</body>
+</html>

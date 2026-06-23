@@ -139,7 +139,37 @@ export const ConfigSchema = z.object({
 
   TELEHEALTH_SESSION_ENDED_ROUTING_KEY:     z.string().default('telehealth.session.ended'),
   TELEHEALTH_BOOKING_CONFIRMED_ROUTING_KEY: z.string().default('telehealth.booking.confirmed'),
+
+  // ── Wearables & Remote Monitoring ─────────────────────────────
+  // WEARABLES_ENABLED stays false until the Sprint W6 compliance gate passes.
+  WEARABLES_ENABLED:  z.coerce.boolean().default(false),
+  WEARABLES_PROVIDER: z.enum(['mock', 'live']).default('mock'),
+
+  // 32-byte hex (64 hex chars). AES-256-GCM key for OAuth token encryption.
+  // Generate: openssl rand -hex 32. The all-zero dev default is rejected in prod.
+  WEARABLES_TOKEN_KEY: z.string()
+    .default('0'.repeat(64))
+    .refine((v) => /^[0-9a-fA-F]{64}$/.test(v), {
+      message: 'WEARABLES_TOKEN_KEY must be a 32-byte hex string (64 hex chars)',
+    })
+    .refine((v) => !isProduction || v !== '0'.repeat(64), {
+      message: 'WEARABLES_TOKEN_KEY must be set to a real key (not the dev default) in production',
+    }),
+
+  WEARABLES_OAUTH_REDIRECT_BASE: z.string().url().default('http://localhost:4000'),
+  WEARABLES_GDPR_RETENTION_DAYS:           z.coerce.number().default(90),
+  WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS:  z.coerce.number().default(90),
 }).superRefine((data, ctx) => {
+  // Wearables live provider requires the feature flag to be on (W6 gate).
+  if (data.WEARABLES_PROVIDER === 'live' && !data.WEARABLES_ENABLED) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['WEARABLES_PROVIDER'],
+      message:
+        'WEARABLES_PROVIDER=live requires WEARABLES_ENABLED=true (Sprint W6 compliance gate)',
+    });
+  }
+
   // Recording gate: RECORDING_ENABLED=true requires DPO_APPROVED=true
   if (data.TELEHEALTH_RECORDING_ENABLED && !data.TELEHEALTH_RECORDING_DPO_APPROVED) {
     ctx.addIssue({

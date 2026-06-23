@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oddelenia — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phSub" style="max-width:62ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-3" id="grid"></div>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "departments" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.departments");
+document.getElementById("phEyebrow").textContent = L({sk:"Lôžková časť",en:"Inpatient care"});
+document.getElementById("phTitle").textContent = L({sk:"Lôžkové oddelenia",en:"Inpatient departments"});
+document.getElementById("phSub").textContent = L({sk:"Sedem oddelení s obnovenými priestormi, skúseným vedením a jasnými návštevnými pravidlami.",en:"Seven departments with renovated facilities, experienced leadership and clear visiting rules."});
+
+const depIcons = { chirurgia:"scalpel", interne:"pulse", gynekologia:"heart", pediatria:"baby", oaim:"shield", fro:"activity", neonatologia:"baby" };
+document.getElementById("grid").innerHTML = DB.list("departments").map(d => `
+  <a href="oddelenie.html?id=${d.id}" class="card card-hover dept-card reveal">
+    <div class="ph ph-16x9" data-label="${esc(L({sk:'foto oddelenia',en:'department photo'}))}" style="border-radius:0;border:none;border-bottom:1px solid var(--line)"></div>
+    <div class="card-pad">
+      <div class="flex-between mb-1">
+        <span class="dept-icon">${icon(depIcons[d.id]||"activity")}</span>
+        ${d.beds ? `<span class="chip">${d.beds} ${esc(t("beds"))}</span>` : `<span class="chip">${esc(L({sk:"Ambulantne",en:"Outpatient"}))}</span>`}
+      </div>
+      <h3>${esc(L(d.short))}</h3>
+      <p class="muted small">${esc(L(d.summary))}</p>
+      <div class="divider"></div>
+      <div class="flex-between">
+        <span class="small muted">${esc(t("head"))}</span>
+        <b class="small" style="color:var(--ink)">${esc(typeof d.lead==='string'?d.lead:L(d.lead))}</b>
+      </div>
+    </div>
+  </a>`).join("");
+
+const ds = `.dept-card{overflow:hidden;display:block;}
+.dept-icon{display:inline-flex;width:42px;height:42px;border-radius:10px;background:var(--terra-50);color:var(--terra);align-items:center;justify-content:center;}
+.dept-icon svg{width:24px;height:24px;}`;
+const st=document.createElement("style"); st.textContent=ds; document.head.appendChild(st);
+</script>
+</body>
+</html>

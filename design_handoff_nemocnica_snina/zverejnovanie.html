@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zverejňovanie informácií — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phSub" style="max-width:66ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="card card-pad mb-3 disc-toolbar">
+        <div class="search-box">
+          <span id="searchIcon"></span>
+          <input type="text" id="search" placeholder="">
+        </div>
+        <div class="flex gap-sm wrap" id="filters"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="small muted mt-2" id="legalNote"></p>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = L({sk:"Zverejňovanie informácií",en:"Public disclosures"});
+document.getElementById("phEyebrow").textContent = L({sk:"Povinné zverejňovanie",en:"Mandatory disclosure"});
+document.getElementById("phTitle").textContent = L({sk:"Zverejňovanie zmlúv a faktúr",en:"Contracts & invoices"});
+document.getElementById("phSub").textContent = L({sk:"V zmysle zákona o slobodnom prístupe k informáciám zverejňujeme zmluvy, faktúry a objednávky. Dokumenty si môžete stiahnuť vo formáte PDF.",en:"Under the Freedom of Information Act we publish contracts, invoices and orders. Documents can be downloaded as PDF."});
+document.getElementById("searchIcon").innerHTML = icon("search");
+document.getElementById("search").placeholder = L({sk:"Hľadať podľa partnera alebo čísla…",en:"Search by partner or ID…"});
+document.getElementById("legalNote").textContent = L({sk:"Údaje sú ilustračné pre účely ukážky. Skutočné dokumenty spravuje sekretariát nemocnice.",en:"Data shown is illustrative for demonstration. Actual documents are managed by the hospital secretariat."});
+
+let typeFilter = "all";
+document.getElementById("thead").innerHTML = `<tr>
+  <th>${esc(L({sk:"Číslo",en:"ID"}))}</th>
+  <th>${esc(L({sk:"Typ",en:"Type"}))}</th>
+  <th>${esc(L({sk:"Partner / Predmet",en:"Partner / Subject"}))}</th>
+  <th>${esc(L({sk:"Hodnota",en:"Value"}))}</th>
+  <th>${esc(L({sk:"Dátum",en:"Date"}))}</th>
+  <th style="text-align:right">${esc(L({sk:"Dokument",en:"Document"}))}</th>
+</tr>`;
+
+function renderFilters() {
+  const opts = [["all",{sk:"Všetko",en:"All"}],["Zmluva",{sk:"Zmluvy",en:"Contracts"}],["Faktúra",{sk:"Faktúry",en:"Invoices"}]];
+  document.getElementById("filters").innerHTML = opts.map(([v,lbl]) =>
+    `<button class="fbtn ${typeFilter===v?'active':''}" data-v="${v}">${esc(L(lbl))}</button>`).join("");
+  document.querySelectorAll(".fbtn").forEach(b => b.onclick = () => { typeFilter = b.dataset.v; renderFilters(); render(); });
+}
+function render() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const rows = DB.list("disclosures").filter(d => {
+    if (typeFilter !== "all" && d.type.sk !== typeFilter) return false;
+    if (!q) return true;
+    return (d.partner + " " + d.id).toLowerCase().includes(q);
+  });
+  document.getElementById("tbody").innerHTML = rows.map(d => `
+    <tr>
+      <td style="font-weight:700;white-space:nowrap">${esc(d.id)}</td>
+      <td><span class="badge ${d.type.sk==='Zmluva'?'badge-blue':'badge-terra'}">${esc(L(d.type))}</span></td>
+      <td>${esc(d.partner)}</td>
+      <td style="white-space:nowrap">${esc(d.value)}</td>
+      <td style="white-space:nowrap">${esc(fmtDate(d.date))}</td>
+      <td style="text-align:right"><a href="#" class="dl-link" onclick="return false">${icon("download")} PDF</a></td>
+    </tr>`).join("") || `<tr><td colspan="6" class="text-center muted" style="padding:30px">${esc(L({sk:"Žiadne záznamy.",en:"No records."}))}</td></tr>`;
+}
+document.getElementById("search").addEventListener("input", render);
+renderFilters(); render();
+</script>
+
+<style>
+.disc-toolbar { display:flex; justify-content:space-between; gap:16px; align-items:center; flex-wrap:wrap; }
+.search-box { position:relative; flex:1; min-width:240px; max-width:420px; }
+.search-box span { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--ink-3); }
+.search-box span svg { width:20px;height:20px;display:block; }
+.search-box input { padding-left:44px; }
+.fbtn { background:var(--warm-100); border:1px solid var(--line); color:var(--ink-2); font-family:'Mulish',sans-serif; font-weight:700; font-size:.85rem; padding:.5em 1em; border-radius:8px; cursor:pointer; transition:all .14s; }
+.fbtn:hover { border-color:var(--line-2); }
+.fbtn.active { background:var(--blue-700); color:#fff; border-color:var(--blue-700); }
+.dl-link { font-weight:700; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.dl-link svg { width:16px;height:16px; }
+</style>
+</body>
+</html>

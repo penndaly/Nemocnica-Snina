@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aktuality — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phSub" style="max-width:60ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container container-narrow">
+      <div class="flex-col gap-lg" id="list"></div>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "news" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.news");
+document.getElementById("phEyebrow").textContent = L({sk:"Oznamy",en:"Announcements"});
+document.getElementById("phTitle").textContent = L({sk:"Aktuality nemocnice",en:"Hospital news"});
+document.getElementById("phSub").textContent = L({sk:"Novinky o prevádzke, nových ambulanciách a dôležité oznamy pre pacientov.",en:"Operational updates, new clinics, and important notices for patients."});
+
+const newsType = { good:"badge-green", info:"badge-blue", alert:"badge-amber" };
+const items = DB.list("news").slice().sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+document.getElementById("list").innerHTML = items.map(n => `
+  <article class="card card-pad news-article reveal ${n.type==='alert'?'is-alert':''}" id="${n.id}">
+    <div class="flex-between wrap gap-sm mb-2">
+      <span class="badge ${newsType[n.type]||'badge-gray'}">${esc(L(n.tag))}</span>
+      <span class="small muted flex-center gap-sm">${icon("calendar")} ${esc(fmtDate(n.date))}</span>
+    </div>
+    <h2 style="font-size:1.6rem">${esc(L(n.title))}</h2>
+    <p style="margin-bottom:0">${esc(L(n.body))}</p>
+  </article>`).join("");
+
+if (location.hash) {
+  const el = document.getElementById(location.hash.slice(1));
+  if (el) { el.style.outline = "2px solid var(--blue-500)"; el.style.outlineOffset = "4px"; }
+}
+</script>
+
+<style>
+.news-article.is-alert { border-left:5px solid var(--amber); }
+</style>
+</body>
+</html>

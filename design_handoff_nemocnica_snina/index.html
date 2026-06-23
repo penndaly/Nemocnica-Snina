@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nemocnica Snina, s.r.o. — Moderná nemocnica pre náš región</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero-wrap">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow terra" id="heroBadge"></p>
+        <h1 id="heroTitle"></h1>
+        <p class="lede" id="heroSub"></p>
+        <div class="flex gap wrap mt-3" id="heroCta"></div>
+        <div class="hero-trust mt-4" id="heroTrust"></div>
+      </div>
+      <aside class="hero-side">
+        <div class="emergency-card card">
+          <div class="ec-head">
+            <span class="ec-icon" id="ecIcon"></span>
+            <div>
+              <h3 id="ecTitle"></h3>
+              <p class="small muted mb-0" id="ecSub"></p>
+            </div>
+          </div>
+          <a href="tel:112" class="btn btn-emergency btn-lg btn-block mt-2" id="ecBtn"></a>
+          <div class="ec-rows" id="ecRows"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- QUICK ACCESS -->
+  <section class="section-sm">
+    <div class="container">
+      <div class="grid grid-3" id="quickAccess"></div>
+    </div>
+  </section>
+
+  <!-- ACCEPTING NEW PATIENTS -->
+  <section class="section band-warm">
+    <div class="container">
+      <div class="section-head flex-between wrap">
+        <div>
+          <p class="eyebrow" id="anpEyebrow"></p>
+          <h2 id="anpTitle"></h2>
+        </div>
+        <a href="lekari.html" class="btn btn-ghost" id="anpAll"></a>
+      </div>
+      <div class="grid grid-3" id="acceptingGrid"></div>
+    </div>
+  </section>
+
+  <!-- FEATURED DEPARTMENTS -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head flex-between wrap">
+        <div>
+          <p class="eyebrow" id="depEyebrow"></p>
+          <h2 id="depTitle"></h2>
+        </div>
+        <a href="oddelenia.html" class="btn btn-ghost" id="depAll"></a>
+      </div>
+      <div class="grid grid-3" id="deptGrid"></div>
+    </div>
+  </section>
+
+  <!-- NEWS + APS -->
+  <section class="section band-warm">
+    <div class="container news-aps">
+      <div>
+        <div class="section-head flex-between">
+          <h2 id="newsTitle"></h2>
+          <a href="aktuality.html" class="link-more" id="newsAll"></a>
+        </div>
+        <div class="flex-col gap" id="newsList"></div>
+      </div>
+      <aside>
+        <div class="card card-pad aps-card">
+          <span class="aps-icon" id="apsIcon"></span>
+          <h3 id="apsTitle"></h3>
+          <p class="small" id="apsNote"></p>
+          <a href="kontakt.html" class="btn btn-ghost btn-sm btn-block mt-2" id="apsBtn"></a>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "home" });
+
+const P = DB.get("pages");
+const H = DB.get("hospital");
+
+document.getElementById("heroBadge").textContent = L(P.hero.badge);
+document.getElementById("heroTitle").textContent = L(P.hero.title);
+document.getElementById("heroSub").textContent = L(P.hero.subtitle);
+
+document.getElementById("heroCta").innerHTML = `
+  <a href="objednanie.html" class="btn btn-primary btn-lg">${icon("calendar")} ${esc(t("book"))}</a>
+  <a href="lekari.html" class="btn btn-ghost btn-lg">${icon("search")} ${esc(L({sk:"Nájsť lekára",en:"Find a physician"}))}</a>`;
+
+document.getElementById("heroTrust").innerHTML = [
+  [icon("building"), L({sk:"7 lôžkových oddelení",en:"7 inpatient departments"})],
+  [icon("stethoscope"), L({sk:"8 ambulancií",en:"8 outpatient clinics"})],
+  [icon("shield"), L({sk:"Centrálna recepcia 24/7",en:"Central reception 24/7"})]
+].map(([i,txt]) => `<span class="chip">${i} ${esc(txt)}</span>`).join("");
+
+// Emergency card
+document.getElementById("ecIcon").innerHTML = icon("alert");
+document.getElementById("ecTitle").textContent = t("emergency");
+document.getElementById("ecSub").textContent = L({sk:"Pri ohrození života vyhľadajte okamžitú pomoc.",en:"In a life-threatening emergency, seek immediate help."});
+document.getElementById("ecBtn").innerHTML = icon("phone") + " " + esc(t("callEmergency"));
+document.getElementById("ecRows").innerHTML = `
+  <div class="ec-row"><span>${icon("phone")} ${esc(t("central"))}</span><b>${esc(H.phone)}</b></div>
+  <div class="ec-row"><span>${icon("shield")} ${esc(L({sk:"Centrálna recepcia",en:"Central reception"}))}</span><b>${esc(H.reception)}</b></div>
+  <div class="ec-row"><span>${icon("pill")} ${esc(L({sk:"Lekáreň",en:"Pharmacy"}))}</span><b>${esc(H.pharmacy)}</b></div>`;
+
+// Quick access
+const quick = [
+  ["building", "nav.departments", {sk:"Lôžkové oddelenia, vedenie a návštevné hodiny.",en:"Inpatient wards, leadership and visiting hours."}, "oddelenia.html"],
+  ["calendar", "nav.clinics", {sk:"Ambulancie s ordinačnými hodinami a online objednaním.",en:"Clinics with operating hours and online booking."}, "ambulancie.html"],
+  ["user", "nav.doctors", {sk:"Adresár lekárov a stav prijímania nových pacientov.",en:"Physician directory and new-patient status."}, "lekari.html"]
+];
+document.getElementById("quickAccess").innerHTML = quick.map(([ic,key,desc,href]) => `
+  <a href="${href}" class="card card-pad card-hover qa">
+    <span class="qa-icon">${icon(ic)}</span>
+    <h3>${esc(t(key))}</h3>
+    <p class="muted mb-0">${esc(L(desc))}</p>
+    <span class="qa-arrow">${icon("chevron")}</span>
+  </a>`).join("");
+
+// Accepting new patients
+document.getElementById("anpEyebrow").textContent = L({sk:"Otvorené dvere",en:"Open doors"});
+document.getElementById("anpTitle").textContent = L({sk:"Lekári prijímajúci nových pacientov",en:"Physicians accepting new patients"});
+document.getElementById("anpAll").innerHTML = esc(L({sk:"Všetci lekári",en:"All physicians"})) + icon("chevron");
+const accepting = DB.list("physicians").filter(p => p.accepting).slice(0, 3);
+document.getElementById("acceptingGrid").innerHTML = accepting.map(p => `
+  <a href="lekari.html#${p.id}" class="card card-pad card-hover doc-card">
+    <div class="flex-center gap">
+      <span class="avatar">${esc(initials(p.name))}</span>
+      <div>
+        <h4 class="mb-0">${esc(p.name)}</h4>
+        <p class="small muted mb-0">${esc(L(p.role))}</p>
+      </div>
+    </div>
+    <p class="small mt-2 mb-2">${esc(L(p.bio))}</p>
+    <span class="badge badge-green"><span class="dot"></span>${esc(t("accepting"))}</span>
+  </a>`).join("");
+
+// Featured departments
+document.getElementById("depEyebrow").textContent = L({sk:"Naša starostlivosť",en:"Our care"});
+document.getElementById("depTitle").textContent = L({sk:"Vybrané oddelenia",en:"Featured departments"});
+document.getElementById("depAll").innerHTML = esc(L({sk:"Všetky oddelenia",en:"All departments"})) + icon("chevron");
+const depIcons = { chirurgia:"scalpel", interne:"pulse", gynekologia:"heart", pediatria:"baby", oaim:"shield", fro:"activity", neonatologia:"baby" };
+const featured = DB.list("departments").filter(d => d.featured).slice(0,3);
+document.getElementById("deptGrid").innerHTML = featured.map(d => `
+  <a href="oddelenie.html?id=${d.id}" class="card card-hover dept-card">
+    <div class="ph ph-16x9" data-label="${esc(L({sk:'foto oddelenia',en:'department photo'}))}" style="border-radius:0;border:none;border-bottom:1px solid var(--line)"></div>
+    <div class="card-pad">
+      <span class="dept-icon">${icon(depIcons[d.id]||"activity")}</span>
+      <h3>${esc(L(d.short))}</h3>
+      <p class="muted small">${esc(L(d.summary))}</p>
+      <div class="flex-between mt-2">
+        <span class="small muted">${esc(t("head"))}: <b style="color:var(--ink)">${esc(typeof d.lead==='string'?d.lead:L(d.lead))}</b></span>
+        ${d.beds ? `<span class="chip">${d.beds} ${esc(t("beds"))}</span>` : ``}
+      </div>
+    </div>
+  </a>`).join("");
+
+// News
+document.getElementById("newsTitle").textContent = t("nav.news");
+document.getElementById("newsAll").innerHTML = esc(L({sk:"Všetky aktuality",en:"All news"})) + icon("chevron");
+const newsType = { good:"badge-green", info:"badge-blue", alert:"badge-amber" };
+document.getElementById("newsList").innerHTML = DB.list("news").slice(0,4).map(n => `
+  <a href="aktuality.html#${n.id}" class="card card-pad news-row">
+    <div class="flex-between wrap gap-sm mb-1">
+      <span class="badge ${newsType[n.type]||'badge-gray'}">${esc(L(n.tag))}</span>
+      <span class="small muted">${esc(fmtDate(n.date))}</span>
+    </div>
+    <h4 class="mb-1">${esc(L(n.title))}</h4>
+    <p class="small muted mb-0">${esc(truncate(L(n.body), 130))}</p>
+  </a>`).join("");
+
+// APS
+document.getElementById("apsIcon").innerHTML = icon("shield");
+document.getElementById("apsTitle").textContent = L(P.aps.title);
+document.getElementById("apsNote").textContent = L(P.aps.note);
+document.getElementById("apsBtn").innerHTML = esc(L({sk:"Kontakty a pohotovosť",en:"Contacts & emergency"})) + icon("chevron");
+
+function initials(n){ return n.replace(/MUDr\.|Mgr\.|Bc\.|MBA|,/g,"").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase(); }
+function truncate(s,n){ return s.length>n ? s.slice(0,n).trim()+"…" : s; }
+</script>
+
+<style>
+.hero-wrap { padding: 56px 0 64px; background:
+  radial-gradient(1100px 480px at 78% -8%, var(--blue-50), transparent 60%),
+  linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%); }
+.hero-grid { display:grid; grid-template-columns: 1.35fr .9fr; gap: 48px; align-items: center; }
+.hero-copy h1 { margin-bottom: .3em; }
+.hero-trust { display:flex; gap:10px; flex-wrap:wrap; }
+.emergency-card { padding: 24px; border-top: 5px solid var(--red); box-shadow: var(--shadow-lg); }
+.ec-head { display:flex; gap:14px; align-items:center; margin-bottom: 6px; }
+.ec-icon { width:46px;height:46px;border-radius:12px;background:var(--red-50);color:var(--red);display:flex;align-items:center;justify-content:center;flex:0 0 auto; }
+.ec-icon svg { width:26px;height:26px; }
+.ec-head h3 { color: var(--red); margin:0; font-size:1.4rem; }
+.ec-rows { margin-top: 18px; padding-top: 16px; border-top:1px solid var(--line); }
+.ec-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; font-size:.92rem; color:var(--ink-2); }
+.ec-row span { display:flex; align-items:center; gap:8px; }
+.ec-row svg { width:16px;height:16px;color:var(--ink-3); }
+.ec-row b { color: var(--ink); }
+
+.qa { position:relative; display:block; }
+.qa-icon { display:inline-flex; width:48px;height:48px;border-radius:12px;background:var(--blue-50);color:var(--blue-700);align-items:center;justify-content:center;margin-bottom:14px; }
+.qa-icon svg{width:26px;height:26px;}
+.qa-arrow { position:absolute; top:26px; right:24px; color:var(--blue-200); transition:transform .15s,color .15s; }
+.qa-arrow svg{width:22px;height:22px;}
+.qa:hover .qa-arrow { color:var(--blue-600); transform:translateX(3px); }
+
+.dept-card { overflow:hidden; display:block; }
+.dept-icon { display:inline-flex;width:42px;height:42px;border-radius:10px;background:var(--terra-50);color:var(--terra);align-items:center;justify-content:center;margin-bottom:10px;}
+.dept-icon svg{width:24px;height:24px;}
+.doc-card{display:block;}
+.link-more{font-weight:700;font-size:.92rem;display:inline-flex;align-items:center;gap:4px;}
+.link-more svg{width:18px;height:18px;}
+.news-aps{display:grid;grid-template-columns:1.7fr .9fr;gap:40px;align-items:start;}
+.news-row{display:block;}
+.aps-card{border-top:4px solid var(--blue-600);}
+.aps-icon{display:inline-flex;width:44px;height:44px;border-radius:12px;background:var(--blue-50);color:var(--blue-700);align-items:center;justify-content:center;margin-bottom:12px;}
+.aps-icon svg{width:25px;height:25px;}
+@media (max-width: 940px){ .hero-grid{grid-template-columns:1fr;gap:32px;} .news-aps{grid-template-columns:1fr;} }
+</style>
+</body>
+</html>
