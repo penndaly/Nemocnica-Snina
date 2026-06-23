@@ -89,14 +89,24 @@ Production build of the Nemocnica Snina (Snina Hospital) platform: a bilingual�
 
 ### Wearables env (`apps/api/.env`, mirrored in `.env.example`)
 ```env
-WEARABLES_ENABLED=false           # true only after W6 gate
+WEARABLES_ENABLED=false           # true only after W6 gate (L9 checklist + DPO sign-off)
 WEARABLES_PROVIDER=mock           # mock | live (live rejected unless ENABLED=true)
 WEARABLES_TOKEN_KEY=              # 32-byte hex — openssl rand -hex 32 (dev all-zero default rejected in prod)
 WEARABLES_OAUTH_REDIRECT_BASE=http://localhost:4000
 WEARABLES_GDPR_RETENTION_DAYS=90
 WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS=90
+WEARABLES_ALERT_SMS_TO=           # on-call escalation number for critical alerts (W5)
+GARMIN_WEBHOOK_KEY=               # HMAC-SHA1 key for Garmin push webhooks (W6)
+WEB_PORTAL_BASE_URL=http://localhost:3000  # public portal base for OAuth callback redirects (W4)
 ```
-Sprint W1 (`feat(wearables)` commit `f6b03a2`) shipped the data model, `apps/api/src/wearables/` module (controller 501 stubs, `ConsentService`/`ConsentGuard`, `TokenCryptoService`, `MockAdapter`, `WEARABLE_ADAPTER` DI token), config gate, and tests. W2 (medical adapters) + W3 (consumer adapters) run in parallel off branches `feature/wearables-w2-medical-adapters` / `feature/wearables-w3-consumer-adapters`; merge W2 first (W4's OAuth test target).
+
+Sprint W1 (`feat(wearables)` commit `f6b03a2`) shipped the data model, `apps/api/src/wearables/` module (controller 501 stubs, `ConsentService`/`ConsentGuard`, `TokenCryptoService`, `MockAdapter`, `WEARABLE_ADAPTER` DI token), config gate, and tests. Sprints W4–W6 are complete on branch `feature/wearables-w4-portal-wiring` (commits c1aaf6a / ffeca73 / 5d55409, **not yet merged to main**), building on W1's MockAdapter (W2/W3 adapter branches were empty stubs):
+
+- **W4** — `WearablesService` full implementation with idempotent 3-device demo seed; `platform-catalog.ts` (17 platforms, partnership/upload/iOS flags); `OAuthStateService` (HMAC-SHA256-signed one-time state); `ConsentService.setConsent`. Web: `apps/web/src/lib/wearables-api.ts`; catch-all proxy `app/api/portal/wearables/[...path]/route.ts` (reads httpOnly `ns_patient_session` cookie, forwards as `x-patient-session` to NestJS); **wearables added as a tab** in `portal/page.tsx` (no sidebar — it's a tabbed single page); `portal/wearables/sublas/page.tsx` GDPR consent management; sk/en `wearables` i18n namespace.
+- **W5** — Migration `20260623100000_wearables_w5`: `portal_notifications` table + `@@unique([patientToken, metricType])` on `device_alert_thresholds`. `alert-thresholds.ts` (LOINC-coded `DEFAULT_THRESHOLDS` + pure `classify`); `AlertService`; `WearablesQueueService` (`ns.wearables` exchange, routing keys: `wearables.alert.critical/batch/readings.synced`); `WearablesAlertConsumer` (critical → SMS to `WEARABLES_ALERT_SMS_TO` + portal notification; batch → portal notification); `WearablesFhirConsumer` (idempotent FHIR R4 Observation export, concurrent-safe, never deletes fhir-linked rows). New endpoints: `physicianView`, `setThresholds`, notifications bell. Web: physician admin page `app/admin/patients/[patientToken]/wearables/page.tsx` (AdminAuthProvider/Bearer token); alert bell with unread badge in `WearablesTab`.
+- **W6** — OAuth token rotation (`adapter.refreshToken` interface + MockAdapter impl); Garmin webhook HMAC-SHA1 + 100/min sliding-window rate-limit (`webhooks/garmin.webhook.controller.ts`); physician scope hardening: `assertPhysicianAccess` requires `TelehealthSession` within `WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS` **or** explicit `physician_named_access` consent plus `physician_sharing`. Docs: `docs/DPIA_WEARABLES_ADDENDUM.md`; `RETENTION.md` wearables schedule; `LAUNCH_CHECKLIST.md` §L9 compliance gate.
+
+**Key architectural decisions baked in (don't re-litigate):** no `physicians` table → critical SMS goes to `WEARABLES_ALERT_SMS_TO` escalation number; physician identity resolved through `TelehealthSession.physicianId`. OAuth state is in-memory HMAC store (Redis = prod scale-out, documented as TODO). `WEARABLES_ENABLED` **must stay `false`** until L9 checklist passes (DPO sign-off + legal + security review). Real W2/W3 adapters are still required before switching to `WEARABLES_PROVIDER=live`. Webhook receipts are audited; no separate `webhook_log` table. Batch-alert digest is per-message; 30-day consent-grace suspension + retention purge crons are documented in `RETENTION.md` but not yet implemented.
 
 ## Conventions
 - Replace prototype `DB.*` (localStorage) with API/CMS calls.
