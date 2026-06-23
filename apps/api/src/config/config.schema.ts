@@ -28,6 +28,21 @@ const noChangeme = (name: string, minLen = 1) =>
     { message: `${name} must not contain placeholder value 'CHANGEME' in production` },
   );
 
+/**
+ * Strict env→boolean parser. z.coerce.boolean() is unsafe for env flags: it uses
+ * JS Boolean(), so the string "false" coerces to TRUE — meaning OIDC_MOCK_ENABLED=false
+ * would silently ENABLE the mock in production. This only treats the literal "true"
+ * as true and "false" as false; anything else (unset / empty / typo) falls back to
+ * the explicit default. Returns a real boolean for downstream .refine()/.superRefine().
+ */
+const strictBool = (defaultVal: boolean) =>
+  z.union([z.string(), z.boolean()]).optional().transform((v) => {
+    if (typeof v === 'boolean') return v;           // programmatic callers / tests
+    if (v === 'true') return true;
+    if (v === 'false') return false;                // the fix: NOT truthy-coerced
+    return defaultVal;                              // unset / empty / typo
+  });
+
 export const ConfigSchema = z.object({
   // ── Core ────────────────────────────────────────────
   NODE_ENV:           z.enum(['development', 'test', 'production']).default('development'),
@@ -48,10 +63,10 @@ export const ConfigSchema = z.object({
   // ── Auth: staff ─────────────────────────────────────
   JWT_SECRET:         noChangeme('JWT_SECRET', 32),
   JWT_ACCESS_TTL:     z.coerce.number().default(900),
-  MFA_REQUIRED:       z.coerce.boolean().refine(
+  MFA_REQUIRED:       strictBool(true).refine(
     (v) => !isProduction || v === true,
     { message: 'MFA_REQUIRED must be true in production (Decree 179/2020)' },
-  ).default(true),
+  ),
 
   // ── Auth: patient (eID / OIDC) ──────────────────────
   OIDC_ISSUER_URL:    z.string().url().default('https://oidc.slovensko.sk'),
@@ -59,11 +74,11 @@ export const ConfigSchema = z.object({
   OIDC_CLIENT_SECRET: z.string().min(1).default('dev-secret'),
   OIDC_REDIRECT_URI:  z.string().url().default('http://localhost:3000/sk/portal/callback'),
   OIDC_SCOPES:        z.string().default('openid profile'),
-  OIDC_USE_PKCE:      z.coerce.boolean().default(true),
-  OIDC_MOCK_ENABLED:  z.coerce.boolean().refine(
+  OIDC_USE_PKCE:      strictBool(true),
+  OIDC_MOCK_ENABLED:  strictBool(true).refine(
     (v) => !isProduction || v === false,
     { message: 'OIDC_MOCK_ENABLED must be false in production' },
-  ).default(true),
+  ),
 
   // ── Strapi CMS ──────────────────────────────────────
   STRAPI_URL:         z.string().url().default('http://localhost:1337'),
@@ -91,10 +106,10 @@ export const ConfigSchema = z.object({
   // ── HIS / FHIR ──────────────────────────────────────
   RABBITMQ_URL:       tlsRabbit,
   HIS_FHIR_BASE_URL:  z.string().url().default('https://his-sandbox.local/fhir'),
-  HIS_MOCK_ENABLED:   z.coerce.boolean().refine(
+  HIS_MOCK_ENABLED:   strictBool(true).refine(
     (v) => !isProduction || v === false,
     { message: 'HIS_MOCK_ENABLED must be false in production' },
-  ).default(true),
+  ),
 
   // ── SMS ─────────────────────────────────────────────
   SMS_PROVIDER:       z.string().default('console'),
@@ -144,8 +159,8 @@ export const ConfigSchema = z.object({
   TELEHEALTH_JOIN_WINDOW_SECONDS:   z.coerce.number().default(600),
   TELEHEALTH_NO_SHOW_GRACE_MINUTES: z.coerce.number().default(15),
 
-  TELEHEALTH_RECORDING_ENABLED:     z.coerce.boolean().default(false),
-  TELEHEALTH_RECORDING_DPO_APPROVED: z.coerce.boolean().default(false),
+  TELEHEALTH_RECORDING_ENABLED:     strictBool(false),
+  TELEHEALTH_RECORDING_DPO_APPROVED: strictBool(false),
 
   TELEHEALTH_PDF_RETENTION_SECONDS: z.coerce.number().default(604800),
 
@@ -160,7 +175,7 @@ export const ConfigSchema = z.object({
 
   // ── Wearables & Remote Monitoring ─────────────────────────────
   // WEARABLES_ENABLED stays false until the Sprint W6 compliance gate passes.
-  WEARABLES_ENABLED:  z.coerce.boolean().default(false),
+  WEARABLES_ENABLED:  strictBool(false),
   WEARABLES_PROVIDER: z.enum(['mock', 'live']).default('mock'),
 
   // 32-byte hex (64 hex chars). AES-256-GCM key for OAuth token encryption.

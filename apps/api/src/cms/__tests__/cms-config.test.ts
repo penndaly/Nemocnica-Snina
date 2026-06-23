@@ -12,11 +12,8 @@ const PROD_ENV: Record<string, string> = {
   RABBITMQ_URL: 'amqps://mq.internal:5671',
   JWT_SECRET: 'x'.repeat(48),
   MFA_REQUIRED: 'true',
-  // NOTE: the existing schema uses z.coerce.boolean() for these, where the
-  // string 'false' coerces to true; only an empty string coerces to false.
-  // (Pre-existing footgun, out of A1 scope — set '' so the fixture is valid.)
-  OIDC_MOCK_ENABLED: '',
-  HIS_MOCK_ENABLED: '',
+  OIDC_MOCK_ENABLED: 'false',
+  HIS_MOCK_ENABLED: 'false',
   TELEHEALTH_PROVIDER: 'livekit',
   LIVEKIT_URL: 'wss://livekit.eu.example',
   LIVEKIT_API_KEY: 'realkey',
