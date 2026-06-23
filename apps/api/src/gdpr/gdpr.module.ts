@@ -7,10 +7,11 @@ import { AuthModule } from '../auth/auth.module';
 import { PatientGdprService } from './patient-gdpr.service';
 import { PatientGdprController } from './patient-gdpr.controller';
 import { StorageService } from './storage.service';
+import { RcCryptoService } from '../common/rc-crypto.service';
 
 @Module({
   imports: [AuditModule, AuthModule],
   controllers: [GdprController, PatientGdprController],
-  providers: [GdprService, PatientGdprService, StorageService],
+  providers: [GdprService, PatientGdprService, StorageService, RcCryptoService],
 })
 export class GdprModule {}

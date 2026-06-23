@@ -9,6 +9,7 @@ import { NcziXmlService } from './nczi-xml.service';
 import { AuditService } from '../audit/audit.service';
 import { HisQueueService } from '../his/his-queue.service';
 import { SmsService } from '../sms/sms.service';
+import { RcCryptoService } from '../common/rc-crypto.service';
 
 interface ApplyDto {
   physicianId: string;
@@ -28,6 +29,7 @@ export class OnboardingService {
     private readonly his: HisQueueService,
     private readonly sms: SmsService,
     private readonly cfg: ConfigService,
+    private readonly rcCrypto: RcCryptoService,
   ) {}
 
   async apply(dto: ApplyDto) {
@@ -35,7 +37,10 @@ export class OnboardingService {
       throw new BadRequestException('Invalid rodné číslo');
     }
 
+    // RC is stored two ways: bcrypt hash (irreversible identity check) and
+    // AES-256-GCM ciphertext (decryptable for NCZI eDohoda + GDPR Art.15 export).
     const rcHash = await bcrypt.hash(dto.patientRc, 12);
+    const rcEncrypted = this.rcCrypto.encrypt(dto.patientRc);
 
     const application = await this.prisma.onboardingApplication.create({
       data: {
@@ -43,6 +48,7 @@ export class OnboardingService {
         physicianId: dto.physicianId,
         patientName: dto.patientName,
         patientRcHash: rcHash,
+        patientRcEncrypted: rcEncrypted,
         insurerCode: dto.insurerCode,
         phone: dto.phone,
         email: dto.email ?? null,
@@ -51,6 +57,22 @@ export class OnboardingService {
     });
 
     return { applicationId: application.id };
+  }
+
+  /**
+   * Recover the plaintext RC for NCZI eDohoda generation. Throws a descriptive
+   * error for pre-fix applications (no encrypted RC) so they are flagged for
+   * manual processing rather than silently sent as '[REDACTED]'.
+   */
+  decryptRcForNczi(app: { id: string; patientRcEncrypted: string | null }): string {
+    if (!app.patientRcEncrypted) {
+      throw new BadRequestException(
+        `Application ${app.id} was submitted before encrypted RC storage was added — ` +
+          `no recoverable rodné číslo. NCZI eDohoda cannot be generated automatically; ` +
+          `process this application manually.`,
+      );
+    }
+    return this.rcCrypto.decrypt(app.patientRcEncrypted);
   }
 
   async list() {
@@ -109,8 +131,25 @@ export class OnboardingService {
       const hospitalIco = this.cfg.get<string>('HOSPITAL_ICO') ?? '52379571';
       const signToken = randomUUID();
 
+      // Recover the plaintext RC (AES-256-GCM) for the NCZI eDohoda payload.
+      // Pre-fix applications have no encrypted RC → cannot be auto-processed.
+      let patientRc: string;
+      try {
+        patientRc = this.decryptRcForNczi(app);
+      } catch (err) {
+        await this.audit.log({
+          actorEmail: reviewerEmail,
+          actorRole: reviewerRole,
+          action: 'onboarding_manual_required',
+          resource: 'onboarding_application',
+          resourceId: applicationId,
+          detail: { reason: 'no_encrypted_rc' },
+        });
+        throw err;
+      }
+
       const xml = this.ncziXml.generateEDohoda({
-        patientRc: '[REDACTED]', // plaintext RC not stored; patient provides via eID signing
+        patientRc,
         insurerCode: app.insurerCode,
         doctorCode: app.physicianId,
         hospitalIco,

@@ -27,6 +27,7 @@ const PROD_ENV: Record<string, string> = {
   STAFF_MFA_SECRET: 'c'.repeat(64),
   STAFF_TOTP_KEY: 'd'.repeat(64),
   GDPR_EXPORT_KEY: 'e'.repeat(64),
+  RC_ENCRYPTION_KEY: 'f'.repeat(64),
 };
 
 function validateWith(env: Record<string, string>): { ok: boolean; cmsIssue: boolean; messages: string[] } {

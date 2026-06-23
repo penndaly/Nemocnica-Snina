@@ -45,7 +45,8 @@ export const ALLOWED_ACTIONS = new Set<string>([
   'session_scheduled', 'session_cancelled', 'session_joined', 'session_ended',
   // ── Legacy (pre-A3, kept so existing callers validate) ──
   'login', 'login_failed', 'booking_confirm', 'booking_cancel',
-  'onboarding_accept', 'onboarding_reject', 'fhir_read', 'granted', 'withdrawn',
+  'onboarding_accept', 'onboarding_reject', 'onboarding_manual_required',
+  'fhir_read', 'granted', 'withdrawn',
   'his_event_published', 'his_queue_pending', 'his_sync_failure', 'his_sync_success',
   'lab_pdf_challenge_issued', 'lab_pdf_downloaded', 'lab_pdf_otp_failed',
   'payment_receipt_downloaded', 'portal_cancel_token_retrieved',
@@ -102,11 +103,19 @@ export function stripPii(value: unknown, key = ''): unknown {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Central audit writer — validates the action and strips PII from meta. */
+  /**
+   * Central A3 audit writer — validates the action against ALLOWED_ACTIONS
+   * (rejects arbitrary strings) and strips PII from meta. New code uses this.
+   */
   async writeAuditEntry(entry: AuditEntryDto): Promise<void> {
     if (!ALLOWED_ACTIONS.has(entry.action)) {
       throw new BadRequestException(`Unknown audit action: ${entry.action}`);
     }
+    await this.persist(entry);
+  }
+
+  /** Shared write path — always strips PII; used by both writeAuditEntry and log(). */
+  private async persist(entry: AuditEntryDto): Promise<void> {
     const meta = entry.meta ? (stripPii(entry.meta) as Record<string, unknown>) : undefined;
     const detail = entry.userAgent ? { ...(meta ?? {}), userAgent: entry.userAgent } : meta;
     await this.prisma.auditLog.create({
@@ -166,12 +175,17 @@ export class AuditService {
     });
   }
 
-  /** Legacy adapter — existing callers keep their signature; routed + PII-stripped. */
+  /**
+   * Legacy adapter — existing callers keep their signature and are PII-stripped.
+   * Does NOT enforce ALLOWED_ACTIONS (legacy modules emit dynamic actions like
+   * `payment.*`, `dsar_export`, `telehealth.his_sync.*`); validation is the new
+   * writeAuditEntry path's responsibility.
+   */
   async log(params: {
     actorEmail: string; actorRole: string; action: string; resource: string;
     resourceId: string; detail?: Record<string, unknown>; ip?: string; actorId?: string;
   }): Promise<void> {
-    await this.writeAuditEntry({
+    await this.persist({
       actorId: params.actorId,
       actorName: params.actorEmail,
       actorRole: params.actorRole,

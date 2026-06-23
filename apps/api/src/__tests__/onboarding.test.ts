@@ -67,6 +67,7 @@ function buildMocks() {
     physicianId: 'borscova',
     patientName: 'Jana Testová',
     patientRcHash: '$2b$12$fakehash',
+    patientRcEncrypted: 'enc::850101/0008',
     insurerCode: '25',
     phone: '+421904111222',
     email: null,
@@ -102,6 +103,11 @@ function buildMocks() {
     return undefined;
   }) };
 
+  const rcCrypto = {
+    encrypt: jest.fn((s: string) => `enc::${s}`),
+    decrypt: jest.fn((c: string) => c.replace(/^enc::/, '')),
+  };
+
   const service = new OnboardingService(
     prisma as never,
     ncziXml,
@@ -109,9 +115,10 @@ function buildMocks() {
     his as never,
     sms as never,
     cfg as never,
+    rcCrypto as never,
   );
 
-  return { service, prisma, audit, his, sms, app };
+  return { service, prisma, audit, his, sms, app, rcCrypto };
 }
 
 describe('OnboardingService.review — accept flow', () => {
@@ -290,5 +297,39 @@ describe('OnboardingService.review — already reviewed guard', () => {
     await expect(
       service.review('app-uuid-1', 'reject', 'clinician@ns.sk', 'CLINICIAN', '', '127.0.0.1'),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+// ── patientRcEncrypted (NCZI / GDPR reversible RC) ───────────────────────────
+
+describe('OnboardingService — patientRcEncrypted', () => {
+  it('apply() stores BOTH the bcrypt hash and the AES ciphertext, neither equal', async () => {
+    const { service, prisma, rcCrypto } = buildMocks();
+    await service.apply({
+      physicianId: 'borscova', patientName: 'Jana Testová',
+      patientRc: '8503150007', insurerCode: '25', phone: '+421904111222',
+    });
+    const data = prisma.onboardingApplication.create.mock.calls[0][0].data;
+    expect(rcCrypto.encrypt).toHaveBeenCalledWith('8503150007');
+    expect(data.patientRcHash).toBeTruthy();
+    expect(data.patientRcEncrypted).toBe('enc::8503150007');
+    expect(data.patientRcHash).not.toBe(data.patientRcEncrypted); // hash ≠ ciphertext
+    expect(data.patientRcHash).not.toContain('8503150007');       // bcrypt hides plaintext
+  });
+
+  it('decryptRcForNczi throws a descriptive error for a pre-fix record (never "[REDACTED]")', () => {
+    const { service } = buildMocks();
+    expect(() => service.decryptRcForNczi({ id: 'app-old', patientRcEncrypted: null }))
+      .toThrow(/manually|recoverable/i);
+    // ensure the old silent-redaction behaviour is gone
+    expect(() => service.decryptRcForNczi({ id: 'app-old', patientRcEncrypted: null }))
+      .not.toThrow(/\[REDACTED\]/);
+  });
+
+  it('accept generates NCZI XML with the decrypted RC, not a placeholder', async () => {
+    const { service } = buildMocks();
+    const result = await service.review('app-uuid-1', 'accept', 'clinician@ns.sk', 'CLINICIAN', '', '127.0.0.1');
+    expect(result.edohodaXml).toContain('850101/0008'); // decrypted from the fixture ciphertext
+    expect(result.edohodaXml).not.toContain('[REDACTED]');
   });
 });

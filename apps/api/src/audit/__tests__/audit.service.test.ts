@@ -57,7 +57,7 @@ describe('AuditService.writeAuditEntry', () => {
     expect((written.detail as Record<string, string>).requestReference).toBe('R1');
   });
 
-  it('the legacy log() adapter routes through validation + PII stripping', async () => {
+  it('the legacy log() adapter strips PII (without enforcing ALLOWED_ACTIONS)', async () => {
     const { svc, create } = make();
     await svc.log({ actorEmail: 'sys@ns.sk', actorRole: 'admin', action: 'login', resource: 'staff', resourceId: '1', detail: { password: 'x' } });
     expect((create.mock.calls[0][0].data.detail as Record<string, string>).password).toBe('[redacted]');

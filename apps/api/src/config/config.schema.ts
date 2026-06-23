@@ -139,6 +139,10 @@ export const ConfigSchema = z.object({
   STAFF_EMAIL_RATE_LIMIT:  z.coerce.number().default(3),           // invite/reset emails per address per hour
   ADMIN_URL:               z.string().url().default('http://localhost:3000/admin'),
 
+  // Patient RC reversible encryption (AES-256-GCM) for NCZI eDohoda + GDPR
+  // Art. 15 export. 32-byte hex; all-zero dev default rejected in production.
+  RC_ENCRYPTION_KEY:       hexSecret('RC_ENCRYPTION_KEY', 32),
+
   // ── GDPR data tools & translation (Sprint A3) ────────
   // Export bundles are AES-256-GCM encrypted; stored via the local adapter in
   // dev/CI and an EU S3 bucket in prod (GDPR_STORAGE_PROVIDER). Key is 32-byte

@@ -12,6 +12,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { RcCryptoService } from '../common/rc-crypto.service';
 
 // Retention rules — also documented in RETENTION.md
 const RETENTION_REASONS: Record<string, string> = {
@@ -45,6 +46,7 @@ export class GdprService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly rcCrypto: RcCryptoService,
   ) {}
 
   /**
@@ -75,6 +77,7 @@ export class GdprService {
         select: {
           id: true, physicianId: true, patientName: true, insurerCode: true,
           phone: true, email: true, status: true, createdAt: true,
+          patientRcEncrypted: true, // decrypted into `rc` for the export, never emitted raw
         },
       }),
       this.prisma.smsOtp.findMany({
@@ -83,6 +86,15 @@ export class GdprService {
         take: 0, // OTPs not linked to RC — returned as empty with explanation
       }),
     ]);
+
+    // Include the decrypted RC per onboarding application (Art. 15 / Art. 20).
+    // Pre-fix records (no ciphertext) get an explanatory note instead.
+    const onboardingApplications = onboardingApps.map(({ patientRcEncrypted, ...rest }) => ({
+      ...rest,
+      rc: patientRcEncrypted
+        ? this.rcCrypto.decrypt(patientRcEncrypted)
+        : '[Not retained — application submitted before encrypted storage was added. Contact the hospital data controller for identity document access.]',
+    }));
 
     // Audit entries referencing this subject's bookings/applications
     const subjectResourceIds = [
@@ -104,7 +116,7 @@ export class GdprService {
       exportedAt: new Date().toISOString(),
       note: 'Clinical records (diagnoses, medications, lab results) are held by the Hospital Information System (HIS) and are outside the scope of this export. Contact the HIS data controller for clinical records.',
       bookings,
-      onboardingApplications: onboardingApps,
+      onboardingApplications,
       smsOtps: [],
       auditEntries,
       retainedRecords: [

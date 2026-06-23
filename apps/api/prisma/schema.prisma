@@ -78,7 +78,8 @@ model OnboardingApplication {
   id              String              @id @default(uuid())
   physicianId     String
   patientName     String
-  patientRcHash   String              // bcrypt hash
+  patientRcHash   String              // bcrypt hash (irreversible — identity check)
+  patientRcEncrypted String?          @map("patient_rc_encrypted") // AES-256-GCM (RC_ENCRYPTION_KEY) — decryptable for NCZI eDohoda + GDPR Art.15 export. Nullable: pre-fix rows cannot be back-filled.
   insurerCode     String
   phone           String
   email           String?

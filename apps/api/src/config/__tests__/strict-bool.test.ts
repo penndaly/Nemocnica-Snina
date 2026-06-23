@@ -38,6 +38,7 @@ const PROD_BASE = {
   STAFF_MFA_SECRET: 'c'.repeat(64),
   STAFF_TOTP_KEY: 'd'.repeat(64),
   GDPR_EXPORT_KEY: 'e'.repeat(64),
+  RC_ENCRYPTION_KEY: 'f'.repeat(64),
 };
 
 interface ParseResult {
