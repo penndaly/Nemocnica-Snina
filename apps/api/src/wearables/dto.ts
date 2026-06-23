@@ -25,6 +25,7 @@ export interface WearableDeviceDto {
   shareWithPhysician: boolean;
   partnershipRequired: boolean;
   lastSyncAt: string | null;
+  connectedAt: string;
   readings: WearableReadingDto[];
 }
 

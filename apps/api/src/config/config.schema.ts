@@ -159,6 +159,12 @@ export const ConfigSchema = z.object({
   WEARABLES_OAUTH_REDIRECT_BASE: z.string().url().default('http://localhost:4000'),
   WEARABLES_GDPR_RETENTION_DAYS:           z.coerce.number().default(90),
   WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS:  z.coerce.number().default(90),
+  // W5/W6 — escalation SMS recipient for critical alerts (no physicians table, so
+  // alerts route to a configured on-call number), Garmin webhook HMAC key, and the
+  // public portal base the OAuth callback redirects back to.
+  WEARABLES_ALERT_SMS_TO: z.string().default(''),
+  GARMIN_WEBHOOK_KEY:     z.string().default(''),
+  WEB_PORTAL_BASE_URL:    z.string().url().default('http://localhost:3000'),
 }).superRefine((data, ctx) => {
   // Wearables live provider requires the feature flag to be on (W6 gate).
   if (data.WEARABLES_PROVIDER === 'live' && !data.WEARABLES_ENABLED) {

@@ -207,9 +207,18 @@ export class WearablesService {
     });
 
     try {
-      const since = device.lastSyncAt ?? new Date(0);
-      const raw = await this.adapter.syncReadings(device, since);
-      const ids = await this.ingestReadings(device, raw);
+      const refreshed = await this.refreshTokenIfNeeded(device);
+      if (!refreshed) {
+        // Token refresh failed — device marked error + notification already raised.
+        const failed = await this.prisma.deviceSyncJob.update({
+          where: { id: job.id },
+          data: { status: 'failed', completedAt: new Date(), error: 'token_refresh_failed' },
+        });
+        return this.mapJob(failed);
+      }
+      const since = refreshed.lastSyncAt ?? new Date(0);
+      const raw = await this.adapter.syncReadings(refreshed, since);
+      const ids = await this.ingestReadings(refreshed, raw);
       const done = await this.prisma.deviceSyncJob.update({
         where: { id: job.id },
         data: { status: 'completed', completedAt: new Date(), readingsFetched: ids.length },
@@ -391,18 +400,30 @@ export class WearablesService {
    */
   async assertPhysicianAccess(physicianId: string, patientToken: string): Promise<void> {
     const since = new Date(Date.now() - this.accessWindowDays * 86_400_000);
-    const session = await this.prisma.telehealthSession.findFirst({
-      where: { physicianId, patientToken, scheduledAt: { gte: since } },
-      select: { id: true },
-    });
-    if (!session) {
+
+    // Condition B — active/recent telehealth relationship within the window.
+    // (Condition A — recent appointment — N/A: bookings carry no physician_id in
+    //  this schema; see CLAUDE.md. Condition C — explicit named-access consent.)
+    const [session, namedAccess] = await Promise.all([
+      this.prisma.telehealthSession.findFirst({
+        where: { physicianId, patientToken, scheduledAt: { gte: since } },
+        select: { id: true },
+      }),
+      this.prisma.deviceConsent.findFirst({
+        where: { patientToken, consentType: 'physician_named_access', granted: true, withdrawnAt: null },
+        select: { id: true },
+      }),
+    ]);
+    if (!session && !namedAccess) {
       throw new ForbiddenException('PHYSICIAN_ACCESS_DENIED');
     }
-    const consent = await this.prisma.deviceConsent.findFirst({
+
+    // Patient must also share with physicians at all.
+    const sharing = await this.prisma.deviceConsent.findFirst({
       where: { patientToken, consentType: 'physician_sharing', granted: true, withdrawnAt: null },
       select: { id: true },
     });
-    if (!consent) {
+    if (!sharing) {
       throw new ForbiddenException('PHYSICIAN_ACCESS_DENIED');
     }
   }
@@ -458,6 +479,49 @@ export class WearablesService {
       });
     }
     return { queued: readings.length };
+  }
+
+  // ── OAuth token rotation (W6) ─────────────────────────────────────────────
+  /**
+   * Refresh the device's OAuth token if it expires within 5 minutes. Returns the
+   * (possibly updated) device, or null if refresh failed — in which case the
+   * device is marked error and a portal notification is raised (no SMS, to avoid
+   * leaking device existence to a phone). Old plaintext token is dropped after
+   * re-encryption.
+   */
+  async refreshTokenIfNeeded(device: WearableDevice): Promise<WearableDevice | null> {
+    const soon = Date.now() + 5 * 60_000;
+    if (!device.oauthExpiresAt || device.oauthExpiresAt.getTime() > soon) {
+      return device; // nothing to do (or mock-seeded device with no token)
+    }
+    try {
+      const token = await this.adapter.refreshToken(device);
+      const updated = await this.prisma.wearableDevice.update({
+        where: { id: device.id },
+        data: {
+          oauthAccessTokenEnc: token.accessToken ? this.crypto.encryptToken(token.accessToken) : null,
+          oauthRefreshTokenEnc: token.refreshToken ? this.crypto.encryptToken(token.refreshToken) : null,
+          oauthExpiresAt: token.expiresAt ?? null,
+        },
+      });
+      return updated;
+    } catch (err) {
+      this.logger.warn(`Token refresh failed for device ${device.id}: ${String(err)}`);
+      await this.prisma.wearableDevice.update({
+        where: { id: device.id },
+        data: { syncStatus: 'error', syncError: 'token_refresh_failed' },
+      });
+      await this.prisma.portalNotification.create({
+        data: {
+          patientToken: device.patientToken,
+          type: 'wearable_token_expired',
+          severity: 'info',
+          deviceId: device.id,
+          message: 'Wearable re-authentication required',
+        },
+      });
+      return null;
+    }
   }
 
   // ── Admin/test reading injection — drives alert E2E (WR-W5-1 / WR-3) ──────
@@ -589,6 +653,7 @@ export class WearablesService {
       shareWithPhysician: device.shareWithPhysician,
       partnershipRequired: device.partnershipRequired,
       lastSyncAt: device.lastSyncAt ? device.lastSyncAt.toISOString() : null,
+      connectedAt: device.connectedAt.toISOString(),
       readings: readings.map((r) => this.formatReading(r)),
     };
   }

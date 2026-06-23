@@ -262,3 +262,41 @@ All items below must be confirmed before enabling telehealth for any clinic in p
 10. Notify the subject in writing that erasure was completed, listing what was erased and what was retained with legal basis.
 
 **Contact for escalation:** sekretariat@nemocnicasnina.sk / IT department
+
+---
+
+## L9 — Wearables compliance gate (all required before WEARABLES_ENABLED=true in prod)
+
+### Legal & GDPR
+- [ ] `docs/DPIA_WEARABLES_ADDENDUM.md` reviewed and signed by DPO
+- [ ] `RETENTION.md` wearables section: DPO sign-off
+- [ ] DPAs in place with each live platform vendor (Abbott, Dexcom, Withings, Fitbit, Garmin, Samsung)
+- [ ] SCCs confirmed for Fitbit (Google/US), Garmin (US), Samsung (US)
+- [ ] Huawei live sync BLOCKED until EU Adequacy Decision or SCCs signed
+- [ ] Partnership agreements signed: Medtronic, Abbott Cardiac, Boston Scientific
+      (MyCareLink / Merlin.net / Latitude NXT remain `partnership_required=true` until signed)
+
+### Security
+- [ ] axe: zero critical/serious on `/[lang]/portal/wearables`, `/sublas`, `/admin/patients/.../wearables`
+- [ ] OAuth CSRF: forged/reused/expired/wrong-platform state → 400 (WR-7 green)
+- [ ] Readings isolation: Patient A cannot read Patient B's data (WR-5 green; ConsentGuard 403)
+- [ ] Token rotation: expiring token refreshed; failure creates a portal notification (no SMS)
+- [ ] Webhook signature validation: Garmin tampered body → 401; rate-limit → 429
+- [ ] Physician scope: expired/absent relationship → 403 PHYSICIAN_ACCESS_DENIED (WR-8 green)
+
+### Testing
+- [ ] WR-1 … WR-9 green in CI (all branches)
+- [ ] Unit tests green: platform-catalog, wearables.service, alert.service, fhir-export.consumer,
+      physician-access, oauth-state, webhook-signature, token-rotation
+
+### iOS companion app (Apple Health dependency)
+- [ ] Apple Health adapter returns `IOS_APP_REQUIRED` until the app is published
+- [ ] iOS app published before Apple Health live sync enabled
+- [ ] APPLE_HEALTH_BUNDLE_ID + APPLE_TEAM_ID set in production .env
+
+### Final config
+- [ ] WEARABLES_ENABLED=true in production .env
+- [ ] WEARABLES_PROVIDER=live in production .env (config validator rejects `live` while disabled)
+- [ ] WEARABLES_TOKEN_KEY: 64-char hex, rotated from dev key, stored in vault
+- [ ] WEARABLES_OAUTH_REDIRECT_BASE + WEB_PORTAL_BASE_URL: production domains
+- [ ] WEARABLES_ALERT_SMS_TO: on-call escalation number set; GARMIN_WEBHOOK_KEY set

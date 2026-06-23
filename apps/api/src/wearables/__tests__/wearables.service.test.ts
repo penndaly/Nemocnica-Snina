@@ -34,7 +34,7 @@ function makeService(provider = 'mock') {
     withdrawConsent: jest.fn().mockResolvedValue(undefined),
   } as never;
   const crypto = { encryptToken: jest.fn((s: string) => `enc:${s}`) } as never;
-  const oauthState = new OAuthStateService();
+  const oauthState = new OAuthStateService({ get: () => '0'.repeat(64) } as never);
   const cfg = {
     get: jest.fn((k: string) =>
       k === 'WEARABLES_PROVIDER' ? provider : k === 'WEARABLES_OAUTH_REDIRECT_BASE' ? 'http://localhost:4000' : undefined,

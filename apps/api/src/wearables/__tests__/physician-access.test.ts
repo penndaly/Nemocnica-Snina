@@ -2,11 +2,17 @@ import { ForbiddenException } from '@nestjs/common';
 import { WearablesService } from '../wearables.service';
 import { OAuthStateService } from '../oauth-state.service';
 
-function makeService(opts: { session?: unknown; consent?: unknown } = {}) {
+function makeService(opts: { session?: unknown; consent?: unknown; namedAccess?: unknown } = {}) {
   const upsert = jest.fn().mockResolvedValue({});
+  const sharing = 'consent' in opts ? opts.consent : { id: 'c1' };
+  const named = 'namedAccess' in opts ? opts.namedAccess : null;
   const prisma = {
     telehealthSession: { findFirst: jest.fn().mockResolvedValue(opts.session === undefined ? null : opts.session) },
-    deviceConsent: { findFirst: jest.fn().mockResolvedValue('consent' in opts ? opts.consent : { id: 'c1' }) },
+    deviceConsent: {
+      findFirst: jest.fn().mockImplementation((args: { where?: { consentType?: string } }) =>
+        Promise.resolve(args?.where?.consentType === 'physician_named_access' ? named : sharing),
+      ),
+    },
     deviceAlertThreshold: { upsert },
     wearableDevice: { findMany: jest.fn().mockResolvedValue([]) },
     portalNotification: { findMany: jest.fn().mockResolvedValue([]) },
@@ -16,7 +22,7 @@ function makeService(opts: { session?: unknown; consent?: unknown } = {}) {
   const cfg = { get: jest.fn((k: string) => (k === 'WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS' ? '90' : undefined)) } as never;
   const alerts = {} as never;
   const queue = { publish: jest.fn() } as never;
-  const svc = new WearablesService(prisma, audit, noop, noop, new OAuthStateService(), cfg, alerts, queue, noop);
+  const svc = new WearablesService(prisma, audit, noop, noop, new OAuthStateService({ get: () => '0'.repeat(64) } as never), cfg, alerts, queue, noop);
   return { svc, upsert };
 }
 

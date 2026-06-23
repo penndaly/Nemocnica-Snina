@@ -45,6 +45,14 @@ export class MockAdapter implements WearablePlatformAdapter {
     ]);
   }
 
+  refreshToken(_device: WearableDevice): Promise<TokenSet> {
+    return Promise.resolve({
+      accessToken: 'mock-access-token-refreshed',
+      refreshToken: 'mock-refresh-token-refreshed',
+      expiresAt: new Date(Date.now() + 3600_000),
+    });
+  }
+
   revokeToken(_device: WearableDevice): Promise<void> {
     return Promise.resolve();
   }

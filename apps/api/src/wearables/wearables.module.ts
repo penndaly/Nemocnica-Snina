@@ -5,6 +5,7 @@ import { AuditModule } from '../audit/audit.module';
 import { HisModule } from '../his/his.module';
 import { SmsModule } from '../sms/sms.module';
 import { WearablesController } from './wearables.controller';
+import { GarminWebhookController } from './webhooks/garmin.webhook.controller';
 import { WearablesService } from './wearables.service';
 import { ConsentService } from './consent.service';
 import { ConsentGuard } from './consent.guard';
@@ -31,7 +32,7 @@ import { WEARABLE_ADAPTER } from './platform-adapter.interface';
  */
 @Module({
   imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule],
-  controllers: [WearablesController],
+  controllers: [WearablesController, GarminWebhookController],
   providers: [
     WearablesService,
     ConsentService,

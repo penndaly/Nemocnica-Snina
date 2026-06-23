@@ -34,6 +34,8 @@ export interface WearablePlatformAdapter {
   exchangeCode(code: string, state: string): Promise<TokenSet>;
   /** Fetch readings recorded since `from`. */
   syncReadings(device: WearableDevice, from: Date): Promise<RawReading[]>;
+  /** Exchange the stored refresh token for a fresh token set (W6 rotation). */
+  refreshToken(device: WearableDevice): Promise<TokenSet>;
   /** Revoke the provider token (called on consent withdrawal / disconnect). */
   revokeToken(device: WearableDevice): Promise<void>;
 }

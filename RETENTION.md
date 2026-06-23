@@ -83,3 +83,21 @@ Sprint S6 addition. **Critical distinction (Act 576/2004 §24):** the rows in ou
 | PDF file purge | `telehealth_summaries` | Delete `pdf_path` files where `his_synced = true` AND session `ended_at < NOW() - INTERVAL '7 days'` | Daily | Skip all rows where `his_synced = false`; raise alert on any skipped rows |
 | Session/intake sweep | `telehealth_sessions`, `telehealth_intake` | Anonymise/delete where `created_at < NOW() - INTERVAL '5 years'` | Monthly | Abort and alert if linked `telehealth_summaries.his_synced = false` |
 | Summary sweep | `telehealth_summaries` | Delete where `created_at < NOW() - INTERVAL '5 years'` AND `his_synced = true` | Monthly | Never touch rows where `his_synced = false` |
+
+## Wearables & remote monitoring data retention (Sprint W6)
+
+| Data | Retention | Basis |
+|---|---|---|
+| `device_readings` (no consent) | 0 days | Deleted on consent withdrawal |
+| `device_readings` (consented, not synced) | 90 days | `WEARABLES_GDPR_RETENTION_DAYS` |
+| `device_readings` (FHIR synced) | Indefinite | Authoritative copy held in HIS — never deleted here |
+| `device_consent` audit rows | 5 years | GDPR accountability (Art. 5(2)) |
+| OAuth tokens (AES-256-GCM encrypted) | Until revoked | Technical necessity |
+| Alert SMS content | 30 days | Incident investigation |
+
+### Wearables scheduled jobs
+
+| Job | Table | Action | Frequency | Guard |
+|---|---|---|---|---|
+| Reading purge | `device_readings` | Soft-delete (`superseded_by = self`) where consent withdrawn AND `fhir_observation_id IS NULL` AND `created_at < NOW() - INTERVAL 'WEARABLES_GDPR_RETENTION_DAYS days'` | Daily | NEVER touch rows where `fhir_observation_id` is set |
+| Consent re-confirmation | `wearable_devices` | Flag devices with `connected_at < NOW() - 12 months` and no consent event in 12 months; suspend (`sync_status = 'pending'`) after a 30-day grace | Daily | Notification raised before suspension |

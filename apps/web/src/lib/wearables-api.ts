@@ -32,6 +32,7 @@ export interface WearableDevice {
   shareWithPhysician: boolean;
   partnershipRequired: boolean;
   lastSyncAt: string | null;
+  connectedAt: string;
   readings: WearableReading[];
 }
 

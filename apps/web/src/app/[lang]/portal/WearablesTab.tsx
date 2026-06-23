@@ -205,6 +205,17 @@ export function WearablesTab({ locale }: Props) {
         </div>
       </div>
 
+      {devices.some((d) => Date.now() - new Date(d.connectedAt).getTime() > 365 * 24 * 3600_000) && (
+        <div role="region" aria-label={t.manageConsent} className="card card-pad" style={{ background: 'var(--amber-50)', borderColor: 'var(--amber)', marginBottom: '1rem' }}>
+          <p style={{ margin: 0, fontSize: '.86rem' }}>
+            {sk
+              ? 'Skontrolujte nastavenia súhlasu pre nositeľné zariadenia — naposledy ste ich kontrolovali pred viac ako 12 mesiacmi.'
+              : 'Please review your wearable consent settings — last reviewed over 12 months ago.'}
+          </p>
+          <a href={`/${locale}/portal/wearables/sublas`} className="btn btn-ghost btn-sm" style={{ marginTop: '.5rem', display: 'inline-flex' }}>{t.manageConsent}</a>
+        </div>
+      )}
+
       {criticalRecent && (
         <div role="alert" className="card card-pad" style={{ background: 'var(--red-50)', borderColor: 'var(--red)', marginBottom: '1rem', display: 'flex', gap: '.5rem', alignItems: 'center' }}>
           <span role="img" aria-label={flagText('critical', locale)} style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--red)' }} />
