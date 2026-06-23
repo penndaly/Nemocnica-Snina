@@ -21,6 +21,18 @@ const TOKEN_KEY = 'ns_admin_token';
 const ROLE_KEY = 'ns_admin_role';
 const EMAIL_KEY = 'ns_admin_email';
 
+/** Decode the `role` claim from a staff JWT (base64url payload). UI gating only. */
+function roleFromJwt(token: string): string {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return '';
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return (JSON.parse(json) as { role?: string }).role ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({ token: null, role: null, email: null });
   const router = useRouter();
@@ -33,25 +45,54 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     if (token) setState({ token, role, email });
   }, []);
 
+  // Staff login is two-step (A2/A3): password → MFA challenge → TOTP → staff JWT
+  // (aud=ns.staff, STAFF_JWT_SECRET). Replaces the legacy /api/auth/login so the
+  // Super Admin Users UI authenticates with a real staff token in production
+  // (no CMS_AUTH_BYPASS). The role is read from the access token's `role` claim.
   const login = useCallback(async (email: string, password: string, totp: string) => {
     const apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-    const res = await fetch(`${apiUrl}/api/auth/login`, {
+
+    const step1 = await fetch(`${apiUrl}/api/auth/staff/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, totpCode: totp }),
+      body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as { message?: string };
+    if (!step1.ok) {
+      const body = await step1.json().catch(() => ({})) as { message?: string };
       throw new Error(body.message ?? 'Login failed');
     }
-    const data = await res.json() as { accessToken: string; role: string };
-    sessionStorage.setItem(TOKEN_KEY, data.accessToken);
-    sessionStorage.setItem(ROLE_KEY, data.role);
+    const { mfaToken } = await step1.json() as { mfaToken: string };
+
+    const step2 = await fetch(`${apiUrl}/api/auth/staff/verify-mfa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // accept the HttpOnly refresh cookie
+      body: JSON.stringify({ mfaToken, totpCode: totp }),
+    });
+    if (!step2.ok) {
+      const body = await step2.json().catch(() => ({})) as { message?: string };
+      throw new Error(body.message ?? 'Invalid MFA code');
+    }
+    const { accessToken } = await step2.json() as { accessToken: string };
+    const role = roleFromJwt(accessToken);
+
+    sessionStorage.setItem(TOKEN_KEY, accessToken);
+    sessionStorage.setItem(ROLE_KEY, role);
     sessionStorage.setItem(EMAIL_KEY, email);
-    setState({ token: data.accessToken, role: data.role, email });
+    setState({ token: accessToken, role, email });
   }, []);
 
   const logout = useCallback(() => {
+    const apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    if (token) {
+      // Best-effort server-side revocation (blacklists the jti).
+      void fetch(`${apiUrl}/api/auth/staff/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      }).catch(() => {});
+    }
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(ROLE_KEY);
     sessionStorage.removeItem(EMAIL_KEY);

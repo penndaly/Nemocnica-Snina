@@ -37,6 +37,7 @@ const PROD_BASE = {
   STAFF_JWT_SECRET: 'b'.repeat(64),
   STAFF_MFA_SECRET: 'c'.repeat(64),
   STAFF_TOTP_KEY: 'd'.repeat(64),
+  GDPR_EXPORT_KEY: 'e'.repeat(64),
 };
 
 interface ParseResult {

@@ -139,6 +139,21 @@ export const ConfigSchema = z.object({
   STAFF_EMAIL_RATE_LIMIT:  z.coerce.number().default(3),           // invite/reset emails per address per hour
   ADMIN_URL:               z.string().url().default('http://localhost:3000/admin'),
 
+  // ── GDPR data tools & translation (Sprint A3) ────────
+  // Export bundles are AES-256-GCM encrypted; stored via the local adapter in
+  // dev/CI and an EU S3 bucket in prod (GDPR_STORAGE_PROVIDER). Key is 32-byte
+  // hex; the all-zero dev default is rejected in production.
+  GDPR_STORAGE_PROVIDER:       z.enum(['local', 's3']).default('local'),
+  GDPR_EXPORT_BUCKET:          z.string().default('ns-gdpr-exports-eu'),
+  GDPR_EXPORT_KEY:             hexSecret('GDPR_EXPORT_KEY', 32),
+  GDPR_EXPORT_URL_TTL_SECONDS: z.coerce.number().default(300),
+  GDPR_EXPORT_RETENTION_HOURS: z.coerce.number().default(1),
+  // Machine translation: mock in dev/CI, DeepL in prod.
+  MT_PROVIDER:        z.enum(['mock', 'deepl']).default('mock'),
+  MT_DEEPL_API_KEY:   z.string().default(''),
+  MT_TARGET_LOCALES:  z.string().default('cs,pl,hu,uk'),
+  MT_GLOSSARY_ID:     z.string().default(''),
+
   // ── HIS / FHIR ──────────────────────────────────────
   RABBITMQ_URL:       tlsRabbit,
   HIS_FHIR_BASE_URL:  z.string().url().default('https://his-sandbox.local/fhir'),

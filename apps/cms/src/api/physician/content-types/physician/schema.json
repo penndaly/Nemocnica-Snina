@@ -6,15 +6,49 @@
     "pluralName": "physicians",
     "displayName": "Physician"
   },
-  "options": { "draftAndPublish": true },
-  "pluginsOptions": { "i18n": { "localized": true } },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginsOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
-    "name":      { "type": "string",  "required": true },
-    "slug":      { "type": "uid",     "targetField": "name" },
-    "role":      { "type": "string",  "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "bio":       { "type": "text",    "pluginsOptions": { "i18n": { "localized": true } } },
-    "accepting": { "type": "boolean", "required": true, "default": false },
-    "langs":     { "type": "json",    "description": "Array of language codes, e.g. [\"SK\",\"EN\"]" },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "role": {
+      "type": "string",
+      "required": true,
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "bio": {
+      "type": "text",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "accepting": {
+      "type": "boolean",
+      "required": true,
+      "default": false
+    },
+    "langs": {
+      "type": "json",
+      "description": "Array of language codes, e.g. [\"SK\",\"EN\"]"
+    },
     "department": {
       "type": "relation",
       "relation": "manyToOne",
@@ -33,12 +67,56 @@
       "target": "api::facility.facility",
       "inversedBy": "physicians"
     },
-    "avatar": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
+    "avatar": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
     "telehealth": {
       "type": "boolean",
       "required": true,
       "default": false,
       "description": "Physician participates in telehealth video consultations"
+    },
+    "review_status": {
+      "type": "enumeration",
+      "enum": [
+        "needs_review",
+        "approved",
+        "rejected"
+      ],
+      "default": "needs_review",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "reviewed_by": {
+      "type": "string",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "reviewed_at": {
+      "type": "datetime",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "review_notes": {
+      "type": "text",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     }
   }
 }

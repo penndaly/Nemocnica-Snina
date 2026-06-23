@@ -1,16 +1,109 @@
 {
   "kind": "collectionType",
   "collectionName": "services",
-  "info": { "singularName": "service", "pluralName": "services", "displayName": "Service" },
-  "options": { "draftAndPublish": true },
-  "pluginsOptions": { "i18n": { "localized": true } },
+  "info": {
+    "singularName": "service",
+    "pluralName": "services",
+    "displayName": "Service"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginsOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
-    "name":     { "type": "string",      "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "slug":     { "type": "uid",         "targetField": "name" },
-    "desc":     { "type": "text",        "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "icon":     { "type": "enumeration", "enum": ["scalpel","heart","activity","stethoscope","pulse","shield","flask","scan","pill"], "required": true },
-    "department": { "type": "relation",  "relation": "manyToOne", "target": "api::department.department" },
-    "clinic":     { "type": "relation",  "relation": "manyToOne", "target": "api::clinic.clinic" },
-    "facility":   { "type": "relation",  "relation": "manyToOne", "target": "api::facility.facility" }
+    "name": {
+      "type": "string",
+      "required": true,
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "desc": {
+      "type": "text",
+      "required": true,
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "icon": {
+      "type": "enumeration",
+      "enum": [
+        "scalpel",
+        "heart",
+        "activity",
+        "stethoscope",
+        "pulse",
+        "shield",
+        "flask",
+        "scan",
+        "pill"
+      ],
+      "required": true
+    },
+    "department": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::department.department"
+    },
+    "clinic": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::clinic.clinic"
+    },
+    "facility": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::facility.facility"
+    },
+    "review_status": {
+      "type": "enumeration",
+      "enum": [
+        "needs_review",
+        "approved",
+        "rejected"
+      ],
+      "default": "needs_review",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "reviewed_by": {
+      "type": "string",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "reviewed_at": {
+      "type": "datetime",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "review_notes": {
+      "type": "text",
+      "pluginsOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    }
   }
 }

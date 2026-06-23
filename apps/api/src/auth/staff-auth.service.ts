@@ -265,6 +265,14 @@ export class StaffAuthService {
     return { recoveryCodes: plainCodes };
   }
 
+  /** Step-up MFA re-verify for a sensitive action (e.g. GDPR erasure). */
+  async verifyTotpForStaff(staffId: string, totpCode: string): Promise<boolean> {
+    const account = await this.prisma.staffAccount.findUnique({ where: { id: staffId } });
+    if (!account?.totpEnabled || !account.totpSecret) return false;
+    const secret = this.totpCrypto.decrypt(account.totpSecret);
+    return (otplib as any).authenticator.verify({ token: totpCode, secret }) as boolean;
+  }
+
   // ── Token helpers (invite / reset / mfa_reset) ────────────
 
   /** Create a single-use token; returns the RAW token (only the hash is stored). */

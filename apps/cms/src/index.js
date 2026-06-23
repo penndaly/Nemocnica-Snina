@@ -3,30 +3,31 @@
 /**
  * Strapi bootstrap/register hooks.
  *
- * Two concerns:
  *   1. Ensure all 6 i18n locales exist on first boot.
- *   2. Clinical-content human-review gate (Task 7, Punchlist):
- *      When content in machine-translated locales (cs/pl/hu/uk) is created or
- *      updated via the API (e.g. import-seed or scripts/translate-messages.ts),
- *      force it into `draft` status and add a "needs-review" marker so editors
- *      cannot accidentally publish untreated machine translations.
- *      SK and EN are human-authored sources and are NOT gated.
+ *   2. Translation review gate (Sprint A3): machine-translated clinical content
+ *      (cs/pl/hu/uk) is ALWAYS a draft. Publishing such an entry is BLOCKED
+ *      unless review_status === 'approved'. SK/EN are human-authored and pass
+ *      through. No bypass. Mirrors apps/api/src/cms/translation-gate.ts.
  */
 
-// Locales that receive machine translations and require human review before publish.
+const { errors } = require('@strapi/utils');
+const { ApplicationError } = errors;
+
 const MACHINE_LOCALES = new Set(['cs', 'pl', 'hu', 'uk']);
 
-// Collections that contain clinical or safety-critical content.
-const CLINICAL_COLLECTIONS = new Set([
+// All clinical / safety-critical collections.
+const CLINICAL_COLLECTIONS = [
   'api::department.department',
   'api::clinic.clinic',
+  'api::physician.physician',
   'api::service.service',
+  'api::facility.facility',
   'api::news-item.news-item',
-]);
+];
 
 module.exports = {
-  async register({ strapi }) {
-    // Register happens before bootstrap.
+  async register() {
+    // no-op
   },
 
   async bootstrap({ strapi }) {
@@ -40,51 +41,50 @@ module.exports = {
       }
     }
 
-    // ── 2. Clinical-content review gate ───────────────────────
-    // Register lifecycle hooks on clinical content types.
-    // When a machine-translated locale entry is created or updated:
-    //   - Set publishedAt = null  (forces draft)
-    //   - Set needsReview = true  (custom metadata field — add to schema if needed)
-    //
-    // The hook fires for ALL write paths: REST API, GraphQL, admin panel import.
-    // An editor must manually review and click "Publish" in the Strapi admin UI.
-
+    // ── 2. Translation review publish gate ─────────────────────
     for (const uid of CLINICAL_COLLECTIONS) {
       strapi.db.lifecycles.subscribe({
         models: [uid],
 
+        // New machine-translated entries start as drafts.
         async beforeCreate(event) {
           const locale = event.params?.data?.locale;
-          if (!locale || !MACHINE_LOCALES.has(locale)) return;
-
-          // Force draft status
-          event.params.data.publishedAt = null;
-
-          strapi.log.info(
-            `[review-gate] ${uid} create in locale "${locale}" → forced to draft (needs human review)`,
-          );
+          if (locale && MACHINE_LOCALES.has(locale)) {
+            event.params.data.publishedAt = null;
+            if (!event.params.data.review_status) event.params.data.review_status = 'needs_review';
+          }
         },
 
+        // Block publish of a machine-translated entry unless review_status='approved'.
         async beforeUpdate(event) {
-          const locale = event.params?.data?.locale;
-          if (!locale || !MACHINE_LOCALES.has(locale)) return;
+          const data = event.params?.data ?? {};
+          const publishing = data.publishedAt != null; // setting publishedAt = publish action
+          if (!publishing) return;
 
-          // If an editor explicitly sets publishedAt (i.e. clicks "Publish"),
-          // we allow it — the hook guards API-level bulk writes, not human-clicked publishes.
-          // Detect bulk import by checking if the update origin is not the admin panel.
-          const isAdminAction = event.state?.requestContext?.isAdminRequestContext ?? false;
-          if (isAdminAction) return; // human admin action — allow
+          // Resolve locale + review_status (prefer incoming data, else the stored row).
+          let locale = data.locale;
+          let reviewStatus = data.review_status;
+          if (locale === undefined || reviewStatus === undefined) {
+            const id = event.params?.where?.id;
+            if (id != null) {
+              const current = await strapi.db.query(uid).findOne({ where: { id }, select: ['locale', 'review_status'] });
+              if (locale === undefined) locale = current?.locale;
+              if (reviewStatus === undefined) reviewStatus = current?.review_status;
+            }
+          }
 
-          // API or script write — force back to draft
-          event.params.data.publishedAt = null;
-
-          strapi.log.info(
-            `[review-gate] ${uid} update in locale "${locale}" → kept as draft (needs human review)`,
-          );
+          if (!locale || !MACHINE_LOCALES.has(locale)) return; // SK/EN/non-localized: pass
+          if (reviewStatus !== 'approved') {
+            throw new ApplicationError(
+              `Cannot publish ${locale} content without review_status='approved'. ` +
+                `A reviewer must approve this translation before it can go live ` +
+                `(GDPR/clinical-safety requirement — see Admin User Guide §13/§14).`,
+            );
+          }
         },
       });
     }
 
-    strapi.log.info('Clinical-content human-review gate registered for locales: cs, pl, hu, uk');
+    strapi.log.info('Translation review publish gate registered (cs/pl/hu/uk) on 6 clinical collections.');
   },
 };
