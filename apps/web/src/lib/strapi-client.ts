@@ -11,7 +11,7 @@
  */
 import type {
   Department, Clinic, Physician, Service, Facility, NewsItem,
-  Disclosure, Hospital, Pages, Locale,
+  Disclosure, Hospital, Pages, Locale, PhysicianProfile,
 } from '@ns/types';
 
 const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
@@ -123,10 +123,12 @@ export async function getPhysicians(locale: Locale = 'sk'): Promise<Physician[]>
   return data.map((e) => {
     const a = e['attributes'] as Record<string, unknown> ?? e;
     return {
-      id: String(e['id'] ?? (a['slug'] as string)),
+      // slug-first so id is the canonical profile-URL key (matches the seed
+      // and /api/public); Strapi's numeric id is only a fallback.
+      id: String((a['slug'] as string) ?? e['id']),
       name: String(a['name'] ?? ''),
-      role: { sk: String(a['role'] ?? '') },
-      bio:  { sk: String(a['bio'] ?? '') },
+      role: { [locale]: String(a['role'] ?? '') },
+      bio:  { [locale]: String(a['bio'] ?? '') },
       accepting: Boolean(a['accepting']),
       langs: (a['langs'] as string[]) ?? [],
       dept:    (a['department'] as Record<string, unknown>)?.['data'] ? String(((a['department'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
@@ -134,6 +136,83 @@ export async function getPhysicians(locale: Locale = 'sk'): Promise<Physician[]>
       facility:(a['facility'] as Record<string, unknown>)?.['data'] ? String(((a['facility'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
     };
   });
+}
+
+/**
+ * Full physician profile by slug for /[lang]/lekari/[slug].
+ * Bilingual values are keyed by the requested locale (not hardcoded), so the
+ * profile resolves correctly for every locale once cs/pl/hu/uk land. Returns
+ * null when no published physician matches.
+ */
+export async function getPhysicianBySlug(slug: string, locale: Locale = 'sk'): Promise<PhysicianProfile | null> {
+  if (USE_FALLBACK) {
+    const { SEED } = await import('./seed');
+    const p = SEED.physicians.find((x) => x.id === slug);
+    if (!p) return null;
+    const dept = p.dept ? SEED.departments.find((d) => d.id === p.dept) ?? null : null;
+    const clinic = p.clinic ? SEED.clinics.find((c) => c.id === p.clinic) ?? null : null;
+    const facility = p.facility ? SEED.facilities.find((f) => f.id === p.facility) ?? null : null;
+    return {
+      slug: p.id,
+      name: p.name,
+      role: p.role,
+      bio: p.bio,
+      accepting: p.accepting,
+      langs: p.langs,
+      photo: null,
+      dept: dept ? { slug: dept.id, short: dept.short } : null,
+      clinic: clinic ? { slug: clinic.id, name: clinic.name, status: clinic.status, bookable: clinic.bookable } : null,
+      facility: facility ? { slug: facility.id, name: facility.name } : null,
+    };
+  }
+
+  const data = await strapiGet<Record<string, unknown>[]>(`physicians?filters[slug][$eq]=${slug}`, locale);
+  const entry = data[0];
+  if (!entry) return null;
+  const a = (entry['attributes'] as Record<string, unknown>) ?? entry;
+  const relAttrs = (v: unknown): Record<string, unknown> | null => {
+    const d = (v as Record<string, unknown>)?.['data'] as Record<string, unknown> | undefined;
+    if (!d) return null;
+    return { id: d['id'], ...((d['attributes'] as Record<string, unknown>) ?? {}) };
+  };
+  const dept = relAttrs(a['department']);
+  const clinic = relAttrs(a['clinic']);
+  const facility = relAttrs(a['facility']);
+  const avatar = relAttrs(a['avatar']);
+  return {
+    slug: String(a['slug'] ?? slug),
+    name: String(a['name'] ?? ''),
+    role: { [locale]: String(a['role'] ?? '') },
+    bio: { [locale]: String(a['bio'] ?? '') },
+    accepting: Boolean(a['accepting']),
+    langs: (a['langs'] as string[]) ?? [],
+    photo: avatar ? { url: String(avatar['url'] ?? '') } : null,
+    dept: dept ? { slug: String(dept['slug'] ?? ''), short: { [locale]: String(dept['short'] ?? '') } } : null,
+    clinic: clinic
+      ? {
+          slug: String(clinic['slug'] ?? ''),
+          name: { [locale]: String(clinic['name'] ?? '') },
+          status: (clinic['status'] as Clinic['status']) ?? 'open',
+          bookable: Boolean(clinic['bookable']),
+        }
+      : null,
+    facility: facility ? { slug: String(facility['slug'] ?? ''), name: { [locale]: String(facility['name'] ?? '') } } : null,
+  };
+}
+
+/** All published physician slugs — for generateStaticParams. */
+export async function getPhysicianSlugs(): Promise<string[]> {
+  if (USE_FALLBACK) {
+    const { SEED } = await import('./seed');
+    return SEED.physicians.map((p) => p.id);
+  }
+  const data = await strapiGet<Record<string, unknown>[]>('physicians?fields[0]=slug&sort=name', 'sk');
+  return data
+    .map((e) => {
+      const a = (e['attributes'] as Record<string, unknown>) ?? e;
+      return String(a['slug'] ?? '');
+    })
+    .filter(Boolean);
 }
 
 export async function getNewsItems(locale: Locale = 'sk'): Promise<NewsItem[]> {

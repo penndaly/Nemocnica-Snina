@@ -68,7 +68,25 @@ export const ConfigSchema = z.object({
   // ── Strapi CMS ──────────────────────────────────────
   STRAPI_URL:         z.string().url().default('http://localhost:1337'),
   STRAPI_API_TOKEN:   z.string().min(1).default('dev-token'),
+  // Admin API token used by the CMS write API for privileged operations
+  // (media upload, creating i18n localizations). Falls back to STRAPI_API_TOKEN.
+  STRAPI_ADMIN_URL:   z.string().url().default('http://localhost:1337'),
+  STRAPI_ADMIN_TOKEN: z.string().default(''),
   CONTENT_REVALIDATE_SECONDS: z.coerce.number().default(60),
+  // CMS write API auth. CMS_AUTH_BYPASS=true skips the staff-JWT guard on
+  // /api/cms/** so the prototype admin can be wired in dev/CI without a real
+  // OIDC+MFA session. It MUST be false in production (Decree 179/2020 — MFA
+  // for all staff accounts; no bypass).
+  // Parsed as a strict env boolean: only the literal "true" enables the bypass
+  // (matches CmsAuthGuard's runtime parsing). z.coerce.boolean() is wrong here —
+  // it coerces the string "false" to `true`, which would make CMS_AUTH_BYPASS=false
+  // unconfigurable in production.
+  CMS_AUTH_BYPASS:    z.string().optional().default('false')
+    .transform((v) => v.toLowerCase() === 'true')
+    .refine(
+      (v) => !isProduction || v === false,
+      { message: 'CMS_AUTH_BYPASS must be false in production (no auth bypass for staff CMS routes)' },
+    ),
 
   // ── HIS / FHIR ──────────────────────────────────────
   RABBITMQ_URL:       tlsRabbit,

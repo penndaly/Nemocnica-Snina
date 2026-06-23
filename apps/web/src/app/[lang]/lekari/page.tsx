@@ -131,7 +131,12 @@ export default function PhysiciansPage() {
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '.75rem' }}>
                       <div className="avatar avatar-lg" aria-hidden>{initials}</div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{physician.name}</div>
+                        <Link
+                          href={`/${locale}/lekari/${physician.id}`}
+                          style={{ fontWeight: 700, fontSize: '1.05rem', color: 'inherit', textDecoration: 'none' }}
+                        >
+                          {physician.name}
+                        </Link>
                         <div style={{ fontSize: '.88rem', color: 'var(--ink-2)' }}>
                           {localizeField(physician.role, locale)}
                         </div>

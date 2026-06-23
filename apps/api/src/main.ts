@@ -22,6 +22,17 @@ await app.register(fastifyHelmet as any, {
     contentSecurityPolicy: false,
   });
 
+  // Multipart support for CMS media uploads (POST /api/cms/media). Registered
+  // best-effort: dynamic require keeps the build green if the optional
+  // @fastify/multipart dependency is not installed in a given environment.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const multipart = require('@fastify/multipart');
+    await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
+  } catch {
+    // @fastify/multipart unavailable — /api/cms/media returns 503 until installed.
+  }
+
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

@@ -110,6 +110,24 @@ export interface Physician {
   langs: string[];
 }
 
+/**
+ * Full physician profile for the individual profile page (/[lang]/lekari/[slug]).
+ * Relations are resolved to lightweight refs; `photo` is the uploaded avatar
+ * (null when none). Matches GET /api/public/physicians/:slug.
+ */
+export interface PhysicianProfile {
+  slug: string;
+  name: string;
+  role: Loc;
+  bio: Loc;
+  accepting: boolean;
+  langs: string[];
+  photo: { url: string } | null;
+  dept: { slug: string; short: Loc } | null;
+  clinic: { slug: string; name: Loc; status: ClinicStatus; bookable: boolean } | null;
+  facility: { slug: string; name: Loc } | null;
+}
+
 export type ServiceIcon =
   | 'scalpel'
   | 'heart'
