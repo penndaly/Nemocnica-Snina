@@ -8,6 +8,7 @@ import { WearablesService } from './wearables.service';
 import { ConsentService } from './consent.service';
 import { ConsentGuard } from './consent.guard';
 import { TokenCryptoService } from './token-crypto.service';
+import { OAuthStateService } from './oauth-state.service';
 import { MockAdapter } from './mock.adapter';
 import { WEARABLE_ADAPTER } from './platform-adapter.interface';
 
@@ -26,6 +27,7 @@ import { WEARABLE_ADAPTER } from './platform-adapter.interface';
     ConsentService,
     ConsentGuard,
     TokenCryptoService,
+    OAuthStateService,
     MockAdapter,
     {
       provide: WEARABLE_ADAPTER,

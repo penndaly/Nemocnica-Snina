@@ -10,6 +10,7 @@
  *   • Every grant/withdrawal writes an append-only audit_log entry.
  */
 import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { WEARABLE_ADAPTER, type WearablePlatformAdapter } from './platform-adapter.interface';
@@ -103,6 +104,68 @@ export class ConsentService {
       action: 'wearable_consent_withdrawn',
       resource: 'wearable_device',
       resourceId: deviceId,
+    });
+  }
+
+  /**
+   * Toggle a single optional consent type (physician_sharing | his_export) for a
+   * device. data_storage is required and may only be withdrawn via disconnect —
+   * attempting to set it here is rejected.
+   *
+   *   granted=true  → grant: stamp any prior withdrawn row closed, add a fresh
+   *                   granted row, and (for physician_sharing) flip
+   *                   share_with_physician on the device.
+   *   granted=false → withdraw: stamp withdrawn_at on the open granted rows and
+   *                   (for physician_sharing) clear share_with_physician.
+   *
+   * Every change writes an append-only audit entry.
+   */
+  async setConsent(
+    patientToken: string,
+    deviceId: string,
+    type: 'physician_sharing' | 'his_export',
+    granted: boolean,
+    ipHash: string,
+  ): Promise<void> {
+    const device = await this.prisma.wearableDevice.findFirst({
+      where: { id: deviceId, patientToken },
+    });
+    if (!device) {
+      throw new ForbiddenException({ code: 'WEARABLES_CONSENT_REQUIRED', deviceId });
+    }
+
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
+    if (granted) {
+      ops.push(
+        this.prisma.deviceConsent.create({
+          data: { patientToken, deviceId, consentType: type, granted: true, ipHash },
+        }),
+      );
+    } else {
+      ops.push(
+        this.prisma.deviceConsent.updateMany({
+          where: { deviceId, consentType: type, withdrawnAt: null },
+          data: { withdrawnAt: new Date(), granted: false },
+        }),
+      );
+    }
+    if (type === 'physician_sharing') {
+      ops.push(
+        this.prisma.wearableDevice.update({
+          where: { id: deviceId },
+          data: { shareWithPhysician: granted },
+        }),
+      );
+    }
+    await this.prisma.$transaction(ops);
+
+    await this.audit.log({
+      actorEmail: `patient:${patientToken.slice(0, 8)}`,
+      actorRole: 'patient',
+      action: granted ? 'wearable_consent_granted' : 'wearable_consent_withdrawn',
+      resource: 'wearable_device',
+      resourceId: deviceId,
+      detail: { consentType: type },
     });
   }
 

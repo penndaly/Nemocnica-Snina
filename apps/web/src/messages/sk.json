@@ -223,5 +223,29 @@
       "genericBody": "Nastala neočakávaná chyba. Kontaktujte ambulanciu.",
       "bookAgain": "Objednať nový termín"
     }
+  },
+  "wearables": {
+    "title": "Nositeľné zariadenia",
+    "optional": "Voliteľné",
+    "connectDevice": "Pripojiť zariadenie",
+    "shareWithPhysician": "Zdieľať s lekárom",
+    "recentReadings": "Posledné merania",
+    "syncNow": "Synchronizovať",
+    "inHis": "V zdravotnom zázname",
+    "medicalTab": "Medicínske",
+    "fitnessTab": "Fitness & Wellness",
+    "privacyNotice": "Správa súhlasov",
+    "partnershipRequired": "Vyžaduje sa dohoda",
+    "consent": {
+      "title": "Správa súhlasov GDPR",
+      "storeReadings": "Ukladanie meraní",
+      "shareWithPhysician": "Zdieľanie s lekárom",
+      "hisExport": "Export do FHIR záznamu",
+      "withdrawAll": "Odvolať všetky súhlasy",
+      "disconnect": "Odpojiť zariadenie",
+      "auditTrail": "Auditný záznam súhlasov",
+      "granted": "Udelené",
+      "withdrawn": "Odvolané"
+    }
   }
 }

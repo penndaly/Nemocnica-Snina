@@ -1,12 +1,17 @@
 /**
- * Wearables REST API — Sprint W1.
+ * Wearables REST API.
  *
- * All patient endpoints are protected by ConsentGuard, which validates the
- * patient session and (for :deviceId routes) enforces 'data_storage' consent.
- * Endpoint bodies are 501 stubs in W1 — the data model, consent engine and
- * config gate are what W1 delivers. Real behaviour lands in W2–W5.
+ * Patient endpoints are protected by ConsentGuard, which validates the patient
+ * session (x-patient-session JWT) and, for :deviceId routes, enforces
+ * 'data_storage' consent. The resolved opaque patient_token is attached to the
+ * request. The physician endpoint uses the staff JWT (AuthGuard('jwt')) — the two
+ * auth schemes are never mixed (see CLAUDE.md conventions).
+ *
+ * Real behaviour wired in Sprint W4 (portal); alerts/FHIR/physician in W5.
  */
 import {
+  BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
@@ -15,21 +20,36 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { createHash } from 'crypto';
 import { ConsentGuard } from './consent.guard';
 import { WearablesService } from './wearables.service';
+import type { ConsentUpdatePayload } from './dto';
 
 interface PatientRequest {
   patientToken?: string;
+  headers?: Record<string, string | string[] | undefined>;
+  ip?: string;
+}
+
+interface RedirectResponse {
+  redirect(url: string): void;
+}
+
+function ipHashOf(req: PatientRequest): string {
+  const fwd = req.headers?.['x-forwarded-for'];
+  const ip = (Array.isArray(fwd) ? fwd[0] : fwd) ?? req.ip ?? 'unknown';
+  return createHash('sha256').update(String(ip)).digest('hex').slice(0, 32);
 }
 
 @Controller('api/wearables')
 export class WearablesController {
   constructor(private readonly wearables: WearablesService) {}
 
-  // GET /api/wearables — patient's connected devices
+  // GET /api/wearables — patient's connected devices + available platforms
   @Get()
   @UseGuards(ConsentGuard)
   list(@Req() req: PatientRequest) {
@@ -45,15 +65,17 @@ export class WearablesController {
 
   // GET /api/wearables/callback/:platform — OAuth redirect (no auth; state-validated)
   @Get('callback/:platform')
-  callback(
+  async callback(
     @Param('platform') platform: string,
     @Query('code') code: string,
     @Query('state') state: string,
+    @Res() res: RedirectResponse,
   ) {
-    return this.wearables.handleCallback(platform, code, state);
+    const portalUrl = await this.wearables.handleCallback(platform, code, state);
+    res.redirect(portalUrl);
   }
 
-  // DELETE /api/wearables/devices/:deviceId — disconnect device
+  // DELETE /api/wearables/devices/:deviceId — disconnect (withdraw + revoke)
   @Delete('devices/:deviceId')
   @UseGuards(ConsentGuard)
   disconnect(@Param('deviceId') deviceId: string, @Req() req: PatientRequest) {
@@ -63,22 +85,73 @@ export class WearablesController {
   // GET /api/wearables/devices/:deviceId/readings
   @Get('devices/:deviceId/readings')
   @UseGuards(ConsentGuard)
-  readings(@Param('deviceId') deviceId: string, @Req() req: PatientRequest) {
-    return this.wearables.getReadings(req.patientToken ?? '', deviceId);
+  readings(
+    @Param('deviceId') deviceId: string,
+    @Query('limit') limit: string | undefined,
+    @Req() req: PatientRequest,
+  ) {
+    const n = limit ? Number.parseInt(limit, 10) : 50;
+    return this.wearables.getReadings(req.patientToken ?? '', deviceId, Number.isNaN(n) ? 50 : n);
   }
 
-  // POST /api/wearables/devices/:deviceId/sync — enqueue a sync job
+  // POST /api/wearables/devices/:deviceId/sync — enqueue + run a sync job
   @Post('devices/:deviceId/sync')
   @UseGuards(ConsentGuard)
   sync(@Param('deviceId') deviceId: string, @Req() req: PatientRequest) {
     return this.wearables.sync(req.patientToken ?? '', deviceId);
   }
 
-  // PUT /api/wearables/devices/:deviceId/consent — update sharing consent
+  // GET /api/wearables/devices/:deviceId/sync/:jobId — poll a sync job
+  @Get('devices/:deviceId/sync/:jobId')
+  @UseGuards(ConsentGuard)
+  syncJob(
+    @Param('deviceId') deviceId: string,
+    @Param('jobId') jobId: string,
+    @Req() req: PatientRequest,
+  ) {
+    return this.wearables.getSyncJob(req.patientToken ?? '', deviceId, jobId);
+  }
+
+  // PUT /api/wearables/devices/:deviceId/consent — toggle physician_sharing | his_export
   @Put('devices/:deviceId/consent')
   @UseGuards(ConsentGuard)
-  updateConsent(@Param('deviceId') deviceId: string, @Req() req: PatientRequest) {
-    return this.wearables.updateConsent(req.patientToken ?? '', deviceId);
+  updateConsent(
+    @Param('deviceId') deviceId: string,
+    @Body() body: ConsentUpdatePayload,
+    @Req() req: PatientRequest,
+  ) {
+    if (!body || (body.type !== 'physician_sharing' && body.type !== 'his_export')) {
+      throw new BadRequestException('INVALID_CONSENT_TYPE');
+    }
+    return this.wearables.updateConsent(req.patientToken ?? '', deviceId, body, ipHashOf(req));
+  }
+
+  // GET /api/wearables/devices/:deviceId/consents — current consent state
+  @Get('devices/:deviceId/consents')
+  @UseGuards(ConsentGuard)
+  consents(@Param('deviceId') deviceId: string, @Req() req: PatientRequest) {
+    return this.wearables.getConsent(req.patientToken ?? '', deviceId);
+  }
+
+  // GET /api/wearables/consents/audit?deviceId= — append-only consent audit trail
+  @Get('consents/audit')
+  @UseGuards(ConsentGuard)
+  consentAudit(@Query('deviceId') deviceId: string | undefined, @Req() req: PatientRequest) {
+    return this.wearables.getConsentAuditLog(req.patientToken ?? '', deviceId || undefined);
+  }
+
+  // POST /api/wearables/:platform/upload — manual upload (AliveCor PDF / Xiaomi zip)
+  @Post(':platform/upload')
+  @UseGuards(ConsentGuard)
+  upload(
+    @Param('platform') platform: string,
+    @Body() body: { filename?: string; size?: number } | undefined,
+    @Req() req: PatientRequest,
+  ) {
+    return this.wearables.upload(req.patientToken ?? '', platform, {
+      originalname: body?.filename,
+      size: body?.size,
+    });
   }
 
   // GET /api/wearables/physician/:patientToken — clinician summary (staff JWT)

@@ -223,5 +223,29 @@
       "genericBody": "An unexpected error occurred. Please contact the clinic.",
       "bookAgain": "Book a new appointment"
     }
+  },
+  "wearables": {
+    "title": "Wearables & Devices",
+    "optional": "Optional",
+    "connectDevice": "Connect device",
+    "shareWithPhysician": "Share with physician",
+    "recentReadings": "Recent readings",
+    "syncNow": "Sync now",
+    "inHis": "In health record",
+    "medicalTab": "Medical",
+    "fitnessTab": "Fitness & Wellness",
+    "privacyNotice": "Manage consent",
+    "partnershipRequired": "Agreement required",
+    "consent": {
+      "title": "GDPR Consent management",
+      "storeReadings": "Store readings",
+      "shareWithPhysician": "Share with physician",
+      "hisExport": "Export to FHIR record",
+      "withdrawAll": "Withdraw all consent",
+      "disconnect": "Disconnect device",
+      "auditTrail": "Consent audit trail",
+      "granted": "Granted",
+      "withdrawn": "Withdrawn"
+    }
   }
 }

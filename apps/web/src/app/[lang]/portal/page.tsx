@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, CreditCard, X, ShieldCheck, Video } from 'lucide-react';
+import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, CreditCard, X, ShieldCheck, Video, Watch } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { WearablesTab } from './WearablesTab';
 import type { SupportedLocale } from '@/i18n/config';
 import type { FhirCondition, FhirMedicationRequest, FhirObservation, FhirAppointment } from '@ns/types';
 
-type Tab = 'overview' | 'teleconsult' | 'records' | 'prescriptions' | 'labs' | 'payments';
+type Tab = 'overview' | 'teleconsult' | 'records' | 'prescriptions' | 'labs' | 'payments' | 'wearables';
 const FLAG_COLORS = { high: 'var(--amber)', low: 'var(--red)', normal: 'var(--green)', critical: 'var(--red)' };
 
 // ── Teleconsult types ─────────────────────────────────────────
@@ -354,7 +355,7 @@ export default function PortalPage() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [records, setRecords]   = useState<PatientRecords | null>(null);
   const [receipts, setReceipts] = useState<PaymentReceiptRow[]>([]);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<Tab>((searchParams.get('tab') as Tab | null) ?? 'overview');
 
   // Teleconsult state
   const [tcUpcoming, setTcUpcoming] = useState<TeleconsultSession[]>([]);
@@ -454,6 +455,7 @@ export default function PortalPage() {
     { key: 'prescriptions', label: t('portal.prescriptions'),      icon: <Pill         size={16} /> },
     { key: 'labs',          label: t('portal.labs'),               icon: <FlaskConical size={16} /> },
     { key: 'payments',      label: locale === 'sk' ? 'Platby' : 'Payments', icon: <CreditCard size={16} /> },
+    { key: 'wearables',     label: locale === 'sk' ? 'Zariadenia' : 'Wearables', icon: <Watch size={16} /> },
   ];
 
   return (
@@ -920,6 +922,8 @@ export default function PortalPage() {
                   )}
                 </div>
               )}
+
+              {tab === 'wearables' && <WearablesTab locale={locale} />}
             </div>
           </div>
         </div>
