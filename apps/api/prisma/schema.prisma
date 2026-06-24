@@ -290,6 +290,7 @@ enum WearableSyncStatus {
   error
   pending
   revoked
+  suspended
 
   @@map("wearable_sync_status")
 }
@@ -321,6 +322,9 @@ model WearableDevice {
   partnershipRequired  Boolean             @default(false) @map("partnership_required")
   connectedAt          DateTime            @default(now()) @map("connected_at") @db.Timestamptz
   disconnectedAt       DateTime?           @map("disconnected_at") @db.Timestamptz
+  // WL9 consent-grace: last time the patient reviewed/re-confirmed consent. Null
+  // means never reviewed — the suspendStaleConsent cron pauses sync after 13 months.
+  lastConsentReview    DateTime?           @map("last_consent_review") @db.Timestamptz
   createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz
 

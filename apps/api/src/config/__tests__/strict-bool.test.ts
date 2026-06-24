@@ -123,3 +123,22 @@ describe('production safety gates still hold with real booleans', () => {
     expect(r.failedPaths).toContain('MFA_REQUIRED');
   });
 });
+
+describe('WL9 Part D — Huawei adequacy gate', () => {
+  it('rejects HUAWEI_HEALTH_ENABLED=true when WEARABLES_ENABLED=true', () => {
+    const r = parse('production', { ...PROD_BASE, WEARABLES_ENABLED: 'true', HUAWEI_HEALTH_ENABLED: 'true' });
+    expect(r.ok).toBe(false);
+    expect(r.failedPaths).toContain('HUAWEI_HEALTH_ENABLED');
+  });
+
+  it('accepts HUAWEI_HEALTH_ENABLED=false with wearables enabled', () => {
+    const r = parse('production', { ...PROD_BASE, WEARABLES_ENABLED: 'true', HUAWEI_HEALTH_ENABLED: 'false' });
+    expect(r.ok).toBe(true);
+    expect(r.data!.HUAWEI_HEALTH_ENABLED).toBe(false);
+  });
+
+  it('ignores HUAWEI_HEALTH_ENABLED=true while wearables stay disabled (no live data path)', () => {
+    const r = parse('production', { ...PROD_BASE, WEARABLES_ENABLED: 'false', HUAWEI_HEALTH_ENABLED: 'true' });
+    expect(r.ok).toBe(true);
+  });
+});

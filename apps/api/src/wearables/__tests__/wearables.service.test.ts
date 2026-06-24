@@ -1,6 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WearablesService } from '../wearables.service';
 import { OAuthStateService } from '../oauth-state.service';
+import { TokenCryptoService } from '../token-crypto.service';
+import { InMemoryWearablesKv } from '../wearables-redis.service';
 
 function makeService(provider = 'mock') {
   const prisma = {
@@ -34,7 +36,8 @@ function makeService(provider = 'mock') {
     withdrawConsent: jest.fn().mockResolvedValue(undefined),
   } as never;
   const crypto = { encryptToken: jest.fn((s: string) => `enc:${s}`) } as never;
-  const oauthState = new OAuthStateService({ get: () => '0'.repeat(64) } as never);
+  const keyCfg = { get: () => '0'.repeat(64) } as never;
+  const oauthState = new OAuthStateService(keyCfg, new TokenCryptoService(keyCfg), new InMemoryWearablesKv());
   const cfg = {
     get: jest.fn((k: string) =>
       k === 'WEARABLES_PROVIDER' ? provider : k === 'WEARABLES_OAUTH_REDIRECT_BASE' ? 'http://localhost:4000' : undefined,
@@ -57,10 +60,10 @@ function makeService(provider = 'mock') {
 }
 
 describe('WearablesService.connect (platform gating)', () => {
-  it('rejects partnership-gated platforms with partnership_required', () => {
+  it('rejects partnership-gated platforms with partnership_required', async () => {
     const { svc } = makeService();
     try {
-      svc.connect('tok-1', 'medtronic_cardiac');
+      await svc.connect('tok-1', 'medtronic_cardiac');
       fail('should have thrown');
     } catch (e) {
       expect(e).toBeInstanceOf(BadRequestException);
@@ -68,36 +71,36 @@ describe('WearablesService.connect (platform gating)', () => {
     }
   });
 
-  it('rejects manual-upload-only platforms', () => {
+  it('rejects manual-upload-only platforms', async () => {
     const { svc } = makeService();
-    expect(() => svc.connect('tok-1', 'alivecor')).toThrow(BadRequestException);
+    await expect(svc.connect('tok-1', 'alivecor')).rejects.toThrow(BadRequestException);
   });
 
-  it('rejects Apple Health (iOS app required)', () => {
+  it('rejects Apple Health (iOS app required)', async () => {
     const { svc } = makeService();
     try {
-      svc.connect('tok-1', 'apple_health');
+      await svc.connect('tok-1', 'apple_health');
       fail('should have thrown');
     } catch (e) {
       expect((e as BadRequestException).getResponse()).toMatchObject({ code: 'IOS_APP_REQUIRED' });
     }
   });
 
-  it('rejects unknown platforms', () => {
+  it('rejects unknown platforms', async () => {
     const { svc } = makeService();
-    expect(() => svc.connect('tok-1', 'nokia_3310')).toThrow(NotFoundException);
+    await expect(svc.connect('tok-1', 'nokia_3310')).rejects.toThrow(NotFoundException);
   });
 
-  it('returns a mock callback authUrl for a standard platform in mock mode', () => {
+  it('returns a mock callback authUrl for a standard platform in mock mode', async () => {
     const { svc } = makeService('mock');
-    const { authUrl } = svc.connect('tok-1', 'fitbit');
+    const { authUrl } = await svc.connect('tok-1', 'fitbit');
     expect(authUrl).toContain('/api/wearables/callback/fitbit');
     expect(authUrl).toContain('state=');
   });
 
-  it('uses the live adapter authUrl when provider=live', () => {
+  it('uses the live adapter authUrl when provider=live', async () => {
     const { svc } = makeService('live');
-    const { authUrl } = svc.connect('tok-1', 'fitbit');
+    const { authUrl } = await svc.connect('tok-1', 'fitbit');
     expect(authUrl).toBe('https://live.example/oauth');
   });
 });

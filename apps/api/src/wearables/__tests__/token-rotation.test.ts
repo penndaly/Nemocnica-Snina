@@ -1,5 +1,10 @@
 import { WearablesService } from '../wearables.service';
 import { OAuthStateService } from '../oauth-state.service';
+import { TokenCryptoService } from '../token-crypto.service';
+import { InMemoryWearablesKv } from '../wearables-redis.service';
+
+// OAuth state is unused by these tests — a minimal valid instance satisfies DI.
+const keyCfg = { get: () => '0'.repeat(64) } as never;
 
 function makeService(refresh: { ok: boolean }) {
   const update = jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'd1', patientToken: 'tok', ...data }));
@@ -16,7 +21,8 @@ function makeService(refresh: { ok: boolean }) {
       : jest.fn().mockRejectedValue(new Error('refresh denied')),
   } as never;
   const audit = { log: jest.fn() } as never;
-  const svc = new WearablesService(prisma, audit, {} as never, crypto, new OAuthStateService(cfg), cfg, {} as never, { publish: jest.fn() } as never, adapter);
+  const oauthState = new OAuthStateService(keyCfg, new TokenCryptoService(keyCfg), new InMemoryWearablesKv());
+  const svc = new WearablesService(prisma, audit, {} as never, crypto, oauthState, cfg, {} as never, { publish: jest.fn() } as never, adapter);
   return { svc, update, notify, crypto };
 }
 

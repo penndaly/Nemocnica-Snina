@@ -21,7 +21,7 @@ export interface WearableDeviceDto {
   model: string;
   category: 'medical' | 'consumer';
   deviceType: string;
-  status: 'ok' | 'error' | 'pending' | 'revoked';
+  status: 'ok' | 'error' | 'pending' | 'revoked' | 'suspended';
   shareWithPhysician: boolean;
   partnershipRequired: boolean;
   lastSyncAt: string | null;

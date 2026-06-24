@@ -106,7 +106,7 @@ export class WearablesService {
   }
 
   // ── POST /api/wearables/connect/:platform ─────────────────────────────────
-  connect(patientToken: string, platform: string): ConnectResultDto {
+  async connect(patientToken: string, platform: string): Promise<ConnectResultDto> {
     const entry = getPlatformEntry(platform);
     if (!entry) throw new NotFoundException('UNKNOWN_PLATFORM');
     if (entry.partnershipRequired) {
@@ -119,7 +119,8 @@ export class WearablesService {
       throw new BadRequestIosApp(platform);
     }
 
-    const state = this.oauthState.generateState(patientToken, platform);
+    // Redis-backed one-time state (WL9 Part A) — throws 503 if Redis is down.
+    const state = await this.oauthState.generateState(patientToken, platform);
     const authUrl = this.isMock
       ? `${this.redirectBase}/api/wearables/callback/${platform}?code=mock-code&state=${encodeURIComponent(state)}`
       : this.adapter.getAuthUrl(patientToken, state);
@@ -129,7 +130,7 @@ export class WearablesService {
   // ── GET /api/wearables/callback/:platform ─────────────────────────────────
   /** Returns the absolute portal URL to redirect the browser back to. */
   async handleCallback(platform: string, code: string, state: string): Promise<string> {
-    const { patientToken } = this.oauthState.validateState(state, platform);
+    const { patientToken } = await this.oauthState.validateState(state, platform);
     const entry = getPlatformEntry(platform);
     if (!entry) throw new NotFoundException('UNKNOWN_PLATFORM');
 

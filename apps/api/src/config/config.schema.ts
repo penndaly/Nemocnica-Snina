@@ -253,6 +253,11 @@ export const ConfigSchema = z.object({
   WEARABLES_ALERT_SMS_TO: z.string().default(''),
   GARMIN_WEBHOOK_KEY:     z.string().default(''),
   WEB_PORTAL_BASE_URL:    z.string().url().default('http://localhost:3000'),
+
+  // Huawei Health is blocked until an EU adequacy decision for China is adopted
+  // (no Standard Contractual Clauses cover it yet). WL9 Part D: the validator
+  // refuses to let wearables go live with Huawei enabled. See DPIA_WEARABLES_ADDENDUM.md.
+  HUAWEI_HEALTH_ENABLED: strictBool(false),
 }).superRefine((data, ctx) => {
   // Wearables live provider requires the feature flag to be on (W6 gate).
   if (data.WEARABLES_PROVIDER === 'live' && !data.WEARABLES_ENABLED) {
@@ -261,6 +266,16 @@ export const ConfigSchema = z.object({
       path: ['WEARABLES_PROVIDER'],
       message:
         'WEARABLES_PROVIDER=live requires WEARABLES_ENABLED=true (Sprint W6 compliance gate)',
+    });
+  }
+
+  // WL9 Part D — Huawei blocked until the EU adequacy decision for China.
+  if (data.WEARABLES_ENABLED && data.HUAWEI_HEALTH_ENABLED) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['HUAWEI_HEALTH_ENABLED'],
+      message:
+        'HUAWEI_HEALTH_ENABLED must be false or unset until the EU adequacy decision for China is adopted. See DPIA_WEARABLES_ADDENDUM.md.',
     });
   }
 

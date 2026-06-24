@@ -1,82 +1,93 @@
 /**
- * OAuth state issuer for the wearables connect flow — CSRF protection (W6-hardened).
+ * OAuth state issuer for the wearables connect flow — CSRF protection,
+ * Redis-backed (Sprint WL9 Part A).
  *
- * A state is `nonce.hmac` where hmac = HMAC-SHA256(nonce:patientToken:platform,
- * WEARABLES_TOKEN_KEY). The signature makes a state unforgeable without the
- * server key; an authoritative one-time, TTL'd, platform-bound entry is also held
- * so replay/expiry/platform-mismatch are rejected. (Production scale-out: back the
- * entry store with Redis — the generate/validate contract is unchanged.)
+ * A state token is `nonce.hmac`, where hmac = HMAC-SHA256(nonce, WEARABLES_TOKEN_KEY).
+ * The authoritative entry — `{ patientToken, platform, createdAt }`, AES-256-GCM
+ * encrypted — is held in Redis under the nonce with a 15-minute TTL and is
+ * deleted atomically on first consume (GETDEL). That makes the token:
+ *   • unforgeable  — the HMAC needs the server key;
+ *   • one-time     — consume deletes the entry across ALL API instances;
+ *   • expiring     — Redis TTL;
+ *   • platform-bound — the encrypted payload pins the platform.
+ *
+ * No in-memory fallback: if Redis is unavailable, putState/takeState throw 503
+ * (WearablesRedisService). One-time-use cannot be guaranteed in-process across a
+ * multi-instance deployment, so we fail closed rather than silently weaken CSRF.
  *
  * validateState rejects with 400:
- *   • forged / unknown / tampered state → INVALID_OAUTH_STATE
- *   • reused (already consumed) state   → INVALID_OAUTH_STATE
- *   • expired state                     → INVALID_OAUTH_STATE
- *   • state issued for another platform → STATE_PLATFORM_MISMATCH
+ *   • forged / unknown / tampered / reused / expired → INVALID_OAUTH_STATE
+ *   • state issued for another platform              → STATE_PLATFORM_MISMATCH
  */
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual, randomBytes } from 'crypto';
+import { TokenCryptoService } from './token-crypto.service';
+import { WEARABLES_KV, type WearablesKv } from './wearables-redis.service';
 
-interface StateEntry {
+const TTL_SEC = 15 * 60; // 15 minutes
+
+interface StatePayload {
   patientToken: string;
   platform: string;
-  expiresAt: number;
+  createdAt: number;
 }
-
-const TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 @Injectable()
 export class OAuthStateService {
-  private readonly store = new Map<string, StateEntry>();
   private readonly key: string;
 
-  constructor(cfg: ConfigService) {
+  constructor(
+    cfg: ConfigService,
+    private readonly crypto: TokenCryptoService,
+    @Inject(WEARABLES_KV) private readonly kv: WearablesKv,
+  ) {
     this.key = cfg.get<string>('WEARABLES_TOKEN_KEY') ?? '0'.repeat(64);
   }
 
-  private sign(nonce: string, patientToken: string, platform: string): string {
-    return createHmac('sha256', this.key).update(`${nonce}:${patientToken}:${platform}`).digest('hex');
+  private sign(nonce: string): string {
+    return createHmac('sha256', this.key).update(nonce).digest('hex');
   }
 
-  generateState(patientToken: string, platform: string): string {
-    this.sweep();
+  /** Issue a signed, one-time, TTL'd state bound to this patient + platform. */
+  async generateState(patientToken: string, platform: string): Promise<string> {
     const nonce = randomBytes(16).toString('hex');
-    const state = `${nonce}.${this.sign(nonce, patientToken, platform)}`;
-    this.store.set(state, { patientToken, platform, expiresAt: Date.now() + TTL_MS });
-    return state;
+    const payload: StatePayload = { patientToken, platform, createdAt: Date.now() };
+    // Throws 503 if Redis is unavailable — fail closed (no in-memory fallback).
+    await this.kv.putState(nonce, this.crypto.encryptToken(JSON.stringify(payload)), TTL_SEC);
+    return `${nonce}.${this.sign(nonce)}`;
   }
 
-  /** One-time use: a valid state is consumed (deleted) on validation. */
-  validateState(state: string, expectedPlatform: string): { patientToken: string } {
-    const entry = this.store.get(state);
-    if (!entry || entry.expiresAt < Date.now()) {
-      this.store.delete(state);
+  /** One-time use: a valid state is consumed (atomically deleted) on validation. */
+  async validateState(state: string, expectedPlatform: string): Promise<{ patientToken: string }> {
+    const [nonce, sig] = (state ?? '').split('.');
+    // Verify the HMAC before touching Redis — cheap rejection of obvious forgeries.
+    if (!nonce || !sig || !this.safeEqual(sig, this.sign(nonce))) {
       throw new BadRequestException('INVALID_OAUTH_STATE');
     }
-    if (entry.platform !== expectedPlatform) {
+
+    const enc = await this.kv.takeState(nonce); // atomic GETDEL → one-time use
+    if (!enc) {
+      // Missing / expired / already consumed.
+      throw new BadRequestException('INVALID_OAUTH_STATE');
+    }
+
+    let payload: StatePayload;
+    try {
+      payload = JSON.parse(this.crypto.decryptToken(enc)) as StatePayload;
+    } catch {
+      throw new BadRequestException('INVALID_OAUTH_STATE');
+    }
+
+    if (payload.platform !== expectedPlatform) {
       throw new BadRequestException('STATE_PLATFORM_MISMATCH');
     }
-    // Re-verify the signature (defence in depth — guards a tampered store key).
-    const [nonce, sig] = state.split('.');
-    const expected = this.sign(nonce ?? '', entry.patientToken, entry.platform);
-    if (!sig || !this.safeEqual(sig, expected)) {
-      this.store.delete(state);
-      throw new BadRequestException('INVALID_OAUTH_STATE');
-    }
-    this.store.delete(state);
-    return { patientToken: entry.patientToken };
+    return { patientToken: payload.patientToken };
   }
 
   private safeEqual(a: string, b: string): boolean {
     const ab = Buffer.from(a);
     const bb = Buffer.from(b);
     return ab.length === bb.length && timingSafeEqual(ab, bb);
-  }
-
-  private sweep(): void {
-    const now = Date.now();
-    for (const [k, v] of this.store) {
-      if (v.expiresAt < now) this.store.delete(k);
-    }
   }
 }

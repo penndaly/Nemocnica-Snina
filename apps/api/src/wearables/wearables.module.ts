@@ -17,6 +17,9 @@ import { WearablesAlertConsumer } from './alert.consumer';
 import { WearablesFhirConsumer } from './fhir-export.consumer';
 import { MockAdapter } from './mock.adapter';
 import { WEARABLE_ADAPTER } from './platform-adapter.interface';
+import { WEARABLES_KV, WearablesRedisService } from './wearables-redis.service';
+import { WearablesDigestService } from './wearables-digest.service';
+import { WearablesCronService } from './wearables-cron.service';
 
 /**
  * Wearables & Remote Monitoring module.
@@ -25,6 +28,8 @@ import { WEARABLE_ADAPTER } from './platform-adapter.interface';
  * W4 — portal wiring (devices, readings, consent, connect/sync flows).
  * W5 — alert engine + RabbitMQ publisher/consumers (ns.wearables) + FHIR export
  *      + physician view/thresholds + portal notifications.
+ * WL9 — Redis-backed OAuth state (one-time-use), batch-alert digest windows,
+ *       retention/consent-grace crons. WEARABLES_KV → WearablesRedisService.
  *
  * HisModule is imported for RabbitMQ/FHIR config parity; SmsModule for the
  * critical-alert escalation SMS. The active adapter is selected by
@@ -43,6 +48,12 @@ import { WEARABLE_ADAPTER } from './platform-adapter.interface';
     WearablesQueueService,
     WearablesAlertConsumer,
     WearablesFhirConsumer,
+    WearablesRedisService,
+    // OAuth state + digest depend on the WearablesKv interface; Redis backs it
+    // in the wired app (never an in-memory fallback — see WearablesRedisService).
+    { provide: WEARABLES_KV, useExisting: WearablesRedisService },
+    WearablesDigestService,
+    WearablesCronService,
     MockAdapter,
     {
       provide: WEARABLE_ADAPTER,

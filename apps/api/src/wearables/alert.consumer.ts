@@ -5,8 +5,9 @@
  *     telehealth relationship), send an escalation SMS (device label + token
  *     prefix only — never RC or full token), create a critical portal
  *     notification, and audit. SMS fires within 60 s of the reading insertion.
- *   • wearables.alert.batch → create a high/low portal notification + audit.
- *     (True 15-min digest aggregation needs a scheduler — tracked for ops.)
+ *   • wearables.alert.batch → create a high/low portal notification + audit,
+ *     and append to the per-physician 15-minute digest window (WL9 Part B); the
+ *     digest itself is flushed by WearablesCronService.
  */
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -15,6 +16,7 @@ import * as amqp from 'amqplib';
 import { AuditService } from '../audit/audit.service';
 import { SmsService } from '../sms/sms.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WearablesDigestService } from './wearables-digest.service';
 import {
   RK_ALERT_BATCH,
   RK_ALERT_CRITICAL,
@@ -52,6 +54,7 @@ export class WearablesAlertConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly audit: AuditService,
     private readonly sms: SmsService,
     private readonly prisma: PrismaService,
+    private readonly digest: WearablesDigestService,
   ) {
     this.escalationPhone = cfg.get<string>('WEARABLES_ALERT_SMS_TO') ?? '';
     this.accessWindowDays = Number(cfg.get<string>('WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS') ?? 90);
@@ -177,5 +180,18 @@ export class WearablesAlertConsumer implements OnModuleInit, OnModuleDestroy {
       resourceId: p.deviceId,
       detail: { metricType: p.metricType, value: p.value, flag: p.flag },
     });
+
+    // WL9 Part B — coalesce into the physician's 15-min digest window (best-effort).
+    if (p.flag === 'high' || p.flag === 'low') {
+      await this.digest.append(physicianId, {
+        patientToken: p.patientToken,
+        deviceId: p.deviceId,
+        deviceLabel: p.deviceLabel,
+        metricType: p.metricType,
+        value: p.value,
+        unit: p.unit,
+        flag: p.flag,
+      });
+    }
   }
 }

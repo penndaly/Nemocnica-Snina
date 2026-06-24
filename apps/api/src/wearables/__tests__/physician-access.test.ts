@@ -1,6 +1,12 @@
 import { ForbiddenException } from '@nestjs/common';
 import { WearablesService } from '../wearables.service';
 import { OAuthStateService } from '../oauth-state.service';
+import { TokenCryptoService } from '../token-crypto.service';
+import { InMemoryWearablesKv } from '../wearables-redis.service';
+
+// OAuth state is unused by these tests — a minimal valid instance satisfies DI.
+const keyCfg = { get: () => '0'.repeat(64) } as never;
+const stubOAuthState = () => new OAuthStateService(keyCfg, new TokenCryptoService(keyCfg), new InMemoryWearablesKv());
 
 function makeService(opts: { session?: unknown; consent?: unknown; namedAccess?: unknown } = {}) {
   const upsert = jest.fn().mockResolvedValue({});
@@ -22,7 +28,7 @@ function makeService(opts: { session?: unknown; consent?: unknown; namedAccess?:
   const cfg = { get: jest.fn((k: string) => (k === 'WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS' ? '90' : undefined)) } as never;
   const alerts = {} as never;
   const queue = { publish: jest.fn() } as never;
-  const svc = new WearablesService(prisma, audit, noop, noop, new OAuthStateService({ get: () => '0'.repeat(64) } as never), cfg, alerts, queue, noop);
+  const svc = new WearablesService(prisma, audit, noop, noop, stubOAuthState(), cfg, alerts, queue, noop);
   return { svc, upsert };
 }
 
