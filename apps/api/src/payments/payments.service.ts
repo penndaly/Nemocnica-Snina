@@ -119,6 +119,7 @@ export class PaymentsService {
     bookingId: string,
     locale: string,
     baseUrl: string,
+    patientToken?: string | null,
   ): Promise<PaymentSession> {
     return this.createSession({
       amount:      this.lsspFee,
@@ -127,7 +128,9 @@ export class PaymentsService {
       locale,
       successUrl:  `${baseUrl}/${locale}/objednanie/platba-ok?booking=${bookingId}`,
       cancelUrl:   `${baseUrl}/${locale}/objednanie/platba-zrusena?booking=${bookingId}`,
-      metadata:    { bookingId },
+      // patientToken (portal eID sub) binds the receipt to its owner when the
+      // payment is created in an authenticated portal session.
+      metadata:    { bookingId, ...(patientToken ? { patientToken } : {}) },
     });
   }
 
@@ -179,6 +182,9 @@ export class PaymentsService {
           id:             randomUUID(),
           transactionRef: event.sessionId,
           bookingId:      event.metadata['bookingId'] ?? null,
+          // Owner captured from the payment session metadata when the patient
+          // was logged into the portal at payment time; null otherwise.
+          patientToken:   event.metadata['patientToken'] ?? null,
           pdfContent: new Uint8Array(pdfContent),
         },
         update: {}, // idempotent — first write wins
@@ -186,9 +192,15 @@ export class PaymentsService {
     }
   }
 
-  async getReceiptPdf(transactionRef: string): Promise<Buffer | null> {
-    const receipt = await this.prisma.paymentReceipt.findUnique({
-      where: { transactionRef },
+  /**
+   * Fetch a receipt PDF, scoped to the requesting patient. A receipt is only
+   * returned to its owner (patientToken === patientSub) — prevents any patient
+   * from downloading another's receipt by transactionRef. Anonymous receipts
+   * (patientToken null) are not portal-downloadable.
+   */
+  async getReceiptPdf(transactionRef: string, patientSub: string): Promise<Buffer | null> {
+    const receipt = await this.prisma.paymentReceipt.findFirst({
+      where: { transactionRef, patientToken: patientSub },
       select: { pdfContent: true },
     });
     if (!receipt?.pdfContent) return null;

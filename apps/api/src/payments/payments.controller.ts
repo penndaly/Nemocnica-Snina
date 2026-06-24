@@ -29,9 +29,23 @@ export class PaymentsController {
   async createLsspSession(
     @Body() body: { bookingId: string; locale: string },
     @Request() req: { headers: { host?: string }; protocol?: string },
+    @Headers('x-patient-session') sessionToken?: string,
   ) {
     const baseUrl = `${req.protocol ?? 'https'}://${req.headers.host ?? 'localhost:3000'}`;
-    return this.payments.createLsspSession(body.bookingId, body.locale ?? 'sk', baseUrl);
+    // If the payer is in an authenticated portal session, bind the receipt to them.
+    const patientToken = await this.tryResolvePatient(sessionToken);
+    return this.payments.createLsspSession(body.bookingId, body.locale ?? 'sk', baseUrl, patientToken);
+  }
+
+  /** Best-effort patient-sub resolution — returns null when no/invalid session. */
+  private async tryResolvePatient(token?: string): Promise<string | null> {
+    if (!token) return null;
+    try {
+      const { payload } = await jose.jwtVerify(token, this.sessionSecret, { audience: 'ns.patient' });
+      return String(payload['sub'] ?? '') || null;
+    } catch {
+      return null;
+    }
   }
 
   @Post('webhook')
@@ -67,7 +81,7 @@ export class PaymentsController {
       throw new UnauthorizedException('Invalid or expired patient session');
     }
 
-    const pdf = await this.payments.getReceiptPdf(transactionRef);
+    const pdf = await this.payments.getReceiptPdf(transactionRef, patientSub);
     if (!pdf) throw new NotFoundException('Receipt not found');
 
     await this.audit.log({

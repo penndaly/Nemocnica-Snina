@@ -283,7 +283,10 @@ export class PortalController {
   ) {
     const patientSub = await this.resolveSession(sessionToken);
 
+    // Scoped to the requesting patient — previously returned the ENTIRE receipts
+    // table to every patient. Anonymous receipts (no patientToken) are excluded.
     const receipts = await this.prisma.paymentReceipt.findMany({
+      where: { patientToken: patientSub },
       orderBy: { createdAt: 'desc' },
       select: { id: true, transactionRef: true, bookingId: true, createdAt: true },
     });

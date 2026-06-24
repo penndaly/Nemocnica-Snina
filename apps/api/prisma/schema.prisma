@@ -441,10 +441,15 @@ model PaymentReceipt {
   id             String   @id @default(uuid())
   transactionRef String   @unique
   bookingId      String?
+  // Owning portal patient (eID sub) when the payment was created in an
+  // authenticated portal session; null for anonymous booking-flow payments.
+  // Portal receipt list/download are filtered by this — no cross-patient access.
+  patientToken   String?  @map("patient_token")
   pdfContent     Bytes?              // inline PDF bytes; generated on payment.completed webhook
   createdAt      DateTime @default(now())
 
   @@index([bookingId])
+  @@index([patientToken])
   @@map("payment_receipts")
 }
 
