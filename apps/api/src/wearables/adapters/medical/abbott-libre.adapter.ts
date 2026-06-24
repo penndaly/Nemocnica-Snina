@@ -84,6 +84,10 @@ export class AbbottLibreAdapter implements WearablePlatformAdapter {
   async syncReadings(device: WearableDevice, _from: Date): Promise<RawReading[]> {
     if (!device.oauthAccessTokenEnc) return [];
     const accessToken = this.crypto.decryptToken(device.oauthAccessTokenEnc);
+    // LIVE-MODE TODO: the LibreLinkUp connection id is provider-specific and is NOT
+    // our device UUID. Before live enablement, resolve it from GET /llu/connections
+    // after token exchange and persist it (needs a schema column). device.id is a
+    // placeholder while WEARABLES_PROVIDER=mock.
     const data = await getJson<{ data?: { graphData?: LibreGraphPoint[] } }>(
       `https://api.libreview.io/llu/connections/${device.id}/graph`,
       accessToken,

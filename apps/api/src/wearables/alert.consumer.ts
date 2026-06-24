@@ -128,7 +128,7 @@ export class WearablesAlertConsumer implements OnModuleInit, OnModuleDestroy {
     if (this.escalationPhone) {
       await this.sms.sendRaw(
         this.escalationPhone,
-        `[Nemocnica Snina] KRITICKÉ: ${p.deviceLabel} — ${metric} ${p.value}${p.unit}. ` +
+        `[Nemocnica Snina] KRITICKÉ: ${p.deviceLabel} — ${metric} ${p.value ?? '—'}${p.unit}. ` +
           `Pacient: ${p.patientToken.slice(0, 8)}…`,
       );
     } else {
@@ -181,17 +181,23 @@ export class WearablesAlertConsumer implements OnModuleInit, OnModuleDestroy {
       detail: { metricType: p.metricType, value: p.value, flag: p.flag },
     });
 
-    // WL9 Part B — coalesce into the physician's 15-min digest window (best-effort).
+    // WL9 Part B — coalesce into the physician's 15-min digest window. Best-effort:
+    // the per-patient notification above is the source of truth, so a digest
+    // failure must never nack/requeue the message (which would duplicate it).
     if (p.flag === 'high' || p.flag === 'low') {
-      await this.digest.append(physicianId, {
-        patientToken: p.patientToken,
-        deviceId: p.deviceId,
-        deviceLabel: p.deviceLabel,
-        metricType: p.metricType,
-        value: p.value,
-        unit: p.unit,
-        flag: p.flag,
-      });
+      try {
+        await this.digest.append(physicianId, {
+          patientToken: p.patientToken,
+          deviceId: p.deviceId,
+          deviceLabel: p.deviceLabel,
+          metricType: p.metricType,
+          value: p.value,
+          unit: p.unit,
+          flag: p.flag,
+        });
+      } catch (err) {
+        this.logger.warn(`Digest append failed (non-fatal): ${String(err)}`);
+      }
     }
   }
 }

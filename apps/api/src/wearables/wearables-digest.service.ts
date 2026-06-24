@@ -27,7 +27,7 @@ import { SmsService } from '../sms/sms.service';
 import { WEARABLES_KV, type WearablesKv } from './wearables-redis.service';
 
 export const DIGEST_WINDOW_MS = 15 * 60 * 1000;
-const DIGEST_TTL_SEC = 20 * 60; // window + 5-minute grace so the sweep never races the TTL
+const DIGEST_GRACE_SEC = 5 * 60; // margin after window close for the sweep to run
 
 export interface DigestAlert {
   patientToken: string;
@@ -77,8 +77,13 @@ export class WearablesDigestService {
       this.logger.warn('Redis unavailable — batch alert not added to digest window');
       return;
     }
-    const member = this.member(physicianId, this.windowFor(Date.now()));
-    await this.kv.digestAppend(member, JSON.stringify(alert), DIGEST_TTL_SEC);
+    const now = Date.now();
+    const window = this.windowFor(now);
+    const member = this.member(physicianId, window);
+    // TTL runs until the window closes + grace, so a late cron tick can never let
+    // the list expire before it is flushed. (Only the first append sets the TTL.)
+    const ttlSec = Math.ceil(((window + 1) * DIGEST_WINDOW_MS - now) / 1000) + DIGEST_GRACE_SEC;
+    await this.kv.digestAppend(member, JSON.stringify(alert), ttlSec);
   }
 
   /**
@@ -121,7 +126,7 @@ export class WearablesDigestService {
 
   private async emit(physicianId: string, window: number, alerts: DigestAlert[]): Promise<void> {
     const lines = alerts
-      .map((a) => `${a.deviceLabel}: ${METRIC_NAMES[a.metricType] ?? a.metricType} ${a.value}${a.unit} (${a.flag})`)
+      .map((a) => `${a.deviceLabel}: ${METRIC_NAMES[a.metricType] ?? a.metricType} ${a.value ?? '—'}${a.unit} (${a.flag})`)
       .slice(0, 10);
     const extra = alerts.length > lines.length ? ` (+${alerts.length - lines.length})` : '';
 

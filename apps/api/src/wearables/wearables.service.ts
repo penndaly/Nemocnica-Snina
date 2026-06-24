@@ -155,7 +155,9 @@ export class WearablesService {
         partnershipRequired: entry.partnershipRequired,
         shareWithPhysician: true,
         syncStatus: 'ok',
-        lastSyncAt: new Date(),
+        // Leave null until the first sync completes — adapters with a per-device
+        // rate-limit guard (e.g. Dexcom) would otherwise skip the initial pull.
+        lastSyncAt: null,
       },
     });
 

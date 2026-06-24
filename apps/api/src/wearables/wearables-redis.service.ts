@@ -123,13 +123,27 @@ export class WearablesRedisService implements WearablesKv, OnModuleDestroy {
   }
 
   async digestDrain(member: string): Promise<string[]> {
-    const c = this.client();
-    const key = DIGEST_PREFIX + member;
-    const items = await c.lrange(key, 0, -1);
-    await c.del(key);
-    await c.srem(DIGEST_PENDING, member);
-    return items;
+    // Atomic read-and-delete (single round trip). With the cron running on every
+    // API instance, two instances can flush the same closed window concurrently;
+    // doing LRANGE+DEL+SREM as separate commands would let both read the list and
+    // emit a digest. The Lua script makes the drain single-winner — the second
+    // caller gets an empty array and skips emit (one digest per window).
+    const items = (await this.client().eval(
+      WearablesRedisService.DRAIN_LUA,
+      2,
+      DIGEST_PREFIX + member,
+      DIGEST_PENDING,
+      member,
+    )) as string[] | null;
+    return items ?? [];
   }
+
+  private static readonly DRAIN_LUA = `
+local items = redis.call('LRANGE', KEYS[1], 0, -1)
+redis.call('DEL', KEYS[1])
+redis.call('SREM', KEYS[2], ARGV[1])
+return items
+`;
 }
 
 /**

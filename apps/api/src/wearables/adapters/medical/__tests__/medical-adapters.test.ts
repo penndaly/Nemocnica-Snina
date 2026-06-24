@@ -69,12 +69,23 @@ describe('W2 medical adapters', () => {
     expect(systolic?.recordedAt.getTime()).toBe(diastolic?.recordedAt.getTime());
   });
 
-  // G6 — Withings weight grams → kg
-  it('G6: Withings normalises weight grams → kg', () => {
+  // G6 — Withings applies the unit exponent (75000 × 10⁻³ = 75 kg)
+  it('G6: Withings scales weight via the unit exponent', () => {
     const w = new WithingsAdapter(cfg(), crypto());
-    const rows = w.mapMeasures([{ date: 1_700_000_000, measures: [{ type: 1, value: 75000 }] }]);
+    const rows = w.mapMeasures([{ date: 1_700_000_000, measures: [{ type: 1, value: 75000, unit: -3 }] }]);
     expect(rows[0].metricType).toBe('29463-7');
     expect(rows[0].valueNumeric).toBe(75.0);
+  });
+
+  // Withings measure-type mapping: 11 = heart pulse, 54 = SpO2 (88 = bone mass, ignored)
+  it('Withings maps meastype 11→heart rate and 54→SpO2, ignoring bone mass (88)', () => {
+    const w = new WithingsAdapter(cfg(), crypto());
+    const rows = w.mapMeasures([
+      { date: 1_700_000_000, measures: [{ type: 11, value: 68 }, { type: 54, value: 97 }, { type: 88, value: 2500, unit: -3 }] },
+    ]);
+    expect(rows.find((r) => r.metricType === '8867-4')?.valueNumeric).toBe(68); // HR
+    expect(rows.find((r) => r.metricType === '59408-5')?.valueNumeric).toBe(97); // SpO2
+    expect(rows).toHaveLength(2); // bone mass dropped
   });
 
   // G7 — Omron one BP response → 3 rows, same recorded_at

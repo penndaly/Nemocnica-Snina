@@ -32,17 +32,20 @@ interface ColumnSpec {
 }
 
 const FILE_SPECS: Record<string, ColumnSpec> = {
+  // recorded_at is pinned to UTC ('…Z') — like every other adapter — so the
+  // value is host-timezone-independent and the (recorded_at, metric_type) dedupe
+  // key is stable across re-imports / DST changes.
   'ACTIVITY_STAGE.csv': {
     metricType: '55423-8', unit: 'steps', sk: 'Kroky', en: 'Steps', valueColumn: 'steps',
-    timestamp: (r) => new Date(`${r.date}T${r.startTime ?? '00:00:00'}`),
+    timestamp: (r) => new Date(`${r.date}T${r.startTime ?? '00:00:00'}Z`),
   },
   'SLEEP_STAGE.csv': {
     metricType: '93832-4', unit: 'min', sk: 'Spánok', en: 'Sleep', valueColumn: 'duration_min',
-    timestamp: (r) => new Date(`${r.date}T${r.startTime ?? '00:00:00'}`),
+    timestamp: (r) => new Date(`${r.date}T${r.startTime ?? '00:00:00'}Z`),
   },
   'HEART_RATE.csv': {
     metricType: '8867-4', unit: 'bpm', sk: 'Tep', en: 'Heart rate', valueColumn: 'heartRate',
-    timestamp: (r) => new Date(`${r.date}T${r.time ?? '00:00:00'}`),
+    timestamp: (r) => new Date(`${r.date}T${r.time ?? '00:00:00'}Z`),
   },
 };
 

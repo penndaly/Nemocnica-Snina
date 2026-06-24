@@ -28,12 +28,14 @@ interface WithingsGroup {
   measures: WithingsMeasure[];
 }
 
+// Withings getmeas meastype → reading. (Per the Withings Measure API:
+// 1=weight, 9=diastolic, 10=systolic, 11=heart pulse, 54=SpO2, 88=bone mass.)
 const MEASTYPE: Record<number, { metricType: string; unit: string; sk: string; en: string }> = {
   1: { metricType: '29463-7', unit: 'kg', sk: 'Hmotnosť', en: 'Weight' },
   9: { metricType: '8462-4', unit: 'mmHg', sk: 'Diastolický TK', en: 'Diastolic BP' },
   10: { metricType: '8480-6', unit: 'mmHg', sk: 'Systolický TK', en: 'Systolic BP' },
-  11: { metricType: '59408-5', unit: '%', sk: 'SpO2', en: 'SpO2' },
-  88: { metricType: '8867-4', unit: 'bpm', sk: 'Tep', en: 'Heart rate' },
+  11: { metricType: '8867-4', unit: 'bpm', sk: 'Tep', en: 'Heart rate' },
+  54: { metricType: '59408-5', unit: '%', sk: 'SpO2', en: 'SpO2' },
 };
 
 @Injectable()
@@ -52,10 +54,9 @@ export class WithingsAdapter implements WearablePlatformAdapter {
   }
 
   private scale(m: WithingsMeasure): number {
+    // Withings encodes the real value as value × 10^unit (e.g. 75000 × 10⁻³ = 75 kg).
     const v = m.value * Math.pow(10, m.unit ?? 0);
-    // Weight is sometimes returned in grams — normalise to kg.
-    if (m.type === 1 && v > 1000) return Math.round((v / 1000) * 100) / 100;
-    return v;
+    return Math.round(v * 100) / 100;
   }
 
   /** Expand getmeas groups to flat readings — BP pair → two rows, same recorded_at. */
@@ -106,7 +107,7 @@ export class WithingsAdapter implements WearablePlatformAdapter {
     const accessToken = this.crypto.decryptToken(device.oauthAccessTokenEnc);
     const res = await postForm<{ body?: { measuregrps?: WithingsGroup[] } }>(MEASURE, {
       access_token: accessToken,
-      meastypes: '1,9,10,11,88',
+      meastypes: '1,9,10,11,54',
       category: '1',
       startdate: String(Math.floor(from.getTime() / 1000)),
     });
