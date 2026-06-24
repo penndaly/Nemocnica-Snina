@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, X, Clock, User, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Check, X, User, RefreshCw } from 'lucide-react';
 import { AdminAuthProvider } from '@/components/admin/AdminAuthContext';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminAuth } from '@/components/admin/AdminAuthContext';

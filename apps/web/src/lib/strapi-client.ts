@@ -11,7 +11,7 @@
  */
 import type {
   Department, Clinic, Physician, Service, Facility, NewsItem,
-  Disclosure, Hospital, Pages, Locale, PhysicianProfile,
+  Disclosure, Hospital, Pages, Locale, PhysicianProfile, Weekday,
 } from '@ns/types';
 
 const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
@@ -25,7 +25,7 @@ async function strapiGet<T>(path: string, locale: Locale = 'sk'): Promise<T> {
   if (USE_FALLBACK) {
     // In local dev without Strapi, return seed data via dynamic import
     const { SEED } = await import('./seed');
-    return (SEED as Record<string, unknown>)[path.split('?')[0]!.split('/').pop()!] as T;
+    return (SEED as unknown as Record<string, unknown>)[path.split('?')[0]!.split('/').pop()!] as T;
   }
 
   const sep = path.includes('?') ? '&' : '?';
@@ -47,7 +47,7 @@ function mapDepartment(entry: Record<string, unknown>): Department {
   const a = entry['attributes'] as Record<string, unknown> ?? entry;
   return {
     id:         String(entry['id'] ?? a['slug']),
-    name:       { sk: String(a['name'] ?? ''), en: String((a['localizations'] as Record<string, unknown>)?.[0]?.['name'] ?? a['name'] ?? '') },
+    name:       { sk: String(a['name'] ?? ''), en: String((a['localizations'] as Array<Record<string, unknown>>)?.[0]?.['name'] ?? a['name'] ?? '') },
     short:      { sk: String(a['short'] ?? ''), en: String(a['short'] ?? '') },
     lead:       String(a['lead'] ?? ''),
     leadRole:   { sk: String(a['leadRole'] ?? ''), en: String(a['leadRole'] ?? '') },
@@ -62,7 +62,7 @@ function mapDepartment(entry: Record<string, unknown>): Department {
     desc:       { sk: String(a['desc'] ?? '') },
     facilities: { sk: (a['facilities'] as string[]) ?? [] },
     visiting:   { sk: String(a['visiting'] ?? '') },
-  };
+  } as Department;
 }
 
 function mapClinic(entry: Record<string, unknown>): Clinic {
@@ -79,7 +79,7 @@ function mapClinic(entry: Record<string, unknown>): Clinic {
     bookable:         Boolean(a['bookable']),
     referral:         Boolean(a['referral']),
     acceptingNew:     Boolean(a['acceptingNew']),
-    bookingDays:      (a['bookingDays'] as number[]) ?? undefined,
+    bookingDays:      (a['bookingDays'] as Weekday[]) ?? undefined,
     bookingWindow:    a['bookingWindow'] ? String(a['bookingWindow']) : undefined,
     schedule:         { sk: (a['schedule'] as string[]) ?? [] },
     bookingRule:      { sk: String(a['bookingRule'] ?? '') },
@@ -88,7 +88,7 @@ function mapClinic(entry: Record<string, unknown>): Clinic {
     telehealth:       a['telehealth'] ? Boolean(a['telehealth']) : undefined,
     telehealthWindow: a['telehealthWindow'] ? String(a['telehealthWindow']) : undefined,
     telehealthRule:   a['telehealthRule'] ? { sk: String(a['telehealthRule']) } : undefined,
-  };
+  } as Clinic;
 }
 
 // ── Public API ────────────────────────────────────────────
@@ -134,7 +134,7 @@ export async function getPhysicians(locale: Locale = 'sk'): Promise<Physician[]>
       dept:    (a['department'] as Record<string, unknown>)?.['data'] ? String(((a['department'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
       clinic:  (a['clinic'] as Record<string, unknown>)?.['data'] ? String(((a['clinic'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
       facility:(a['facility'] as Record<string, unknown>)?.['data'] ? String(((a['facility'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
-    };
+    } as Physician;
   });
 }
 
@@ -244,7 +244,7 @@ export async function getDisclosures(locale: Locale = 'sk'): Promise<Disclosure[
       value:   String(a['value'] ?? ''),
       date:    String(a['date'] ?? ''),
       pdfUrl:  pdf ? String((pdf as Record<string, unknown>)?.['url'] ?? '') : undefined,
-    };
+    } as Disclosure;
   });
 }
 
@@ -261,7 +261,7 @@ export async function getFacilities(locale: Locale = 'sk'): Promise<Facility[]> 
       kind:     { sk: String(a['kind'] ?? '') },
       desc:     { sk: String(a['desc'] ?? '') },
       features: { sk: (a['features'] as string[]) ?? [] },
-    };
+    } as Facility;
   });
 }
 
@@ -278,7 +278,7 @@ export async function getServices(locale: Locale = 'sk'): Promise<Service[]> {
       dept:     (a['department'] as Record<string, unknown>)?.['data'] ? String(((a['department'] as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
       clinic:   (a['clinic']     as Record<string, unknown>)?.['data'] ? String(((a['clinic']     as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
       facility: (a['facility']   as Record<string, unknown>)?.['data'] ? String(((a['facility']   as Record<string, unknown>)['data'] as Record<string, unknown>)?.['id']) : undefined,
-    };
+    } as Service;
   });
 }
 

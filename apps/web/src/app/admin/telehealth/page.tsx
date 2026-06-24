@@ -198,7 +198,7 @@ function ClinicsView({ token }: { token: string }) {
             <span style={{ color: '#c8d5e8', fontWeight: 600, fontSize: '.9rem' }}>{c.name as string}</span>
             <Toggle
               enabled={c.telehealth}
-              loading={saving[String(c.id)]}
+              loading={saving[String(c.id)] ?? false}
               onChange={(v) => void save(c.id, { telehealth: v })}
             />
             <input
@@ -291,7 +291,7 @@ function PhysiciansView({ token }: { token: string }) {
             <span style={{ color: 'rgba(255,255,255,.45)', fontSize: '.85rem' }}>{p.specialty as string}</span>
             <Toggle
               enabled={p.telehealth}
-              loading={saving[String(p.id)]}
+              loading={saving[String(p.id)] ?? false}
               onChange={(v) => void toggle(p.id, v)}
             />
           </div>

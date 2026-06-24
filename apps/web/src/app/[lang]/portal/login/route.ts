@@ -10,7 +10,7 @@ import { randomBytes } from 'crypto';
 import { buildAuthUrl, generateCodeVerifier } from '@/lib/oidc-client';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ lang: string }> },
 ) {
   const { lang } = await params;

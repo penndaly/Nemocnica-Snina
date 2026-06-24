@@ -88,5 +88,5 @@ export async function fetchUserinfo(accessToken: string): Promise<PatientIdentit
   });
   if (!res.ok) throw new Error(`Userinfo failed: ${res.status}`);
   const data = await res.json() as Record<string, unknown>;
-  return { sub: String(data['sub'] ?? ''), name: data['name'] ? String(data['name']) : undefined };
+  return { sub: String(data['sub'] ?? ''), ...(data['name'] ? { name: String(data['name']) } : {}) };
 }

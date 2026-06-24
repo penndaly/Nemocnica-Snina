@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { AdminAuthProvider } from '@/components/admin/AdminAuthContext';
@@ -73,7 +73,6 @@ function subtitleFor(key: string, item: Record<string, unknown>): string {
 
 function CollectionList() {
   const params = useParams();
-  const router = useRouter();
   const collKey = String(params['collection'] ?? '');
   const { data, updateCollection } = useAdminData();
 

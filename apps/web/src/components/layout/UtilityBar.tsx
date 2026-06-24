@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
-import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Phone, PhoneCall } from 'lucide-react';
 import { locales, type SupportedLocale } from '@/i18n/config';

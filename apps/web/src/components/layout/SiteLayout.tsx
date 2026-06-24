@@ -12,7 +12,7 @@ export function SiteLayout({ children, activePath }: SiteLayoutProps) {
   return (
     <>
       <UtilityBar />
-      <SiteHeader activePath={activePath} />
+      <SiteHeader {...(activePath !== undefined ? { activePath } : {})} />
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>

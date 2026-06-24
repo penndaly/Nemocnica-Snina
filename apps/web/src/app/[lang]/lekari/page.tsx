@@ -14,7 +14,7 @@ export default function PhysiciansPage() {
   const locale = useLocale() as SupportedLocale;
 
   const [physicians,  setPhysicians]  = useState<Physician[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departments] = useState<Department[]>([]);
   const [clinics,     setClinics]     = useState<Clinic[]>([]);
   const [query, setQuery] = useState('');
   const [acceptingOnly, setAcceptingOnly] = useState(false);

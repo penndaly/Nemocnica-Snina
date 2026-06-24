@@ -1,11 +1,7 @@
-import { getTranslations } from 'next-intl/server';
-import { Plus, Heart, Activity, Shield, FlaskConical } from 'lucide-react';
+import { Plus, Activity } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
-import type { SupportedLocale } from '@/i18n/config';
 
-export default async function StyleguidePage({ params }: { params: Promise<{ lang: string }> }) {
-  const { lang } = await params;
-  const locale = lang as SupportedLocale;
+export default async function StyleguidePage() {
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <section style={{ marginBottom: '3rem' }}>

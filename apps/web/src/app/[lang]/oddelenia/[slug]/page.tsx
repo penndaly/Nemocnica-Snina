@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { BedDouble, Phone, Mail, Clock, Check } from 'lucide-react';
+import { BedDouble, Phone, Clock, Check } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getDepartments, getDepartmentBySlug, getPhysicians } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';

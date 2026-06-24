@@ -18,23 +18,6 @@ function SingletonEditor() {
   const schema = SINGLETONS[key];
   if (!schema) return <p style={{ color: 'rgba(255,255,255,.5)' }}>Unknown singleton: {key}</p>;
 
-  const sectionStyle: React.CSSProperties = {
-    background: '#1a2533',
-    borderRadius: 12,
-    border: '1px solid rgba(255,255,255,.07)',
-    padding: '1.5rem',
-    marginBottom: '1.2rem',
-  };
-
-  const sectionTitleStyle: React.CSSProperties = {
-    fontFamily: 'Newsreader, serif',
-    color: '#fff',
-    fontSize: '1.15rem',
-    marginBottom: '1.25rem',
-    paddingBottom: '.75rem',
-    borderBottom: '1px solid rgba(255,255,255,.07)',
-  };
-
   if (schema.groups) {
     // Pages-style grouped singleton
     return <GroupedSingletonEditor singletonKey={key} schema={schema} data={data} updateSingleton={updateSingleton} />;
@@ -55,7 +38,7 @@ function FlatSingletonEditor({
   data: Seed;
   updateSingleton: (key: string, value: unknown) => void;
 }) {
-  const current = (data[singletonKey as keyof Seed] ?? {}) as Record<string, unknown>;
+  const current = (data[singletonKey as keyof Seed] ?? {}) as unknown as Record<string, unknown>;
   const [values, setValues] = useState<Record<string, unknown>>({ ...current });
   const [saving, setSaving] = useState(false);
 
@@ -94,7 +77,7 @@ function GroupedSingletonEditor({
   data: Seed;
   updateSingleton: (key: string, value: unknown) => void;
 }) {
-  const current = (data[singletonKey as keyof Seed] ?? {}) as Record<string, Record<string, unknown>>;
+  const current = (data[singletonKey as keyof Seed] ?? {}) as unknown as Record<string, Record<string, unknown>>;
   const [values, setValues] = useState<Record<string, Record<string, unknown>>>(JSON.parse(JSON.stringify(current)));
   const [saving, setSaving] = useState(false);
 

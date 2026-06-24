@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${API_BASE}/api/portal/records`, {
       headers: {
         'x-patient-session': sessionToken,
-        'x-forwarded-for':   req.headers.get('x-forwarded-for') ?? req.ip ?? '',
+        // NextRequest has no `.ip`; the client IP is the first x-forwarded-for hop
+        // set by the trusted reverse proxy. (Do not trust this for security decisions.)
+        'x-forwarded-for':   req.headers.get('x-forwarded-for') ?? '',
         'x-forwarded-email': `portal-proxy`,
       },
       cache: 'no-store', // Patient records must never be cached

@@ -6,7 +6,7 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { StructuredData } from '@/components/StructuredData';
 import { ApsCard } from '@/components/ApsCard';
 import { getDepartments, getPhysicians, getNewsItems, getHospitalInfo, getPageContent } from '@/lib/strapi-client';
-import { localizeField, localizelist } from '@/lib/i18n-utils';
+import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 
 export async function generateMetadata({
@@ -16,7 +16,6 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await params;
   const locale = lang as SupportedLocale;
-  const t = await getTranslations({ locale });
   const pages = await getPageContent(locale);
   return {
     title: `Nemocnica Snina — ${localizeField(pages.hero.title, locale)}`,

@@ -47,7 +47,7 @@ function PodpisContent() {
   const c = (locale === 'en' ? CONTENT.en : CONTENT.sk);
 
   return (
-    <SiteLayout locale={locale}>
+    <SiteLayout>
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '3rem 1.5rem' }}>
         {!token ? (
           <div style={{ display: 'flex', gap: '1rem', background: 'rgba(220,38,38,.08)', border: '1px solid rgba(220,38,38,.3)', borderRadius: 12, padding: '1.5rem' }}>

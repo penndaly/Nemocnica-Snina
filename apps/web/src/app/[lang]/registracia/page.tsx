@@ -2,11 +2,11 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Check, AlertTriangle, User, ChevronDown } from 'lucide-react';
+import { Check, AlertTriangle } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
-import type { Physician, Department, Clinic } from '@ns/types';
+import type { Physician } from '@ns/types';
 
 // Insurers per NCZI codes
 const INSURERS = [
@@ -51,9 +51,8 @@ export default function OnboardingPage() {
 
   const selectedPhysician = allPhysicians.find((p) => p.id === selectedPhysicianId);
   // dept/clinic IDs come from the physician record; use them for display only
-  const selectedDept:   Department | undefined = undefined; // resolved server-side in real app
-  const selectedClinic: Clinic | undefined     = undefined; // resolved server-side in real app
-  void selectedDept; void selectedClinic;
+  // Department/clinic for the selected physician are resolved server-side in the
+  // real onboarding flow; the success card shows the physician name only here.
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -109,9 +108,7 @@ export default function OnboardingPage() {
               </p>
               {selectedPhysician && (
                 <div style={{ fontSize: '.9rem', color: 'var(--ink-2)' }}>
-                  <strong>{selectedPhysician.name}</strong><br />
-                  {selectedDept && localizeField(selectedDept.short, locale)}
-                  {selectedClinic && localizeField(selectedClinic.name, locale)}
+                  <strong>{selectedPhysician.name}</strong>
                 </div>
               )}
             </div>
@@ -152,8 +149,8 @@ export default function OnboardingPage() {
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
                   {acceptingPhysicians.map((physician) => {
-                    const dept   = null; // dept/clinic IDs available as physician.dept/physician.clinic
-                    const clinic = null; // resolved server-side when submitting; display via role field
+                    // dept/clinic IDs are physician.dept/physician.clinic; the label
+                    // is resolved server-side at submit, so only the role is shown here.
                     const selected = selectedPhysicianId === physician.id;
                     return (
                       <button
@@ -186,8 +183,6 @@ export default function OnboardingPage() {
                           </div>
                           <div style={{ fontSize: '.85rem', color: 'var(--ink-2)' }}>
                             {localizeField(physician.role, locale)}
-                            {dept && ` · ${localizeField(dept.short, locale)}`}
-                            {clinic && ` · ${localizeField(clinic.name, locale)}`}
                           </div>
                         </div>
                         <span className="badge badge-green">

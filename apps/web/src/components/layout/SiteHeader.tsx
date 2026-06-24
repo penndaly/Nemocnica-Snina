@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { Menu, X, Plus } from 'lucide-react';
-import { cn } from '@ns/ui';
 import type { SupportedLocale } from '@/i18n/config';
 
 interface NavItem {

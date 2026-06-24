@@ -14,7 +14,7 @@ interface SitemapEntry {
   alternates?: { languages: Record<string, string> };
 }
 
-function withAlternates(path: string): SitemapEntry['alternates'] {
+function withAlternates(path: string): { languages: Record<string, string> } {
   return {
     languages: Object.fromEntries(locales.map((l) => [l, `${BASE}/${l}${path}`])),
   };
