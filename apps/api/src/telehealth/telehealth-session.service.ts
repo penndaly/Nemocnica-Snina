@@ -21,6 +21,12 @@ export interface CreateSessionDto {
   scheduledAt: Date;
 }
 
+/** The authenticated caller (from the JWT) for per-session authorization. */
+export interface TelehealthCaller {
+  userId?: string;
+  role?: string;
+}
+
 export interface JoinResult {
   token: string;
   wsUrl: string;
@@ -74,6 +80,23 @@ export class TelehealthSessionService {
     this.joinWindowSeconds = cfg.get<number>('TELEHEALTH_JOIN_WINDOW_SECONDS') ?? 600;
   }
 
+  /**
+   * Authorization for per-session staff access (IDOR guard). A clinician may only
+   * read/act on sessions they are assigned to (same binding admitPatient uses:
+   * session.physicianId === the staff userId); ADMIN is allowed for oversight.
+   * Patient callers carry no staff role and are not bound here — session ids are
+   * unguessable UUIDs, and the patientToken is session-scoped random (not the
+   * patient's identity), so patient↔session binding is a separate documented gap.
+   */
+  private assertSessionAccess(session: { physicianId: string }, caller?: TelehealthCaller): void {
+    if (!caller) return;
+    const role = (caller.role ?? '').toUpperCase();
+    if (role === 'ADMIN') return;
+    if (role === 'CLINICIAN' && session.physicianId !== caller.userId) {
+      throw new ForbiddenException('Not the assigned physician for this session');
+    }
+  }
+
   // Called when a telehealth booking is confirmed — creates session + LiveKit room
   async createSession(dto: CreateSessionDto): Promise<string> {
     const sessionId  = randomUUID();
@@ -113,11 +136,18 @@ export class TelehealthSessionService {
     role: 'patient' | 'physician',
     ip?: string,
     patientBirthdate?: string,
+    caller?: TelehealthCaller,
   ): Promise<JoinResult> {
     const session = await this.prisma.telehealthSession.findUnique({
       where: { id: sessionId },
     });
     if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+
+    // A physician may only join the session they are assigned to — without this
+    // any authenticated clinician could obtain a publish token for any room.
+    if (role === 'physician' && (!caller?.userId || session.physicianId !== caller.userId)) {
+      throw new ForbiddenException('Not the assigned physician for this session');
+    }
 
     if (session.status === TelehealthStatus.cancelled) {
       throw new ForbiddenException('Session has been cancelled');
@@ -127,6 +157,17 @@ export class TelehealthSessionService {
     }
     if (session.status === TelehealthStatus.no_show) {
       throw new ForbiddenException('Session was marked as no-show');
+    }
+
+    // Join window (T6): tokens are only issuable around the scheduled slot — not
+    // arbitrarily early, and not for long-past sessions.
+    const nowMs = Date.now();
+    const scheduledMs = session.scheduledAt.getTime();
+    if (nowMs < scheduledMs - this.joinWindowSeconds * 1000) {
+      throw new ForbiddenException({ reason: 'too_early', message: 'The join window has not opened yet' });
+    }
+    if (nowMs > scheduledMs + this.ttlSeconds * 1000) {
+      throw new ForbiddenException({ reason: 'window_closed', message: 'The join window has closed' });
     }
 
     // Consent gate (T3.2/R3): telehealth_medical_record consent required for patient join
@@ -231,9 +272,10 @@ export class TelehealthSessionService {
     });
   }
 
-  async endSession(sessionId: string, actorId: string, ip?: string): Promise<void> {
+  async endSession(sessionId: string, actorId: string, ip?: string, caller?: TelehealthCaller): Promise<void> {
     const session = await this.prisma.telehealthSession.findUnique({ where: { id: sessionId } });
     if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    this.assertSessionAccess(session, caller);
 
     await this.transitionStatus(sessionId, TelehealthStatus.ended, actorId);
 
@@ -279,9 +321,10 @@ export class TelehealthSessionService {
     });
   }
 
-  async cancelSession(sessionId: string, actorId: string, reason: string, ip?: string): Promise<void> {
+  async cancelSession(sessionId: string, actorId: string, reason: string, ip?: string, caller?: TelehealthCaller): Promise<void> {
     const session = await this.prisma.telehealthSession.findUnique({ where: { id: sessionId } });
     if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    this.assertSessionAccess(session, caller);
     if (!reason?.trim()) throw new BadRequestException('A cancellation reason is required');
 
     await this.transitionStatus(sessionId, TelehealthStatus.cancelled, actorId);
@@ -297,9 +340,10 @@ export class TelehealthSessionService {
     });
   }
 
-  async submitIntake(sessionId: string, dto: IntakeDto, ip?: string): Promise<void> {
+  async submitIntake(sessionId: string, dto: IntakeDto, ip?: string, caller?: TelehealthCaller): Promise<void> {
     const session = await this.prisma.telehealthSession.findUnique({ where: { id: sessionId } });
     if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    this.assertSessionAccess(session, caller);
 
     await this.prisma.telehealthIntake.upsert({
       where:  { sessionId },
@@ -370,7 +414,13 @@ export class TelehealthSessionService {
     });
   }
 
-  async getSummary(sessionId: string, actorId: string, ip?: string) {
+  async getSummary(sessionId: string, actorId: string, ip?: string, caller?: TelehealthCaller) {
+    const session = await this.prisma.telehealthSession.findUnique({
+      where: { id: sessionId }, select: { physicianId: true },
+    });
+    if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    this.assertSessionAccess(session, caller);
+
     const summary = await this.prisma.telehealthSummary.findUnique({ where: { sessionId } });
 
     await this.audit.log({
@@ -385,12 +435,13 @@ export class TelehealthSessionService {
     return summary;
   }
 
-  async getSession(sessionId: string) {
+  async getSession(sessionId: string, caller?: TelehealthCaller) {
     const session = await this.prisma.telehealthSession.findUnique({
       where:   { id: sessionId },
       include: { intake: true, summary: true },
     });
     if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    this.assertSessionAccess(session, caller);
     return session;
   }
 

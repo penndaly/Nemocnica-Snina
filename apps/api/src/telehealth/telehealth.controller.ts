@@ -22,6 +22,11 @@ interface RequestWithUser {
   ip?: string;
 }
 
+/** Caller identity for per-session authorization (IDOR guard). */
+function callerOf(req: RequestWithUser): { userId?: string; role?: string } {
+  return { userId: req.user?.userId, role: req.user?.role };
+}
+
 @Controller('api/telehealth/sessions')
 export class TelehealthController {
   constructor(
@@ -76,8 +81,8 @@ export class TelehealthController {
   // GET /api/telehealth/sessions/:id
   @Get(':id')
   @UseGuards(AuthGuard('jwt'))
-  async getSession(@Param('id') id: string) {
-    return this.sessionSvc.getSession(id);
+  async getSession(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.sessionSvc.getSession(id, callerOf(req));
   }
 
   // POST /api/telehealth/sessions/:id/join — issues join token (patient or physician)
@@ -91,7 +96,7 @@ export class TelehealthController {
     const role = body['role'] === 'physician' ? 'physician' : 'patient';
     const identity = req.user?.email ?? req.user?.userId ?? 'unknown';
     // Pass eID birthdate claim for minor age check (R5 — GDPR Art. 8, Act 576/2004 §6)
-    return this.sessionSvc.joinSession(id, identity, role, req.ip, req.user?.birthdate);
+    return this.sessionSvc.joinSession(id, identity, role, req.ip, req.user?.birthdate, callerOf(req));
   }
 
   // POST /api/telehealth/sessions/:id/recording — recording gate (T3.2)
@@ -123,7 +128,7 @@ export class TelehealthController {
   @UseGuards(AuthGuard('jwt'))
   async endSession(@Param('id') id: string, @Req() req: RequestWithUser) {
     const actorId = req.user?.email ?? 'unknown';
-    await this.sessionSvc.endSession(id, actorId, req.ip);
+    await this.sessionSvc.endSession(id, actorId, req.ip, callerOf(req));
     return { ok: true };
   }
 
@@ -137,7 +142,7 @@ export class TelehealthController {
   ) {
     const reason = String(body['reason'] ?? '');
     const actorId = req.user?.email ?? 'unknown';
-    await this.sessionSvc.cancelSession(id, actorId, reason, req.ip);
+    await this.sessionSvc.cancelSession(id, actorId, reason, req.ip, callerOf(req));
     return { ok: true };
   }
 
@@ -158,7 +163,7 @@ export class TelehealthController {
       throw new BadRequestException('reason, currentMedications, and symptoms are required');
     }
 
-    await this.sessionSvc.submitIntake(id, { reason, currentMedications, symptoms, vitalsNote }, req.ip);
+    await this.sessionSvc.submitIntake(id, { reason, currentMedications, symptoms, vitalsNote }, req.ip, callerOf(req));
     return { ok: true };
   }
 
@@ -167,7 +172,7 @@ export class TelehealthController {
   @UseGuards(AuthGuard('jwt'))
   async getSummary(@Param('id') id: string, @Req() req: RequestWithUser) {
     const actorId = req.user?.email ?? 'unknown';
-    const summary = await this.sessionSvc.getSummary(id, actorId, req.ip);
+    const summary = await this.sessionSvc.getSummary(id, actorId, req.ip, callerOf(req));
     if (!summary) throw new NotFoundException(`No summary for session ${id}`);
     return summary;
   }

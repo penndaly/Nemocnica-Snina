@@ -34,7 +34,7 @@ function makeSession(overrides: Partial<PartialSession> = {}): PartialSession {
     clinicId:          'fro',
     physicianId:       'doc-1',
     patientToken:      'tok-abc',
-    scheduledAt:       new Date('2026-07-01T09:00:00Z'),
+    scheduledAt:       new Date(), // within the join window (WL-QA join-window guard)
     status:            TelehealthStatus.scheduled,
     startedAt:         null,
     endedAt:           null,
@@ -66,6 +66,10 @@ function buildPrismaMock(session = makeSession()) {
     telehealthSummary: {
       upsert:    jest.fn().mockResolvedValue({}),
       findUnique: jest.fn().mockResolvedValue(null),
+    },
+    // Consent gate (S7) + completes the mock so patient-join tests reach the flow.
+    bookingConsent: {
+      findFirst: jest.fn().mockResolvedValue({ id: 'c1', granted: true }),
     },
   };
 }
