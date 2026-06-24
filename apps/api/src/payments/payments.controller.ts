@@ -61,7 +61,7 @@ export class PaymentsController {
 
     let patientSub: string;
     try {
-      const { payload } = await jose.jwtVerify(sessionToken, this.sessionSecret);
+      const { payload } = await jose.jwtVerify(sessionToken, this.sessionSecret, { audience: 'ns.patient' });
       patientSub = String(payload['sub'] ?? '');
     } catch {
       throw new UnauthorizedException('Invalid or expired patient session');

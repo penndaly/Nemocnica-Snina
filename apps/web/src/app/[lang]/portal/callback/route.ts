@@ -7,10 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCode, fetchUserinfo } from '@/lib/oidc-client';
 import { SignJWT } from 'jose';
+import { SESSION_SECRET, PATIENT_AUDIENCE } from '@/lib/session-secret';
 
-const SESSION_SECRET = new TextEncoder().encode(
-  process.env['JWT_SECRET'] ?? 'dev-secret-min-32-chars-long-xxx',
-);
 const SESSION_MAX_AGE = 30 * 60; // 30 minutes
 
 export async function GET(
@@ -55,6 +53,9 @@ export async function GET(
     const sessionToken = await new SignJWT({ sub: identity.sub, name: identity.name ?? '' })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
+      // Audience binds this token to patient endpoints; the API rejects it on
+      // staff routes (and rejects staff tokens here) despite the shared secret.
+      .setAudience(PATIENT_AUDIENCE)
       .setExpirationTime(`${SESSION_MAX_AGE}s`)
       .sign(SESSION_SECRET);
 

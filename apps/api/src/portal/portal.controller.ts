@@ -54,7 +54,8 @@ export class PortalController {
   private async resolveSession(token: string | undefined): Promise<string> {
     if (!token) throw new UnauthorizedException('Missing patient session');
     try {
-      const { payload } = await jose.jwtVerify(token, this.sessionSecret);
+      // Audience-pinned: a staff JWT (different aud) is never accepted here.
+      const { payload } = await jose.jwtVerify(token, this.sessionSecret, { audience: 'ns.patient' });
       return String(payload['sub'] ?? '');
     } catch {
       throw new UnauthorizedException('Invalid or expired patient session');

@@ -22,7 +22,9 @@ import { StaffEmailService } from '../notifications/staff-email.service';
       imports: [ConfigModule],
       useFactory: (cfg: ConfigService) => ({
         secret: cfg.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '8h' },
+        // Audience-pinned so a legacy staff token is never accepted as a patient
+        // session (and vice-versa) despite sharing JWT_SECRET.
+        signOptions: { expiresIn: '8h', audience: 'ns.staff.legacy' },
       }),
       inject: [ConfigService],
     }),

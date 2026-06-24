@@ -469,6 +469,8 @@ model StaffAccount {
   status        String    @default("invited") @db.VarChar(16)    // invited|active|disabled
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
   lastLoginIp   String?   @map("last_login_ip") @db.Inet
+  // Last accepted TOTP time-step counter — enforces single-use (anti-replay).
+  lastTotpCounter BigInt? @map("last_totp_counter")
   createdById   String?   @map("created_by") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz

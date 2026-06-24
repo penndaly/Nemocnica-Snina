@@ -56,6 +56,27 @@ export function validateMediaConstraints(mimetype: string, size: number): void {
   );
 }
 
+/**
+ * Sniff the real media type from the file's magic bytes, ignoring the
+ * client-supplied Content-Type (which is attacker-controlled). Returns the
+ * canonical mime, or null if the content is not an allowed type. (exported for tests)
+ */
+export function sniffMediaType(buffer: Buffer): string | null {
+  if (buffer.length < 12) return null;
+  // PDF: "%PDF"
+  if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) return PDF_TYPE;
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'image/png';
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  // WebP: "RIFF"...."WEBP"
+  if (
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+  ) return 'image/webp';
+  return null;
+}
+
 interface StrapiPayloads {
   /** Base (default-locale / sk) attributes — localized fields use .sk. */
   base: Record<string, unknown>;
@@ -290,7 +311,13 @@ export class StrapiCmsService {
   // ── Media upload proxy ────────────────────────────────────
 
   async uploadMedia(file: UploadedMedia): Promise<{ id: number; url: string }> {
-    validateMediaConstraints(file.mimetype, file.size);
+    // Validate against the SNIFFED type (magic bytes), not the client-supplied
+    // Content-Type — a renamed binary labeled image/png can no longer pass.
+    const sniffed = sniffMediaType(file.buffer);
+    if (!sniffed) {
+      throw new BadRequestException('Unrecognized file content (allowed: jpeg, png, webp, pdf)');
+    }
+    validateMediaConstraints(sniffed, file.size);
     this.assertLive('upload media');
 
     const form = new FormData();

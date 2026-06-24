@@ -142,12 +142,27 @@ export class StaffAuthService {
       throw new UnauthorizedException('MFA not available for this account');
     }
 
+    // Enforce the same lockout as login() — this endpoint was previously
+    // brute-forceable because the failure count was only checked in login().
+    // Increment-and-check up front so a bad code below does not double-count.
+    const failures = await this.redis.incrLoginFailure(account.email);
+    if (failures > this.maxLoginFailures) {
+      await this.logEvent('staff_mfa_locked', acc(account), account.email, undefined, ip);
+      throw new UnauthorizedException('Account temporarily locked due to repeated failures');
+    }
+
     const secret = this.totpCrypto.decrypt(account.totpSecret);
     const valid = (otplib as any).authenticator.verify({ token: totpCode, secret }) as boolean;
     if (!valid) {
-      await this.redis.incrLoginFailure(account.email);
       await this.logEvent('staff_mfa_failure', acc(account), account.email, undefined, ip);
       throw new UnauthorizedException('Invalid MFA code');
+    }
+
+    // Single-use: reject replay of a still-valid code within its time step.
+    const totpCounter = Math.floor(Date.now() / 1000 / 30);
+    if (account.lastTotpCounter !== null && totpCounter <= Number(account.lastTotpCounter)) {
+      await this.logEvent('staff_mfa_replay', acc(account), account.email, undefined, ip);
+      throw new UnauthorizedException('MFA code already used');
     }
 
     await this.redis.resetLoginFailures(account.email);
@@ -155,7 +170,7 @@ export class StaffAuthService {
     const tokens = await this.issueSession(acc(account), scopes, ip, userAgent);
     await this.prisma.staffAccount.update({
       where: { id: account.id },
-      data: { lastLoginAt: new Date(), lastLoginIp: ip ?? null },
+      data: { lastLoginAt: new Date(), lastLoginIp: ip ?? null, lastTotpCounter: BigInt(totpCounter) },
     });
     await this.logEvent('staff_login_success', acc(account), account.email, undefined, ip);
     return tokens;

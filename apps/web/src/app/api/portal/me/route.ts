@@ -9,10 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
-
-const SESSION_SECRET = new TextEncoder().encode(
-  process.env['JWT_SECRET'] ?? 'dev-secret-min-32-chars-long-xxx',
-);
+import { SESSION_SECRET, PATIENT_AUDIENCE } from '@/lib/session-secret';
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('ns_patient_session')?.value;
@@ -21,7 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token, SESSION_SECRET);
+    const { payload } = await jwtVerify(token, SESSION_SECRET, { audience: PATIENT_AUDIENCE });
     return NextResponse.json({
       sub:  String(payload['sub']  ?? ''),
       name: String(payload['name'] ?? ''),

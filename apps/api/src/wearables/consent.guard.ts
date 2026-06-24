@@ -65,7 +65,7 @@ export class ConsentGuard implements CanActivate {
     if (!token) throw new UnauthorizedException('Missing patient session');
 
     try {
-      const { payload } = await jose.jwtVerify(token, this.secret);
+      const { payload } = await jose.jwtVerify(token, this.secret, { audience: 'ns.patient' });
       const sub = String(payload['sub'] ?? '');
       if (!sub) throw new Error('no sub');
       return sub;
