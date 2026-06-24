@@ -19,10 +19,11 @@ function makeService(refresh: { ok: boolean }) {
     refreshToken: refresh.ok
       ? jest.fn().mockResolvedValue({ accessToken: 'new-a', refreshToken: 'new-r', expiresAt: new Date(Date.now() + 3600_000) })
       : jest.fn().mockRejectedValue(new Error('refresh denied')),
-  } as never;
+  };
+  const registry = { getAdapter: jest.fn(() => adapter) } as never;
   const audit = { log: jest.fn() } as never;
   const oauthState = new OAuthStateService(keyCfg, new TokenCryptoService(keyCfg), new InMemoryWearablesKv());
-  const svc = new WearablesService(prisma, audit, {} as never, crypto, oauthState, cfg, {} as never, { publish: jest.fn() } as never, adapter);
+  const svc = new WearablesService(prisma, audit, {} as never, crypto, oauthState, cfg, {} as never, { publish: jest.fn() } as never, registry);
   return { svc, update, notify, crypto };
 }
 

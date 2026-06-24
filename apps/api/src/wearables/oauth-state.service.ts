@@ -59,7 +59,7 @@ export class OAuthStateService {
   }
 
   /** One-time use: a valid state is consumed (atomically deleted) on validation. */
-  async validateState(state: string, expectedPlatform: string): Promise<{ patientToken: string }> {
+  async consumeState(state: string, expectedPlatform: string): Promise<{ patientToken: string }> {
     const [nonce, sig] = (state ?? '').split('.');
     // Verify the HMAC before touching Redis — cheap rejection of obvious forgeries.
     if (!nonce || !sig || !this.safeEqual(sig, this.sign(nonce))) {

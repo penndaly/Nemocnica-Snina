@@ -15,11 +15,10 @@ import { AlertService } from './alert.service';
 import { WearablesQueueService } from './wearables-queue.service';
 import { WearablesAlertConsumer } from './alert.consumer';
 import { WearablesFhirConsumer } from './fhir-export.consumer';
-import { MockAdapter } from './mock.adapter';
-import { WEARABLE_ADAPTER } from './platform-adapter.interface';
 import { WEARABLES_KV, WearablesRedisService } from './wearables-redis.service';
 import { WearablesDigestService } from './wearables-digest.service';
 import { WearablesCronService } from './wearables-cron.service';
+import { MedicalAdaptersModule } from './adapters/medical/medical-adapters.module';
 
 /**
  * Wearables & Remote Monitoring module.
@@ -36,7 +35,7 @@ import { WearablesCronService } from './wearables-cron.service';
  * WEARABLES_PROVIDER (mock in dev/CI).
  */
 @Module({
-  imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule],
+  imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule, MedicalAdaptersModule],
   controllers: [WearablesController, GarminWebhookController],
   providers: [
     WearablesService,
@@ -54,13 +53,6 @@ import { WearablesCronService } from './wearables-cron.service';
     { provide: WEARABLES_KV, useExisting: WearablesRedisService },
     WearablesDigestService,
     WearablesCronService,
-    MockAdapter,
-    {
-      provide: WEARABLE_ADAPTER,
-      // W1 ships mock only. W2/W3 will switch on WEARABLES_PROVIDER=live and
-      // route per-platform to the real adapters.
-      useExisting: MockAdapter,
-    },
   ],
   exports: [WearablesService, ConsentService, TokenCryptoService, AlertService],
 })

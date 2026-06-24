@@ -12,9 +12,7 @@
  * live API path). The alert/FHIR-export hooks land in Sprint W5.
  */
 import {
-  BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -28,16 +26,16 @@ import { TokenCryptoService } from './token-crypto.service';
 import { OAuthStateService } from './oauth-state.service';
 import { AlertService } from './alert.service';
 import { RK_READINGS_SYNCED, WearablesQueueService } from './wearables-queue.service';
-import {
-  WEARABLE_ADAPTER,
-  type RawReading,
-  type WearablePlatformAdapter,
-} from './platform-adapter.interface';
+import { type RawReading } from './platform-adapter.interface';
 import {
   availablePlatforms,
   getPlatformEntry,
+  BadRequestPartnership,
+  BadRequestUploadOnly,
+  BadRequestIosApp,
   type PlatformCatalogEntry,
 } from './platform-catalog';
+import { AdapterRegistry } from './adapters/adapter-registry.service';
 import type {
   AvailablePlatformDto,
   ConnectResultDto,
@@ -67,7 +65,9 @@ export class WearablesService {
     private readonly cfg: ConfigService,
     private readonly alerts: AlertService,
     private readonly queue: WearablesQueueService,
-    @Inject(WEARABLE_ADAPTER) private readonly adapter: WearablePlatformAdapter,
+    // W2: the registry selects the per-platform adapter (or MockAdapter when
+    // WEARABLES_PROVIDER=mock). Replaces the single WEARABLE_ADAPTER token.
+    private readonly registry: AdapterRegistry,
   ) {
     this.provider = this.cfg.get<string>('WEARABLES_PROVIDER') ?? 'mock';
     this.redirectBase =
@@ -123,18 +123,21 @@ export class WearablesService {
     const state = await this.oauthState.generateState(patientToken, platform);
     const authUrl = this.isMock
       ? `${this.redirectBase}/api/wearables/callback/${platform}?code=mock-code&state=${encodeURIComponent(state)}`
-      : this.adapter.getAuthUrl(patientToken, state);
+      : this.registry.getAdapter(entry.platform).getAuthUrl(patientToken, state);
     return { authUrl };
   }
 
   // ── GET /api/wearables/callback/:platform ─────────────────────────────────
   /** Returns the absolute portal URL to redirect the browser back to. */
   async handleCallback(platform: string, code: string, state: string): Promise<string> {
-    const { patientToken } = await this.oauthState.validateState(state, platform);
+    // The service is the single state-consume point (one-time use). Adapters
+    // receive `state` as read-only context (e.g. Dexcom re-derives its PKCE
+    // verifier from it) and must not consume it again.
+    const { patientToken } = await this.oauthState.consumeState(state, platform);
     const entry = getPlatformEntry(platform);
     if (!entry) throw new NotFoundException('UNKNOWN_PLATFORM');
 
-    const token = await this.adapter.exchangeCode(code, state);
+    const token = await this.registry.getAdapter(entry.platform).exchangeCode(code, state);
 
     const device = await this.prisma.wearableDevice.create({
       data: {
@@ -162,7 +165,7 @@ export class WearablesService {
     );
 
     // Pull an initial batch of readings so the card is not empty.
-    const readings = await this.adapter.syncReadings(device, new Date(0));
+    const readings = await this.registry.getAdapter(device.platform).syncReadings(device, new Date(0));
     await this.persistReadings(device, readings);
 
     await this.audit.log({
@@ -218,7 +221,7 @@ export class WearablesService {
         return this.mapJob(failed);
       }
       const since = refreshed.lastSyncAt ?? new Date(0);
-      const raw = await this.adapter.syncReadings(refreshed, since);
+      const raw = await this.registry.getAdapter(refreshed.platform).syncReadings(refreshed, since);
       const ids = await this.ingestReadings(refreshed, raw);
       const done = await this.prisma.deviceSyncJob.update({
         where: { id: job.id },
@@ -496,7 +499,7 @@ export class WearablesService {
       return device; // nothing to do (or mock-seeded device with no token)
     }
     try {
-      const token = await this.adapter.refreshToken(device);
+      const token = await this.registry.getAdapter(device.platform).refreshToken(device);
       const updated = await this.prisma.wearableDevice.update({
         where: { id: device.id },
         data: {
@@ -746,22 +749,5 @@ export class WearablesService {
           { metricType: '8867-4', metricLabel: { sk: 'Tepová frekvencia', en: 'Heart rate' }, valueNumeric: 70, unit: 'bpm', flag: 'normal', recordedAt: m(15) },
         ];
     }
-  }
-}
-
-// ── Typed platform-gate errors (mapped to HTTP by the controller) ────────────
-class BadRequestPartnership extends BadRequestException {
-  constructor(platform: string) {
-    super({ code: 'partnership_required', platform });
-  }
-}
-class BadRequestUploadOnly extends BadRequestException {
-  constructor(platform: string) {
-    super({ code: 'manual_upload_only', platform });
-  }
-}
-class BadRequestIosApp extends BadRequestException {
-  constructor(platform: string) {
-    super({ code: 'IOS_APP_REQUIRED', platform });
   }
 }

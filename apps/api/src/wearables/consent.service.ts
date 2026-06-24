@@ -9,11 +9,11 @@
  *     authoritative copy lives in the HIS and must never be deleted here.
  *   • Every grant/withdrawal writes an append-only audit_log entry.
  */
-import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { WEARABLE_ADAPTER, type WearablePlatformAdapter } from './platform-adapter.interface';
+import { AdapterRegistry } from './adapters/adapter-registry.service';
 
 export type ConsentType = 'data_storage' | 'physician_sharing' | 'his_export';
 
@@ -24,7 +24,8 @@ export class ConsentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    @Inject(WEARABLE_ADAPTER) private readonly adapter: WearablePlatformAdapter,
+    // W2: per-platform revocation via the registry (MockAdapter when provider=mock).
+    private readonly registry: AdapterRegistry,
   ) {}
 
   /** Record one or more consent grants for a device. */
@@ -71,7 +72,7 @@ export class ConsentService {
 
     // 1. Revoke at the provider — never block withdrawal on a provider failure.
     try {
-      await this.adapter.revokeToken(device);
+      await this.registry.getAdapter(device.platform).revokeToken(device);
     } catch (err) {
       this.logger.warn(`revokeToken failed for device ${deviceId}: ${String(err)}`);
     }

@@ -11,7 +11,46 @@
  *   • AliveCor + Xiaomi have no live OAuth API → manualUploadOnly=true.
  *   • Apple HealthKit needs a native iOS companion app → iosAppRequired=true.
  */
+import { BadRequestException } from '@nestjs/common';
 import type { WearableCategory, WearableDeviceType, WearablePlatform } from '@prisma/client';
+
+// ── Typed platform-gate errors (mapped to HTTP by the controller) ──────────────
+// Live in the catalogue so adapters (W2/W3) can throw the canonical gate error
+// without importing wearables.service (which would be a circular dependency).
+
+/** Connect blocked: platform needs a signed vendor agreement (cardiac, Meta, …). */
+export class BadRequestPartnership extends BadRequestException {
+  constructor(platform: string) {
+    super({ code: 'partnership_required', platform });
+  }
+}
+/** Connect blocked: platform has no live OAuth API — manual upload only (AliveCor, Xiaomi). */
+export class BadRequestUploadOnly extends BadRequestException {
+  constructor(platform: string) {
+    super({ code: 'manual_upload_only', platform });
+  }
+}
+/** Connect blocked: platform needs the native iOS companion app (Apple Health). */
+export class BadRequestIosApp extends BadRequestException {
+  constructor(platform: string) {
+    super({ code: 'IOS_APP_REQUIRED', platform });
+  }
+}
+
+/** Misconfigured adapter (e.g. LIBRE_REGION ≠ 'eu'). Thrown at construction. */
+export class WearablesConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WearablesConfigError';
+  }
+}
+
+/** A manual-upload / not-yet-wired adapter path. Carries a stable error code. */
+export class WearablesStubError extends BadRequestException {
+  constructor(detail: { error: string; platform?: string; note?: string }) {
+    super(detail);
+  }
+}
 
 export interface PlatformCatalogEntry {
   platform: WearablePlatform;

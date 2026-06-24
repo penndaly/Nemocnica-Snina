@@ -48,14 +48,15 @@ function makeService(provider = 'mock') {
     exchangeCode: jest.fn(),
     syncReadings: jest.fn().mockResolvedValue([]),
     revokeToken: jest.fn(),
-  } as never;
+  };
+  const registry = { getAdapter: jest.fn(() => adapter) } as never;
   const alerts = {
     processReading: jest.fn().mockResolvedValue({ flag: 'normal', exceeded: null }),
     evaluateReading: jest.fn().mockResolvedValue({ flag: 'normal', exceeded: null }),
   } as never;
   const queue = { publish: jest.fn().mockResolvedValue(undefined) } as never;
 
-  const svc = new WearablesService(prisma, audit, consent, crypto, oauthState, cfg, alerts, queue, adapter);
+  const svc = new WearablesService(prisma, audit, consent, crypto, oauthState, cfg, alerts, queue, registry);
   return { svc, prisma, consent };
 }
 

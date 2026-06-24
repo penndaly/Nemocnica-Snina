@@ -28,7 +28,8 @@ function makeService(opts: { session?: unknown; consent?: unknown; namedAccess?:
   const cfg = { get: jest.fn((k: string) => (k === 'WEARABLES_PHYSICIAN_ACCESS_WINDOW_DAYS' ? '90' : undefined)) } as never;
   const alerts = {} as never;
   const queue = { publish: jest.fn() } as never;
-  const svc = new WearablesService(prisma, audit, noop, noop, stubOAuthState(), cfg, alerts, queue, noop);
+  const registry = { getAdapter: () => ({}) } as never;
+  const svc = new WearablesService(prisma, audit, noop, noop, stubOAuthState(), cfg, alerts, queue, registry);
   return { svc, upsert };
 }
 

@@ -39,8 +39,9 @@ function build(prisma = buildPrismaMock()) {
     syncReadings: jest.fn(),
     revokeToken:  jest.fn().mockResolvedValue(undefined),
   } as unknown as WearablePlatformAdapter;
+  const registry = { getAdapter: jest.fn(() => adapter) } as never;
 
-  const svc = new ConsentService(prisma as never, audit, adapter);
+  const svc = new ConsentService(prisma as never, audit, registry);
   return { svc, prisma, audit, adapter };
 }
 

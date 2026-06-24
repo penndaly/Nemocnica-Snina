@@ -258,6 +258,23 @@ export const ConfigSchema = z.object({
   // (no Standard Contractual Clauses cover it yet). WL9 Part D: the validator
   // refuses to let wearables go live with Huawei enabled. See DPIA_WEARABLES_ADDENDUM.md.
   HUAWEI_HEALTH_ENABLED: strictBool(false),
+
+  // ── W2 medical-device adapters ────────────────────────────────
+  // Abbott LibreLink Up — EU residency is a GDPR non-negotiable: LIBRE_REGION
+  // must be 'eu' (no other value accepted). Creds optional until WEARABLES_PROVIDER=live.
+  LIBRE_CLIENT_ID:        z.string().optional(),
+  LIBRE_CLIENT_SECRET:    z.string().optional(),
+  LIBRE_REGION:           z.enum(['eu']).default('eu'),
+  DEXCOM_CLIENT_ID:       z.string().optional(),
+  DEXCOM_CLIENT_SECRET:   z.string().optional(),
+  DEXCOM_SANDBOX:         strictBool(true),
+  WITHINGS_CLIENT_ID:     z.string().optional(),
+  WITHINGS_CLIENT_SECRET: z.string().optional(),
+  OMRON_CLIENT_ID:        z.string().optional(),
+  OMRON_CLIENT_SECRET:    z.string().optional(),
+  // Partnership-gated platforms — present so .env.example is self-documenting.
+  MEDTRONIC_CLIENT_ID:    z.string().optional(),
+  MEDTRONIC_CLIENT_SECRET:z.string().optional(),
 }).superRefine((data, ctx) => {
   // Wearables live provider requires the feature flag to be on (W6 gate).
   if (data.WEARABLES_PROVIDER === 'live' && !data.WEARABLES_ENABLED) {
