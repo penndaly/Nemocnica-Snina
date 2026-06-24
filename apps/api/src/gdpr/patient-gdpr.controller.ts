@@ -34,6 +34,7 @@ export class PatientGdprController {
   }
 
   @Get('download')
+  @StaffRoles('administrator', 'super_admin')
   async download(@Query('id') id: string, @Query('token') token: string, @Res() reply: ReplyLike) {
     const { data, filename, contentType } = await this.storage.downloadAndConsume(id, token);
     reply.header('Content-Type', contentType);

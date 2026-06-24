@@ -463,6 +463,20 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * UTC offset for Europe/Bratislava on a given date (CET +01:00 in winter,
+   * CEST +02:00 in summer). Hardcoding +01:00 wrote every summer booking to the
+   * HIS one hour off. Derived from Intl so DST transitions are always correct.
+   */
+  private bratislavaOffset(date: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Bratislava',
+      timeZoneName: 'longOffset',
+    }).formatToParts(new Date(`${date}T12:00:00Z`));
+    const tz = parts.find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+01:00';
+    return tz.replace('GMT', '') || '+01:00'; // e.g. "+02:00"
+  }
+
   private buildFhirAppointment(event: HisEvent): Record<string, unknown> {
     const p = event.payload as Record<string, string>;
     return {
@@ -470,7 +484,7 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
       status: 'booked',
       identifier: [{ system: 'https://nemocnicasnina.sk/booking', value: event.idempotencyKey }],
       serviceType: [{ coding: [{ code: p['clinicId'] }] }],
-      start: `${p['date']}T${p['time']}:00+01:00`,
+      start: `${p['date']}T${p['time']}:00${this.bratislavaOffset(String(p['date']))}`,
       participant: [{ actor: { display: p['patientName'] }, status: 'accepted' }],
     };
   }

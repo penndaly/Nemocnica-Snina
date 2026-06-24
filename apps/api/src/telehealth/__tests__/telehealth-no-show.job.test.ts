@@ -13,8 +13,10 @@ function baseSession(scheduledAt: Date) {
 function buildDeps(sessions: unknown[] = []) {
   const prisma = {
     telehealthSession: {
-      findMany: jest.fn().mockResolvedValue(sessions),
-      update:   jest.fn().mockResolvedValue({}),
+      findMany:   jest.fn().mockResolvedValue(sessions),
+      // Guarded conditional update (TOCTOU-safe): count=1 means the row was
+      // still scheduled+overdue and was flipped; count=0 means it changed state.
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
   };
   const audit = { log: jest.fn().mockResolvedValue(undefined) };
@@ -30,9 +32,9 @@ describe('TelehealthNoShowJob', () => {
 
     await job.markNoShows();
 
-    expect(prisma.telehealthSession.update).toHaveBeenCalledWith(
+    expect(prisma.telehealthSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'sess-overdue' },
+        where: expect.objectContaining({ id: 'sess-overdue', status: TelehealthStatus.scheduled }),
         data:  expect.objectContaining({ status: TelehealthStatus.no_show }),
       }),
     );
@@ -41,13 +43,24 @@ describe('TelehealthNoShowJob', () => {
     );
   });
 
+  it('skips a session that changed state between scan and update (TOCTOU)', async () => {
+    const pastDate = new Date(Date.now() - 30 * 60 * 1000);
+    const { prisma, audit, cfg } = buildDeps([baseSession(pastDate)]);
+    prisma.telehealthSession.updateMany.mockResolvedValueOnce({ count: 0 }); // patient just joined
+    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
+
+    await job.markNoShows();
+
+    expect(audit.log).not.toHaveBeenCalled(); // no_show NOT recorded
+  });
+
   it('does nothing when no sessions are overdue', async () => {
     const { prisma, audit, cfg } = buildDeps([]);
     const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
 
     await job.markNoShows();
 
-    expect(prisma.telehealthSession.update).not.toHaveBeenCalled();
+    expect(prisma.telehealthSession.updateMany).not.toHaveBeenCalled();
     expect(audit.log).not.toHaveBeenCalled();
   });
 
@@ -58,14 +71,14 @@ describe('TelehealthNoShowJob', () => {
       { ...baseSession(pastDate), id: 'sess-ok' },
     ];
     const { prisma, audit, cfg } = buildDeps(sessions);
-    prisma.telehealthSession.update
+    prisma.telehealthSession.updateMany
       .mockRejectedValueOnce(new Error('DB error'))
-      .mockResolvedValueOnce({});
+      .mockResolvedValueOnce({ count: 1 });
     const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
 
     await job.markNoShows(); // Must not throw
 
-    expect(prisma.telehealthSession.update).toHaveBeenCalledTimes(2);
+    expect(prisma.telehealthSession.updateMany).toHaveBeenCalledTimes(2);
     expect(audit.log).toHaveBeenCalledTimes(1); // Only the successful one
   });
 });

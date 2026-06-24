@@ -13,7 +13,7 @@
  */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createCipheriv, createDecipheriv, createHmac, randomBytes, randomUUID } from 'crypto';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 
 const IV_LEN = 12;
 const TAG_LEN = 16;
@@ -139,6 +139,9 @@ export class StorageService {
     const expMs = Number(expStr);
     if (!Number.isFinite(expMs) || expMs < Date.now()) return false;
     const expected = createHmac('sha256', this.key).update(`${id}.${expMs}`).digest('hex').slice(0, 32);
-    return mac === expected;
+    // Constant-time compare — avoids a timing side-channel on the download token.
+    const a = Buffer.from(mac);
+    const b = Buffer.from(expected);
+    return a.length === b.length && timingSafeEqual(a, b);
   }
 }

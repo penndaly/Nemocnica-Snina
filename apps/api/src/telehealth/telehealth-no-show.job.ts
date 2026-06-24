@@ -39,10 +39,16 @@ export class TelehealthNoShowJob {
 
     for (const session of overdueSessions) {
       try {
-        await this.prisma.telehealthSession.update({
-          where: { id: session.id },
+        // Guard against a TOCTOU race: between the findMany above and now the
+        // patient may have moved the session scheduled→waiting (or the physician
+        // →active). updateMany with the status+time predicate only flips rows
+        // STILL scheduled and overdue; if the patient just joined, count===0 and
+        // we skip — never clobbering an active/waiting session to no_show.
+        const res = await this.prisma.telehealthSession.updateMany({
+          where: { id: session.id, status: TelehealthStatus.scheduled, scheduledAt: { lt: graceCutoff } },
           data:  { status: TelehealthStatus.no_show, updatedAt: new Date() },
         });
+        if (res.count === 0) continue; // session changed state — leave it alone
 
         await this.audit.log({
           actorEmail: 'system',

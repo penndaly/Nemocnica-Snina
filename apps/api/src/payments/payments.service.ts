@@ -135,11 +135,14 @@ export class PaymentsService {
 
   verifyWebhookSignature(rawBody: string, signature: string): void {
     if (this.provider === 'mock') return; // skip verification in dev
-    const expected = crypto
+    const expected = `sha256=${crypto
       .createHmac('sha256', this.webhookSecret)
       .update(rawBody)
-      .digest('hex');
-    if (signature !== `sha256=${expected}`) {
+      .digest('hex')}`;
+    // Constant-time compare to avoid a timing side-channel on the webhook HMAC.
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
       throw new BadRequestException('Invalid webhook signature');
     }
   }
