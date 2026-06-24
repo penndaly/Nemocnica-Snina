@@ -31,6 +31,17 @@ export async function GET(
     return NextResponse.redirect(new URL(`/${lang}/portal?error=missing_code`, req.url));
   }
 
+  // CSRF protection: the state returned by the IdP must match the one we stored
+  // at login (ns_oidc_state httpOnly cookie). Without this check the OIDC code
+  // flow has no defense against login-CSRF / session fixation.
+  const expectedState = req.cookies.get('ns_oidc_state')?.value;
+  if (!expectedState || expectedState !== state) {
+    const res = NextResponse.redirect(new URL(`/${lang}/portal?error=invalid_state`, req.url));
+    res.cookies.delete('ns_oidc_state');
+    res.cookies.delete('ns_oidc_verifier');
+    return res;
+  }
+
   const verifier = req.cookies.get('ns_oidc_verifier')?.value;
   if (!verifier) {
     return NextResponse.redirect(new URL(`/${lang}/portal?error=missing_verifier`, req.url));

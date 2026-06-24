@@ -12,13 +12,18 @@ export async function GET(
   { params }: { params: Promise<{ transactionRef: string }> },
 ) {
   const { transactionRef } = await params;
+  // Strict allowlist: prevents header injection (Content-Disposition) and
+  // path/SSRF confusion against the upstream receipt endpoint.
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(transactionRef)) {
+    return NextResponse.json({ error: 'invalid_reference' }, { status: 400 });
+  }
   const sessionToken = req.cookies.get('ns_patient_session')?.value;
   if (!sessionToken) {
     return NextResponse.json({ error: 'not_authenticated' }, { status: 401 });
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/payments/receipt/${transactionRef}`, {
+    const res = await fetch(`${API_BASE}/api/payments/receipt/${encodeURIComponent(transactionRef)}`, {
       headers: {
         'x-patient-session': sessionToken,
         'x-forwarded-for':   req.headers.get('x-forwarded-for') ?? '',
