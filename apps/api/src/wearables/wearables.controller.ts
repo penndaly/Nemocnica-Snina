@@ -15,6 +15,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotImplementedException,
   Param,
   Patch,
   Post,
@@ -22,6 +23,7 @@ import {
   Query,
   Req,
   Res,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -34,6 +36,14 @@ interface PatientRequest {
   patientToken?: string;
   headers?: Record<string, string | string[] | undefined>;
   ip?: string;
+}
+
+interface MultipartFile {
+  filename: string;
+  toBuffer(): Promise<Buffer>;
+}
+interface MultipartRequest extends PatientRequest {
+  file?: () => Promise<MultipartFile | undefined>;
 }
 
 interface RedirectResponse {
@@ -157,6 +167,26 @@ export class WearablesController {
       originalname: body?.filename,
       size: body?.size,
     });
+  }
+
+  // POST /api/wearables/upload/xiaomi — Mi Fitness GDPR export .zip (W3)
+  @Post('upload/xiaomi')
+  @UseGuards(ConsentGuard)
+  async uploadXiaomi(@Req() req: MultipartRequest) {
+    if (typeof req.file !== 'function') {
+      throw new ServiceUnavailableException('Multipart upload not enabled (install @fastify/multipart).');
+    }
+    const data = await req.file();
+    if (!data) throw new BadRequestException('No file uploaded (field name: "file")');
+    const buffer = await data.toBuffer();
+    return this.wearables.importXiaomiZip(req.patientToken ?? '', buffer, data.filename);
+  }
+
+  // POST /api/wearables/upload/apple — scaffold for the iOS companion app (501) (W3)
+  @Post('upload/apple')
+  @UseGuards(ConsentGuard)
+  uploadApple(): never {
+    throw new NotImplementedException({ message: 'iOS companion app not yet available.' });
   }
 
   // GET /api/wearables/notifications?type= — patient alert inbox (bell)

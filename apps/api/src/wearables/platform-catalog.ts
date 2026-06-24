@@ -47,7 +47,18 @@ export class WearablesConfigError extends Error {
 
 /** A manual-upload / not-yet-wired adapter path. Carries a stable error code. */
 export class WearablesStubError extends BadRequestException {
-  constructor(detail: { error: string; platform?: string; note?: string }) {
+  constructor(detail: { error: string; platform?: string; note?: string; appStoreUrl?: string | null }) {
+    super(detail);
+  }
+}
+
+/**
+ * A platform blocked for legal/adequacy reasons (Huawei — EU adequacy decision
+ * for China pending; Decree 179/2020 + DPIA_WEARABLES_ADDENDUM.md). Distinct from
+ * a partnership gate: this is a hard compliance block, not a missing agreement.
+ */
+export class WearablesBlockedError extends BadRequestException {
+  constructor(detail: { error: string; message?: string }) {
     super(detail);
   }
 }

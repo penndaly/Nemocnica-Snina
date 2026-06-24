@@ -19,6 +19,7 @@ import { WEARABLES_KV, WearablesRedisService } from './wearables-redis.service';
 import { WearablesDigestService } from './wearables-digest.service';
 import { WearablesCronService } from './wearables-cron.service';
 import { MedicalAdaptersModule } from './adapters/medical/medical-adapters.module';
+import { ConsumerAdaptersModule } from './adapters/consumer/consumer-adapters.module';
 
 /**
  * Wearables & Remote Monitoring module.
@@ -35,7 +36,7 @@ import { MedicalAdaptersModule } from './adapters/medical/medical-adapters.modul
  * WEARABLES_PROVIDER (mock in dev/CI).
  */
 @Module({
-  imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule, MedicalAdaptersModule],
+  imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule, MedicalAdaptersModule, ConsumerAdaptersModule],
   controllers: [WearablesController, GarminWebhookController],
   providers: [
     WearablesService,

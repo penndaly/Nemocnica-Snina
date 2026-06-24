@@ -16,6 +16,8 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { DeviceReading, Prisma, WearableDevice } from '@prisma/client';
@@ -36,6 +38,7 @@ import {
   type PlatformCatalogEntry,
 } from './platform-catalog';
 import { AdapterRegistry } from './adapters/adapter-registry.service';
+import { parseXiaomiCsv, isKnownXiaomiCsv, MAX_ROWS } from './adapters/consumer/xiaomi-csv';
 import type {
   AvailablePlatformDto,
   ConnectResultDto,
@@ -368,6 +371,97 @@ export class WearablesService {
     });
 
     return { deviceId: device.id, readingsImported: inserted };
+  }
+
+  // ── POST /api/wearables/upload/xiaomi (W3) — Mi Fitness GDPR export .zip ───
+  /**
+   * Parse a Xiaomi/Mi Fitness export .zip and import the known CSVs. Malformed
+   * rows are skipped (never throw); files over MAX_ROWS are rejected with 422.
+   * Dedupe key: (device_id, recorded_at, metric_type).
+   */
+  async importXiaomiZip(
+    patientToken: string,
+    buffer: Buffer,
+    filename: string,
+  ): Promise<{ imported: number; skipped: number; errors: string[] }> {
+    // Lazy require — keeps tsc clean and degrades gracefully if adm-zip is absent.
+    let AdmZip: new (b: Buffer) => { getEntries(): Array<{ entryName: string; getData(): Buffer }> };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      AdmZip = require('adm-zip');
+    } catch {
+      throw new ServiceUnavailableException('ZIP upload not enabled (install adm-zip).');
+    }
+
+    const entries = new AdmZip(buffer).getEntries().filter((e) => isKnownXiaomiCsv(e.entryName));
+
+    // Row guard — reject before importing anything.
+    for (const e of entries) {
+      const rows = e.getData().toString('utf8').split(/\r?\n/).filter((l) => l.trim().length > 0).length - 1;
+      if (rows > MAX_ROWS) {
+        throw new UnprocessableEntityException({ error: 'TOO_MANY_ROWS', file: e.entryName, max: MAX_ROWS });
+      }
+    }
+
+    const parsed: RawReading[] = [];
+    let skipped = 0;
+    const errors: string[] = [];
+    for (const e of entries) {
+      const r = parseXiaomiCsv(e.entryName, e.getData().toString('utf8'));
+      parsed.push(...r.readings);
+      skipped += r.skipped;
+      errors.push(...r.errors);
+    }
+
+    // Find-or-create the patient's Xiaomi device.
+    const entry = getPlatformEntry('xiaomi')!;
+    let device = await this.prisma.wearableDevice.findFirst({
+      where: { patientToken, platform: 'xiaomi', disconnectedAt: null },
+    });
+    if (!device) {
+      device = await this.prisma.wearableDevice.create({
+        data: {
+          patientToken,
+          platform: 'xiaomi',
+          deviceLabel: `${entry.brand} ${entry.model}`,
+          category: entry.category,
+          deviceType: entry.deviceType,
+          shareWithPhysician: true,
+          syncStatus: 'ok',
+          lastSyncAt: new Date(),
+        },
+      });
+      await this.consent.grantConsent(patientToken, device.id, ['data_storage'], 'manual-upload');
+    }
+
+    // Dedupe against existing (recorded_at, metric_type) for this device.
+    const existing = await this.prisma.deviceReading.findMany({
+      where: { deviceId: device.id },
+      select: { recordedAt: true, metricType: true },
+    });
+    const seen = new Set(existing.map((r) => `${r.recordedAt.getTime()}:${r.metricType}`));
+    const fresh: RawReading[] = [];
+    for (const r of parsed) {
+      const key = `${r.recordedAt.getTime()}:${r.metricType}`;
+      if (seen.has(key)) {
+        skipped++;
+      } else {
+        seen.add(key);
+        fresh.push(r);
+      }
+    }
+    const imported = fresh.length ? await this.persistReadings(device, fresh) : 0;
+
+    await this.audit.log({
+      actorEmail: `patient:${patientToken.slice(0, 8)}`,
+      actorRole: 'patient',
+      action: 'wearable_xiaomi_upload',
+      resource: 'wearable_device',
+      resourceId: device.id,
+      detail: { imported, skipped, filename, patientTokenPrefix: patientToken.slice(0, 8) },
+    });
+
+    return { imported, skipped, errors };
   }
 
   // ── GET /api/wearables/physician/:patientToken (clinician JWT) ────────────
