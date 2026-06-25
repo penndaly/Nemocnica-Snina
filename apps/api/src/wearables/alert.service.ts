@@ -31,7 +31,12 @@ export class AlertService {
     private readonly queue: WearablesQueueService,
   ) {}
 
-  /** Resolve the effective threshold set for (patient, metric). */
+  /**
+   * Resolve the effective threshold set for (patient, metric). Precedence:
+   *   1. physician per-patient row (device_alert_thresholds, W5) — always wins
+   *   2. global admin default (wearable_global_thresholds, A4) — fallback
+   *   3. hardcoded DEFAULT_THRESHOLDS — last resort
+   */
   async thresholdsFor(patientToken: string, metricType: string): Promise<ThresholdSet | null> {
     const row = await this.prisma.deviceAlertThreshold.findUnique({
       where: { patientToken_metricType: { patientToken, metricType } },
@@ -42,6 +47,15 @@ export class AlertService {
         low: row.thresholdLow !== null ? Number(row.thresholdLow) : null,
         criticalHigh: row.thresholdCriticalHigh !== null ? Number(row.thresholdCriticalHigh) : null,
         criticalLow: row.thresholdCriticalLow !== null ? Number(row.thresholdCriticalLow) : null,
+      };
+    }
+    const global = await this.prisma.wearableGlobalThreshold.findUnique({ where: { metricType } });
+    if (global) {
+      return {
+        high: global.highHigh,
+        low: global.highLow,
+        criticalHigh: global.criticalHigh,
+        criticalLow: global.criticalLow,
       };
     }
     return DEFAULT_THRESHOLDS[metricType] ?? null;

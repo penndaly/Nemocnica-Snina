@@ -70,6 +70,7 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  NO_SHOW
 }
 
 // ─── New-patient onboarding ───────────────────────────────
@@ -410,6 +411,33 @@ model DeviceSyncJob {
   @@index([deviceId])
   @@index([status])
   @@map("device_sync_jobs")
+}
+
+// ─── Admin platform & global-threshold management (Sprint A4) ──────────────────
+// super_admin enable/disable override per catalog platform — checked by the
+// AdapterRegistry/connect flow on top of credentialsConfigured + partnership gates.
+model WearablePlatformOverride {
+  id         String   @id @default(cuid())
+  platformId String   @unique @map("platform_id")
+  enabled    Boolean
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  updatedBy  String   @map("updated_by") // staff actor id
+  @@map("wearable_platform_overrides")
+}
+
+// Global default alert thresholds — fallback used by the alert engine ONLY when a
+// patient has no physician-set device_alert_thresholds row for that metric.
+// Physician (W5) thresholds always take precedence.
+model WearableGlobalThreshold {
+  id           String   @id @default(cuid())
+  metricType   String   @unique @map("metric_type")
+  criticalLow  Float?   @map("critical_low")
+  criticalHigh Float?   @map("critical_high")
+  highLow      Float?   @map("high_low")
+  highHigh     Float?   @map("high_high")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  updatedBy    String   @map("updated_by")
+  @@map("wearable_global_thresholds")
 }
 
 // ─── Portal notifications (wearable alerts, token-expiry, consent re-confirm) ──

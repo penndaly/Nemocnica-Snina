@@ -2,13 +2,22 @@
  * Server-side enforcement of clinic booking rules.
  * All validation runs here — never trust the client.
  */
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import type { Clinic, Weekday } from '@ns/types';
 
 export interface ProposedBooking {
   clinicId: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
+}
+
+/** A persisted slot row, as seen by admin reschedule validation. */
+export interface SlotRow {
+  id: string;
+  clinicId: string;
+  date: string;
+  time: string;
+  booked: boolean;
 }
 
 @Injectable()
@@ -74,6 +83,59 @@ export class BookingRulesService {
         }
       }
     }
+  }
+
+  /**
+   * Admin cancellation gate (Sprint A4). A future, still-active appointment can be
+   * cancelled; a past slot cannot (you record a no-show instead). State checks
+   * (already cancelled/completed) live in the admin service so it can return 409.
+   * Throws 422 for a past slot.
+   */
+  validateCancellation(booking: { date: string; time: string }, now: Date = new Date()): void {
+    if (this.slotDate(booking.date, booking.time) <= now) {
+      throw new UnprocessableEntityException({
+        code: 'BOOKING_SLOT_IN_PAST',
+        message: 'Cannot cancel a past appointment — record a no-show instead.',
+      });
+    }
+  }
+
+  /**
+   * Admin reschedule gate (Sprint A4). The new slot must belong to the same clinic,
+   * be free, and be in the future. Throws 422 otherwise.
+   */
+  validateSlotAvailability(slot: SlotRow | null, clinicId: string, now: Date = new Date()): void {
+    if (!slot) {
+      throw new UnprocessableEntityException({ code: 'SLOT_NOT_FOUND', message: 'Target slot does not exist.' });
+    }
+    if (slot.clinicId !== clinicId) {
+      throw new UnprocessableEntityException({ code: 'SLOT_DIFFERENT_CLINIC', message: 'New slot must be in the same clinic.' });
+    }
+    if (slot.booked) {
+      throw new UnprocessableEntityException({ code: 'SLOT_UNAVAILABLE', message: 'Target slot is already booked.' });
+    }
+    if (this.slotDate(slot.date, slot.time) <= now) {
+      throw new UnprocessableEntityException({ code: 'SLOT_IN_PAST', message: 'Target slot is in the past.' });
+    }
+  }
+
+  /**
+   * No-show gate (Sprint A4): the slot must be in the past or within 30 minutes of
+   * its start — you cannot pre-emptively mark a future appointment as a no-show.
+   */
+  validateNoShow(booking: { date: string; time: string }, now: Date = new Date()): void {
+    const graceMs = 30 * 60 * 1000;
+    if (this.slotDate(booking.date, booking.time).getTime() - now.getTime() > graceMs) {
+      throw new UnprocessableEntityException({
+        code: 'BOOKING_NOT_DUE',
+        message: 'A no-show can only be recorded from 30 minutes before the appointment.',
+      });
+    }
+  }
+
+  /** Combine a YYYY-MM-DD date and HH:MM time into a local Date. */
+  slotDate(date: string, time: string): Date {
+    return new Date(`${date}T${(time || '00:00').padStart(5, '0')}:00`);
   }
 
   /**

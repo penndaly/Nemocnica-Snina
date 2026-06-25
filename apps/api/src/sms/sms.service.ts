@@ -91,6 +91,13 @@ export class SmsService {
     await this.sendSms(phone, `Nemocnica Snina — objednávka ${bookingId} bola zrušená.`);
   }
 
+  async sendBookingReschedule(phone: string, bookingId: string, date: string, time: string): Promise<void> {
+    await this.sendSms(
+      phone,
+      `Nemocnica Snina — objednávka ${bookingId} bola preobjednaná na ${date} ${time}.`,
+    );
+  }
+
   async sendRaw(phone: string, message: string): Promise<void> {
     await this.sendSms(phone, message);
   }
