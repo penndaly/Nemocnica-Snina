@@ -16,7 +16,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import * as request from 'supertest';
+import request from 'supertest';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { BookingController } from '../booking/booking.controller';

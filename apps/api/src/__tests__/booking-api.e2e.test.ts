@@ -30,7 +30,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import * as request from 'supertest';
+import request from 'supertest';
 import { BookingController } from '../booking/booking.controller';
 import { BookingService } from '../booking/booking.service';
 import { BookingRulesService } from '../booking/booking-rules.service';
