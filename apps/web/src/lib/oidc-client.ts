@@ -27,8 +27,12 @@ export function generateCodeChallenge(verifier: string): string {
   return createHash('sha256').update(verifier).digest('base64url');
 }
 
+export function generateNonce(): string {
+  return randomBytes(16).toString('hex');
+}
+
 // Build the authorization URL
-export function buildAuthUrl(state: string, verifier: string, locale = 'sk'): string {
+export function buildAuthUrl(state: string, verifier: string, locale = 'sk', nonce?: string): string {
   const challenge = generateCodeChallenge(verifier);
   const params = new URLSearchParams({
     response_type:         'code',
@@ -38,8 +42,33 @@ export function buildAuthUrl(state: string, verifier: string, locale = 'sk'): st
     state,
     code_challenge:        challenge,
     code_challenge_method: 'S256',
+    ...(nonce ? { nonce } : {}),
   });
   return `${ISSUER}/authorize?${params.toString()}`;
+}
+
+/**
+ * Verify the id_token and return the subject. In production the signature is
+ * checked against the IdP JWKS (createRemoteJWKSet) with iss/aud/exp; the nonce
+ * must match the one issued at login (replay protection). With OIDC_MOCK_ENABLED
+ * the local mock IdP is trusted, so only the claims (incl. nonce) are validated.
+ */
+export async function verifyIdToken(idToken: string, expectedNonce: string): Promise<{ sub: string; name?: string }> {
+  const { decodeJwt, jwtVerify, createRemoteJWKSet } = await import('jose');
+  let claims: Record<string, unknown>;
+  if (process.env['OIDC_MOCK_ENABLED'] === 'true') {
+    claims = decodeJwt(idToken) as Record<string, unknown>;
+  } else {
+    const jwks = createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`));
+    const { payload } = await jwtVerify(idToken, jwks, { issuer: ISSUER, audience: CLIENT_ID });
+    claims = payload as Record<string, unknown>;
+  }
+  if (!claims['nonce'] || claims['nonce'] !== expectedNonce) {
+    throw new Error('OIDC id_token nonce mismatch');
+  }
+  const sub = String(claims['sub'] ?? '');
+  if (!sub) throw new Error('OIDC id_token missing sub');
+  return { sub, ...(claims['name'] ? { name: String(claims['name']) } : {}) };
 }
 
 export interface TokenResponse {

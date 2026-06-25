@@ -5,7 +5,7 @@
  * The code verifier is read from the ns_oidc_verifier httpOnly cookie set at login.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { exchangeCode, fetchUserinfo } from '@/lib/oidc-client';
+import { exchangeCode, verifyIdToken } from '@/lib/oidc-client';
 import { SignJWT } from 'jose';
 import { SESSION_SECRET, PATIENT_AUDIENCE } from '@/lib/session-secret';
 
@@ -45,9 +45,16 @@ export async function GET(
     return NextResponse.redirect(new URL(`/${lang}/portal?error=missing_verifier`, req.url));
   }
 
+  const expectedNonce = req.cookies.get('ns_oidc_nonce')?.value;
+  if (!expectedNonce) {
+    return NextResponse.redirect(new URL(`/${lang}/portal?error=missing_nonce`, req.url));
+  }
+
   try {
     const tokens   = await exchangeCode(code, verifier, lang);
-    const identity = await fetchUserinfo(tokens.access_token);
+    // Verify the id_token (signature in prod via JWKS; nonce always) before
+    // trusting the identity — replaces the unverified userinfo-only trust.
+    const identity = await verifyIdToken(tokens.id_token, expectedNonce);
 
     // Mint a short-lived session JWT (no sensitive claims — just the opaque sub)
     const sessionToken = await new SignJWT({ sub: identity.sub, name: identity.name ?? '' })
@@ -69,8 +76,10 @@ export async function GET(
       maxAge:   SESSION_MAX_AGE,
       path:     '/',
     });
-    // Clear the PKCE verifier
+    // Clear the one-time OIDC cookies
     res.cookies.delete('ns_oidc_verifier');
+    res.cookies.delete('ns_oidc_state');
+    res.cookies.delete('ns_oidc_nonce');
 
     return res;
   } catch (err) {

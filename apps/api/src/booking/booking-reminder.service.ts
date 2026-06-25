@@ -34,9 +34,12 @@ export class BookingReminderService {
     const windowStart = new Date(now.getTime() + 47 * 60 * 60 * 1000);
     const windowEnd   = new Date(now.getTime() + 49 * 60 * 60 * 1000);
 
-    // ISO date range covering the window (YYYY-MM-DD)
-    const startDate = windowStart.toISOString().slice(0, 10)!;
-    const endDate   = windowEnd.toISOString().slice(0, 10)!;
+    // Coarse date pre-filter (YYYY-MM-DD), widened a day each side: booking.date
+    // is a local date string while the window is UTC-derived, so a booking near a
+    // UTC/local day boundary could otherwise fall outside this pre-filter and
+    // never reach the exact-ms check below. The exact check keeps precision.
+    const startDate = new Date(windowStart.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)!;
+    const endDate   = new Date(windowEnd.getTime()   + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)!;
 
     const bookings = await this.prisma.booking.findMany({
       where: {
