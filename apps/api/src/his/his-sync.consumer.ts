@@ -128,12 +128,54 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
     return false;
   }
 
+  // Events that CREATE a FHIR resource — must be deduped so a RabbitMQ redelivery
+  // (e.g. crash after the FHIR POST but before ack) does not create a duplicate
+  // Appointment / EpisodeOfCare / MedicationRequest / Task. booking.cancelled is a
+  // conditional PATCH and telehealth.session.ended has its own hisSynced guard.
+  private static readonly IDEMPOTENT_TYPES = new Set([
+    'booking.confirmed', 'onboarding.accepted', 'medication.prescribed', 'portal.refill.requested',
+  ]);
+
   private async syncToHis(event: HisEvent): Promise<void> {
     if (this.mock) {
       this.logger.log(`[HIS mock] ${event.type} ${event.idempotencyKey}`);
       return;
     }
+
+    const deduped = HisSyncConsumer.IDEMPOTENT_TYPES.has(event.type);
+    if (deduped && !(await this.claimHisSync(event.idempotencyKey, event.type))) {
+      this.logger.log(`HIS ${event.type} ${event.idempotencyKey} already synced — skipping (idempotent)`);
+      return;
+    }
+
     const fhirToken = await this.getFhirToken();
+    try {
+      await this.dispatchToFhir(event, fhirToken);
+    } catch (err) {
+      // Release the claim so a redelivery can retry (the resource was not created).
+      if (deduped) await this.releaseHisSync(event.idempotencyKey, event.type);
+      throw err;
+    }
+  }
+
+  /** Atomic claim via a unique (idempotencyKey,eventType) row. False = already claimed. */
+  private async claimHisSync(idempotencyKey: string, eventType: string): Promise<boolean> {
+    try {
+      await this.prisma.hisSyncLog.create({ data: { idempotencyKey, eventType } });
+      return true;
+    } catch (err) {
+      if ((err as { code?: string }).code === 'P2002') return false; // unique violation
+      throw err;
+    }
+  }
+
+  private async releaseHisSync(idempotencyKey: string, eventType: string): Promise<void> {
+    await this.prisma.hisSyncLog
+      .deleteMany({ where: { idempotencyKey, eventType } })
+      .catch(() => undefined);
+  }
+
+  private async dispatchToFhir(event: HisEvent, fhirToken: string): Promise<void> {
     switch (event.type) {
       case 'booking.confirmed':
         await this.postFhir('Appointment', this.buildFhirAppointment(event), fhirToken);

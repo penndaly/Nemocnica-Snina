@@ -437,6 +437,19 @@ model PortalNotification {
 
 // ─── Payment receipts ────────────────────────────────────────────────────────
 
+// Idempotency ledger for HIS FHIR sync — one row per (idempotencyKey,eventType)
+// claimed before a resource-creating FHIR POST, so a RabbitMQ redelivery cannot
+// create a duplicate Appointment / EpisodeOfCare / MedicationRequest / Task.
+model HisSyncLog {
+  id             String   @id @default(uuid())
+  idempotencyKey String   @map("idempotency_key")
+  eventType      String   @map("event_type")
+  syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@unique([idempotencyKey, eventType])
+  @@map("his_sync_log")
+}
+
 model PaymentReceipt {
   id             String   @id @default(uuid())
   transactionRef String   @unique
