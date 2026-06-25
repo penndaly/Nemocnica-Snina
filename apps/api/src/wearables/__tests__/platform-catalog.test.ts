@@ -7,7 +7,7 @@ import {
 
 describe('platform catalogue', () => {
   it('flags cardiac-implant platforms + Meta as partnership-required', () => {
-    for (const p of ['medtronic_cardiac', 'abbott_cardiac', 'boston_scientific', 'meta']) {
+    for (const p of ['medtronic_cgm', 'medtronic_cardiac', 'abbott_cardiac', 'boston_scientific', 'meta']) {
       expect(PLATFORM_CATALOG[p as keyof typeof PLATFORM_CATALOG].partnershipRequired).toBe(true);
     }
   });
