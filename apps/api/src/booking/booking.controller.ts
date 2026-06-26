@@ -49,7 +49,7 @@ export class BookingController {
       if (!clinic.telehealth) {
         throw new BadRequestException('This clinic does not support telehealth bookings');
       }
-      if (!Boolean(body['telehealthConsent'])) {
+      if (!body['telehealthConsent']) {
         throw new BadRequestException('Telehealth consent is required for video consultation bookings');
       }
     }
