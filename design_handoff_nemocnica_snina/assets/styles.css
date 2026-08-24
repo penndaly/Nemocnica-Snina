@@ -313,3 +313,250 @@ table.data tbody tr:hover { background: var(--blue-50); }
 }
 
 /* entrance animation removed — content is always visible */
+
+/* ============================================================
+   Patient Portal — shared layout, nav, portal views, wearables
+   These are used by portal.html, wearables-connect-alerts.html,
+   consent-management.html and any future portal sub-pages.
+   ============================================================ */
+
+/* ---- Portal shell ---- */
+.portal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+}
+.portal-grid {
+  display: grid; grid-template-columns: 230px 1fr; gap: 24px; align-items: start;
+}
+.pnav {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 8px; position: sticky; top: 96px;
+}
+.pnav-btn {
+  display: flex; align-items: center; gap: 11px; text-align: left;
+  padding: 12px 14px; border: none; background: none; border-radius: 9px;
+  font-family: 'Mulish', sans-serif; font-weight: 600; font-size: .95rem;
+  color: var(--ink-2); cursor: pointer; transition: all .14s;
+}
+.pnav-btn svg { width: 19px; height: 19px; flex: 0 0 auto; }
+.pnav-btn:hover { background: var(--warm-100); color: var(--ink); }
+.pnav-btn.active { background: var(--blue-50); color: var(--blue-700); }
+
+.activity-list { list-style: none; margin: 0; padding: 0; }
+.activity-list li {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .92rem;
+}
+.activity-list li:last-child { border-bottom: none; }
+.activity-list a { font-weight: 700; }
+.quick-req {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 18px; flex-wrap: wrap;
+}
+
+.sec-head {
+  padding: 16px 22px; background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  font-weight: 700; font-family: 'Mulish', sans-serif;
+}
+.rec-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line);
+}
+.rec-row:last-child { border-bottom: none; }
+
+/* ---- Teleconsultations ---- */
+.tc-tabs { display: flex; align-items: center; gap: 4px; }
+.tc-tab {
+  font-family: 'Mulish', sans-serif; font-size: .82rem; font-weight: 700;
+  padding: 5px 13px; border-radius: 99px; border: 1px solid var(--line);
+  background: none; color: var(--ink-2); cursor: pointer; transition: all .14s;
+}
+.tc-tab.active { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-200); }
+.tc-tab-count {
+  font-family: 'Mulish', sans-serif; font-size: .72rem; font-weight: 800;
+  background: var(--blue-50); color: var(--blue-700);
+  border-radius: 99px; padding: 1px 8px; margin: 0 2px;
+}
+.tc-list { display: flex; flex-direction: column; }
+.tc-card { padding: 16px 22px; border-bottom: 1px solid var(--line); }
+.tc-card:last-child { border-bottom: none; }
+.tc-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tc-icon {
+  display: inline-flex; width: 38px; height: 38px; border-radius: 10px;
+  background: var(--blue-50); color: var(--blue-700);
+  align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.tc-icon svg { width: 19px; height: 19px; }
+.tc-icon-past { background: var(--warm-100); color: var(--ink-3); }
+.tc-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tc-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding-left: 50px;
+}
+.tc-countdown {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .82rem; color: var(--ink-3); font-family: 'Mulish', sans-serif;
+}
+.tc-countdown svg { width: 14px; height: 14px; }
+.tc-disabled { opacity: .45; pointer-events: none; }
+.tc-summary { padding-left: 50px; margin-top: 10px; }
+.tc-summary-body {
+  background: var(--bg-2); border-radius: 8px; padding: 12px 14px;
+  border-left: 3px solid var(--blue-200);
+}
+.tc-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; padding: 36px 20px; text-align: center;
+}
+.tc-empty-ic {
+  display: inline-flex; width: 52px; height: 52px; border-radius: 13px;
+  background: var(--blue-50); color: #93c5fd;
+  align-items: center; justify-content: center; margin-bottom: 4px;
+}
+.tc-empty-ic svg { width: 26px; height: 26px; }
+.tc-cta {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+  background: var(--blue-50); border-color: var(--blue-100);
+}
+.tc-cta svg { width: 22px; height: 22px; color: var(--blue-600); flex: 0 0 auto; }
+
+/* ---- Wearables & Remote Monitoring ---- */
+.wr-devices-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+.wr-device-card {
+  padding: 20px 22px; border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.wr-device-card:last-child { border-right: none; }
+.wr-device-head { display: flex; align-items: center; gap: 12px; }
+.wr-device-icon {
+  width: 40px; height: 40px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.wr-device-icon svg { width: 20px !important; height: 20px !important; }
+.wr-icon-medical { background: var(--blue-50); color: var(--blue-700); }
+.wr-icon-consumer { background: var(--warm-100); color: var(--ink-2); }
+.wr-device-meta { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wr-device-meta strong { font-family: 'Mulish', sans-serif; font-size: .95rem; }
+.wr-readings-mini { display: flex; flex-direction: column; gap: 8px; }
+.wr-mini-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.wr-mini-val { font-weight: 700; font-size: 1rem; color: var(--ink); }
+.wr-unit { font-size: .78rem; font-weight: 400; color: var(--ink-3); }
+.wr-val-high { color: var(--amber); }
+.wr-device-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px; padding-top: 12px;
+  border-top: 1px solid var(--line); margin-top: auto;
+}
+.wr-device-foot svg { width: 13px !important; height: 13px !important; }
+.wr-share-lbl { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.wr-share-lbl input { cursor: pointer; accent-color: var(--blue-600); width: 14px; height: 14px; }
+
+.wr-timeline { display: flex; flex-direction: column; }
+.wr-tl-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 22px; border-bottom: 1px solid var(--line);
+}
+.wr-tl-row:last-child { border-bottom: none; }
+.wr-tl-time {
+  min-width: 72px; text-align: right; color: var(--ink-3);
+  font-size: .8rem; font-family: 'Mulish', sans-serif; flex: 0 0 auto;
+}
+.wr-tl-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  flex: 0 0 auto; box-shadow: 0 0 0 3px var(--green-50);
+}
+.wr-tl-dot-hi { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-50); }
+.wr-tl-body {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0;
+}
+.wr-tl-metric { font-weight: 600; font-size: .92rem; color: var(--ink); }
+.wr-tl-val { font-weight: 700; font-size: .92rem; }
+
+.wr-avail-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 10px; padding: 18px 22px;
+}
+.wr-avail-btn {
+  display: flex; align-items: center; gap: 11px; padding: 11px 13px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); cursor: pointer; text-align: left;
+  transition: all .14s; width: 100%;
+}
+.wr-avail-btn:hover { border-color: var(--blue-200); background: var(--blue-50); }
+.wr-avail-ic {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--warm-100);
+  color: var(--ink-2); display: flex; align-items: center; justify-content: center;
+  font-family: 'Mulish', sans-serif; font-weight: 800; font-size: .8rem; flex: 0 0 auto;
+}
+.wr-avail-brand {
+  font-family: 'Mulish', sans-serif; font-weight: 700;
+  font-size: .88rem; color: var(--ink); line-height: 1.2;
+}
+.wr-privacy {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 18px;
+}
+.wr-privacy svg {
+  color: var(--blue-600) !important; flex: 0 0 auto;
+  width: 16px !important; height: 16px !important; margin-top: 2px;
+}
+
+@media (max-width: 780px) {
+  .portal-grid { grid-template-columns: 1fr; }
+  .pnav { flex-direction: row; flex-wrap: wrap; position: static; }
+  .pnav-btn { flex: 1; justify-content: center; }
+  .wr-devices-grid { grid-template-columns: 1fr; }
+  .wr-device-card { border-right: none; border-bottom: 1px solid var(--line); }
+  .wr-device-card:last-child { border-bottom: none; }
+}
+@media (max-width: 520px) {
+  .tc-actions { padding-left: 0; }
+  .tc-summary { padding-left: 0; }
+}
+@media (max-width: 480px) {
+  .wr-tl-time { display: none; }
+  .wr-avail-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============ History timeline (o-nemocnici) ============ */
+.hist-timeline { position: relative; padding-left: 28px; }
+.hist-timeline::before { content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }
+.hist-item { position: relative; padding-bottom: 26px; }
+.hist-item:last-child { padding-bottom: 0; }
+.hist-item::before { content: ''; position: absolute; left: -28px; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--blue-700); box-shadow: 0 0 0 3px var(--blue-50); }
+.hist-year { font-family: 'Newsreader', serif; font-weight: 700; color: var(--terra); font-size: 1.05rem; }
+.hist-text { color: var(--ink-2); margin-top: 2px; }
+
+/* ============ Quote / testimonial cards ============ */
+.quote-card { border-left: 4px solid var(--terra); position: relative; }
+.quote-card blockquote { margin: 0 0 10px; font-family: 'Newsreader', serif; font-size: 1.08rem; line-height: 1.55; color: var(--ink); font-style: italic; }
+.quote-card cite { font-style: normal; font-size: .85rem; color: var(--ink-3); font-weight: 600; }
+
+/* ============ Job cards (kariera) ============ */
+.job-card { display: flex; flex-direction: column; gap: 10px; }
+.job-card h3 { margin: 0; font-size: 1.1rem; }
+.job-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ============ Patient education library ============ */
+.edu-cat { margin-bottom: 14px; }
+.edu-list { display: flex; flex-direction: column; gap: 10px; }
+details.edu-article { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm, 10px); padding: 4px 18px; }
+details.edu-article summary { cursor: pointer; padding: 14px 0; font-weight: 700; color: var(--ink); list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+details.edu-article summary::-webkit-details-marker { display: none; }
+details.edu-article summary::after { content: '+'; font-size: 1.3rem; color: var(--blue-700); flex: 0 0 auto; }
+details.edu-article[open] summary::after { content: '–'; }
+.edu-body { padding: 0 0 20px; color: var(--ink-2); line-height: 1.7; }
+.edu-body h4 { margin: 1.1em 0 .4em; color: var(--ink); }
+.edu-stub { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm, 10px); padding: 16px 18px; }
+.edu-stub h4 { margin: 0 0 4px; font-size: .98rem; }
+.edu-stub p { margin: 0; font-size: .88rem; color: var(--ink-3); }
+
+/* ============ Waiting-time / pricing rows ============ */
+.wait-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.wait-row:last-child { border-bottom: none; }
+.wait-row .wr-clinic { font-weight: 700; color: var(--ink); }
+

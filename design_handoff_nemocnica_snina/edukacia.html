@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Materiály pre pacientov — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phBody" style="max-width:70ch"></p>
+    </div>
+  </section>
+  <section class="section" id="catList"></section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "" });
+const LIB = DB.list("educationLibrary");
+
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("footer.education");
+document.getElementById("phEyebrow").textContent = L({sk:"Materiály pre pacientov",en:"Patient education library"});
+document.getElementById("phTitle").textContent = L({sk:"Zrozumiteľné informácie namiesto PDF",en:"Clear information instead of PDFs"});
+document.getElementById("phBody").textContent = L({sk:"Predoperačná príprava, chronické ochorenia, materská starostlivosť, diétna terapia a rehabilitácia — ako prehľadné, mobilné a prístupné webové stránky, nie skenované dokumenty.",en:"Pre-operative prep, chronic conditions, maternity care, diet therapy and rehabilitation — as clear, mobile-friendly, accessible web pages, not scanned documents."});
+
+const EDU_CONTENT = {
+  priprava: {
+    sk: `<h4>Pred príchodom do nemocnice</h4>
+      <ul><li>Prineste si preukaz poistenca, občiansky preukaz a odporúčanie lekára.</li>
+      <li>Zoznam všetkých liekov, ktoré užívate, vrátane voľnopredajných a výživových doplnkov.</li>
+      <li>Pohodlné oblečenie a hygienické potreby na dobu hospitalizácie.</li></ul>
+      <h4>Lačnenie pred zákrokom</h4>
+      <p>Ak vám lekár neurčí inak, prestaňte jesť tuhú stravu najmenej 6 hodín pred plánovaným časom operácie a čisté tekutiny najmenej 2 hodiny vopred. Nedodržanie lačnenia môže viesť k odloženiu zákroku z bezpečnostných dôvodov.</p>
+      <h4>Pravidelne užívané lieky</h4>
+      <p>Niektoré lieky (najmä antikoagulanciá ako warfarín) je potrebné vysadiť alebo upraviť podľa pokynov anestéziológa. Dávkovanie nikdy nemeňte bez konzultácie.</p>
+      <h4>V deň zákroku</h4>
+      <p>Príďte v stanovenom čase na centrálnu recepciu, ktorá vás nasmeruje na predoperačné vyšetrenie. Počítajte s časom na administratívu a záverečný pohovor s anestéziológom.</p>`,
+    en: `<h4>Before you arrive</h4>
+      <ul><li>Bring your insurance card, ID, and your physician's referral.</li>
+      <li>A list of every medication you take, including over-the-counter drugs and supplements.</li>
+      <li>Comfortable clothing and toiletries for your stay.</li></ul>
+      <h4>Fasting before your procedure</h4>
+      <p>Unless your doctor says otherwise, stop eating solid food at least 6 hours before your scheduled surgery time, and clear fluids at least 2 hours before. Not fasting can mean your procedure is postponed for safety.</p>
+      <h4>Regular medications</h4>
+      <p>Some medications (particularly anticoagulants such as warfarin) need to be paused or adjusted on your anesthesiologist's instructions. Never change your dose without checking first.</p>
+      <h4>On the day</h4>
+      <p>Arrive at the scheduled time at central reception, which will direct you to pre-operative assessment. Allow time for paperwork and a final conversation with your anesthesiologist.</p>`
+  },
+  hypertenzia: {
+    sk: `<h4>Čo je artériová hypertenzia</h4>
+      <p>Artériová hypertenzia je dlhodobo zvýšený krvný tlak (nad 140/90 mmHg pri opakovanom meraní). Neliečená zvyšuje riziko cievnej mozgovej príhody, infarktu myokardu a poškodenia obličiek.</p>
+      <h4>Meranie tlaku doma</h4>
+      <ul><li>Merajte v pokoji, po 5 minútach sedenia, ráno aj večer.</li>
+      <li>Zaznamenávajte hodnoty a prineste si ich na kontrolu k lekárovi.</li></ul>
+      <h4>Životospráva</h4>
+      <ul><li>Obmedzte príjem soli na menej ako 5 g denne.</li>
+      <li>Pravidelný pohyb — aspoň 150 minút týždenne strednej intenzity.</li>
+      <li>Obmedzenie alkoholu a ukončenie fajčenia.</li></ul>
+      <h4>Kedy vyhľadať pomoc ihneď</h4>
+      <p>Pri hodnotách nad 180/120 mmHg spolu s bolesťou hlavy, bolesťou na hrudi, dýchavičnosťou alebo poruchou videnia okamžite volajte 112.</p>`,
+    en: `<h4>What arterial hypertension is</h4>
+      <p>Arterial hypertension is persistently elevated blood pressure (above 140/90 mmHg on repeated measurement). Left untreated it raises the risk of stroke, heart attack and kidney damage.</p>
+      <h4>Measuring at home</h4>
+      <ul><li>Measure at rest, after sitting for 5 minutes, morning and evening.</li>
+      <li>Keep a log and bring it to your check-up.</li></ul>
+      <h4>Lifestyle</h4>
+      <ul><li>Limit salt intake to under 5g a day.</li>
+      <li>Regular activity — at least 150 minutes a week of moderate intensity.</li>
+      <li>Limit alcohol and stop smoking.</li></ul>
+      <h4>When to seek help immediately</h4>
+      <p>If your reading is above 180/120 mmHg together with headache, chest pain, shortness of breath, or vision changes, call 112 immediately.</p>`
+  }
+};
+
+document.getElementById("catList").innerHTML = `<div class="container">` + LIB.map(cat => `
+  <div class="edu-cat">
+    <h2>${esc(L(cat.category))}</h2>
+    <div class="edu-list mt-2">
+      ${cat.articles.map(a => a.full
+        ? `<details class="edu-article"><summary>${esc(L(a.title))} <span class="badge badge-blue" style="margin-left:auto">${esc(L({sk:"Plný článok",en:"Full article"}))}</span></summary><div class="edu-body">${EDU_CONTENT[a.id][getLang()]}</div></details>`
+        : `<div class="edu-stub"><div><h4>${esc(L(a.title))}</h4><p>${esc(L(a.summary))}</p></div><span class="badge badge-gray" style="flex:0 0 auto">${esc(L({sk:"Pripravujeme",en:"Coming soon"}))}</span></div>`
+      ).join("")}
+    </div>
+  </div>`).join("") + `</div>`;
+</script>
+</body>
+</html>

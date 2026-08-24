@@ -1,11 +1,12 @@
 import { WearablesCronService } from '../wearables-cron.service';
+import { CronHeartbeatService } from '../../health/cron-heartbeat.service';
 
 function make(prismaOver: Record<string, unknown>) {
   const audit = { log: jest.fn().mockResolvedValue(undefined) } as never;
   const digest = { flushDue: jest.fn().mockResolvedValue(0) } as never;
   const cfg = { get: () => '90' } as never;
   const prisma = prismaOver as never;
-  return { svc: new WearablesCronService(prisma, audit, digest, cfg), audit };
+  return { svc: new WearablesCronService(prisma, audit, digest, cfg, new CronHeartbeatService()), audit };
 }
 
 describe('WearablesCronService.purgeExpiredReadings (WL9 Part C)', () => {

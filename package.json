@@ -33,7 +33,8 @@
   },
   "pnpm": {
     "overrides": {
-      "better-sqlite3": "^11.0.0"
+      "better-sqlite3": "^11.0.0",
+      "esbuild": "0.19.11"
     }
   }
 }

@@ -1,0 +1,38 @@
+# Strapi 4 CMS.
+#
+#   docker build -f infra/docker/Dockerfile.cms -t nemocnica-strapi .
+#
+# Strapi's admin bundle is built at image-build time; the runtime needs the
+# full dependency set (plugins are resolved dynamically), so this is a single
+# install rather than a pruned production tree.
+
+FROM node:20-alpine AS base
+# Strapi's sharp/better-sqlite3 native deps need a toolchain to build.
+RUN apk add --no-cache python3 make g++ vips-dev
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS build
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json      apps/api/
+COPY apps/web/package.json      apps/web/
+COPY apps/cms/package.json      apps/cms/
+COPY packages/ui/package.json   packages/ui/
+COPY packages/types/package.json packages/types/
+RUN pnpm install --frozen-lockfile
+COPY . .
+ENV NODE_ENV=production
+RUN pnpm --filter nemocnica-snina-cms build
+
+FROM base AS runtime
+ENV NODE_ENV=production
+COPY --from=build /repo /repo
+# Strapi refuses to boot without public/ (and writes uploads into it), and it
+# creates database/migrations at startup — both need to be writable by the
+# non-root runtime user, so the whole app directory is handed to `node`.
+RUN mkdir -p /repo/apps/cms/public/uploads /repo/apps/cms/database/migrations \
+ && chown -R node:node /repo/apps/cms
+USER node
+EXPOSE 1337
+WORKDIR /repo/apps/cms
+CMD ["pnpm", "start"]

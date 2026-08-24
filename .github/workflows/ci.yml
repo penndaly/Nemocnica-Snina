@@ -24,6 +24,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter=@ns/api exec prisma generate
       - run: pnpm typecheck
 
   # ── Lint ──────────────────────────────────────────────────
@@ -157,6 +158,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter=@ns/api exec prisma generate
       - run: pnpm build
         env:
           NEXT_PUBLIC_API_URL: https://api.nemocnicasnina.sk
@@ -252,8 +254,11 @@ jobs:
             -v NS_APP_PASSWORD="$NS_APP_PASSWORD" \
             -f infra/postgres/audit-immutability.sql
 
+      # webkit as well as chromium — playwright.config.ts has a `mobile`
+      # project on iPhone 13, which is WebKit. Installing chromium alone made
+      # every mobile-project spec fail to launch a browser.
       - name: Install Playwright browsers
-        run: pnpm --filter=@ns/web exec playwright install --with-deps chromium
+        run: pnpm --filter=@ns/web exec playwright install --with-deps chromium webkit
 
       - name: Start API server
         run: pnpm --filter=@ns/api start &

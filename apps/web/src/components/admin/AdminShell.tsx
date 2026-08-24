@@ -23,17 +23,19 @@ export function useAdminData(): AdminDataContextValue {
 }
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAdminAuth();
+  const { isAuthenticated, restoring } = useAdminAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [data, setData] = useState<Seed>(cloneSeed);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated. Gated on `restoring` so a reload or
+  // deep-link is not bounced to /admin/login (and on to /admin/departments)
+  // before the token has been read back out of sessionStorage.
   useEffect(() => {
-    if (!isAuthenticated && pathname !== '/admin/login') {
+    if (!restoring && !isAuthenticated && pathname !== '/admin/login') {
       router.replace('/admin/login');
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [restoring, isAuthenticated, pathname, router]);
 
   const updateCollection = (key: string, items: unknown[]) => {
     setData((prev) => ({ ...prev, [key]: items }));
@@ -43,7 +45,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (!isAuthenticated) return null;
+  if (restoring || !isAuthenticated) return null;
 
   return (
     <AdminDataContext.Provider value={{ data, updateCollection, updateSingleton }}>

@@ -8,6 +8,7 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AuditApiModule } from './audit/audit-api.module';
 import { PortalModule } from './portal/portal.module';
 import { HealthModule } from './health/health.module';
+import { CronHeartbeatModule } from './health/cron-heartbeat.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { BookingModule } from './booking/booking.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
@@ -43,6 +44,7 @@ import { WearablesModule } from './wearables/wearables.module';
     TelehealthModule,
     WearablesModule,
     PortalModule,
+    CronHeartbeatModule,
     HealthModule,
   ],
 })

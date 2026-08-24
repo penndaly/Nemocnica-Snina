@@ -1,0 +1,179 @@
+# ── EU staging / demo stack ───────────────────────────────────────────────────
+#
+#   docker compose --env-file infra/.env.staging \
+#     -f infra/docker-compose.staging.yml up -d
+#
+# This is the SHARED DEMO environment, not the go-live target.
+#
+#   * It runs in MOCK MODE on purpose: OIDC_MOCK_ENABLED=true,
+#     HIS_MOCK_ENABLED=true, wearables mock, payments mock. The L1–L9 launch
+#     gate is a separate exercise for the real deployment.
+#   * Because the API config validator rejects mocks whenever
+#     NODE_ENV=production, the API runs with NODE_ENV=staging_demo semantics:
+#     NODE_ENV is deliberately NOT 'production' here. That also relaxes the
+#     internal TLS requirements (rediss://, amqps://), which is acceptable only
+#     because every backing service is on the compose-internal network with no
+#     published port.
+#   * Therefore: NEVER put real patient data in this environment. It is a
+#     content/UX demo. Real data requires the production overlay plus the L1–L9
+#     gate and DPO sign-off.
+#
+# The host still needs TLS at the edge — see docs/STAGING_DEPLOYMENT.md.
+
+# Explicit project name. Without it Compose derives the project from the
+# directory ("infra"), which collides with the dev stack's volumes — a
+# pre-existing dev postgres volume keeps its old password and the API fails
+# to authenticate (Prisma P1000).
+name: nemocnica-staging
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: nsadmin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: nemocnica_snina
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nsadmin -d nemocnica_snina"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No published ports — reachable only on the compose network.
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: nsqueue
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Behind a profile: `--profile cms up -d`.
+  #
+  # Strapi cannot boot today — apps/cms/src/api/* has controllers, routes and
+  # services but NO content-types/<name>/schema.json, so createCoreRouter has
+  # nothing to bind to and registerAPIRoutes throws
+  # "Cannot read properties of undefined (reading 'kind')". Defining the nine
+  # content types is a content-model task, not an infra one.
+  #
+  # Until then the web app falls back to the bundled SEED data exactly as it
+  # does in local dev (CmsClinicService logs "fetch failed, using last
+  # cache/seed"), so the demo site is fully browsable without the CMS.
+  strapi:
+    profiles: ["cms"]
+    image: ${REGISTRY}/nemocnica-strapi:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      NODE_ENV: production
+      # apps/cms/config/database.js reads DB_* — NOT the DATABASE_* names used
+      # by docker-compose.production.yml, which is why Strapi there would fall
+      # back to 127.0.0.1 and never reach the postgres service.
+      DB_CLIENT: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: nemocnica_strapi
+      DB_USER: nsadmin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_KEYS: ${STRAPI_APP_KEYS:?set STRAPI_APP_KEYS}
+      API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT:?set STRAPI_API_TOKEN_SALT}
+      ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT:?set STRAPI_ADMIN_JWT}
+      JWT_SECRET: ${STRAPI_JWT:?set STRAPI_JWT}
+      ALLOWED_ORIGINS: ${APP_BASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: ${REGISTRY}/nemocnica-api:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      # NOT 'production' — see the header. Mocks are rejected in production.
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://nsadmin:${POSTGRES_PASSWORD}@postgres:5432/nemocnica_snina
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      RABBITMQ_URL: amqp://nsqueue:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (>=32 chars)}
+      STAFF_JWT_SECRET: ${STAFF_JWT_SECRET:?set STAFF_JWT_SECRET}
+      MFA_REQUIRED: "true"
+      # ── Mock mode: the point of this environment ──
+      OIDC_MOCK_ENABLED: "true"
+      HIS_MOCK_ENABLED: "true"
+      SMS_PROVIDER: console
+      PAYMENT_PROVIDER: mock
+      MT_PROVIDER: mock
+      TELEHEALTH_PROVIDER: mock
+      WEARABLES_ENABLED: "false"
+      WEARABLES_PROVIDER: mock
+      WEARABLES_TOKEN_KEY: ${WEARABLES_TOKEN_KEY:?set WEARABLES_TOKEN_KEY (32-byte hex)}
+      # Both are read at service construction — the API refuses to boot without
+      # them, regardless of mock mode.
+      STAFF_TOTP_KEY: ${STAFF_TOTP_KEY:?set STAFF_TOTP_KEY (32-byte hex)}
+      RC_ENCRYPTION_KEY: ${RC_ENCRYPTION_KEY:?set RC_ENCRYPTION_KEY (32-byte hex)}
+      STRAPI_URL: http://strapi:1337
+      STRAPI_API_TOKEN: ${STRAPI_API_TOKEN:?set STRAPI_API_TOKEN}
+      ALLOWED_ORIGINS: ${APP_BASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  web:
+    # NEXT_PUBLIC_* are baked at build time (they also feed the CSP connect-src),
+    # so this image must be built with --build-arg NEXT_PUBLIC_API_URL for THIS
+    # environment. Re-pointing it at runtime does not work.
+    image: ${REGISTRY}/nemocnica-web:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      OIDC_MOCK_ENABLED: "true"
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.25-alpine
+    restart: always
+    volumes:
+      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf:ro
+      - ${TLS_CERT_DIR:?set TLS_CERT_DIR}:/tls:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+      - api
+      # strapi is intentionally omitted — it sits behind the `cms` profile, and
+      # a depends_on entry for a profiled service makes the project invalid
+      # unless that profile is active.
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:

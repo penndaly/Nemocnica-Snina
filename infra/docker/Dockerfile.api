@@ -1,0 +1,50 @@
+# NestJS API — multi-stage build for the pnpm workspace.
+#
+# Built from the REPO ROOT so the lockfile and workspace packages are in scope:
+#   docker build -f infra/docker/Dockerfile.api -t nemocnica-api .
+
+FROM node:22-alpine AS base
+RUN corepack enable
+WORKDIR /repo
+
+# ── deps: install once against the full workspace manifest set ────────────────
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json      apps/api/
+COPY apps/web/package.json      apps/web/
+COPY apps/cms/package.json      apps/cms/
+COPY packages/ui/package.json   packages/ui/
+COPY packages/types/package.json packages/types/
+RUN pnpm install --frozen-lockfile
+
+# ── build ─────────────────────────────────────────────────────────────────────
+FROM deps AS build
+COPY . .
+# Prisma client must be generated before tsc — the API imports its types.
+RUN pnpm --filter @ns/api exec prisma generate
+RUN pnpm --filter @ns/api build
+
+# ── runtime ───────────────────────────────────────────────────────────────────
+# The dependency tree is carried over from the build stage rather than
+# re-installed with --prod. pnpm generates the Prisma client INTO its virtual
+# store (node_modules/.pnpm/@prisma+client@<hash>/node_modules/.prisma), and
+# @prisma/client resolves `.prisma` relative to its own store directory — so a
+# pruned re-install produces a tree where the client cannot find its generated
+# code. Copying the built tree keeps that wiring intact. The cost is dev
+# dependencies riding along in the image; acceptable for staging, and the fix
+# if it ever matters is `pnpm deploy --prod` with a hoisted node-linker.
+FROM base AS runtime
+ENV NODE_ENV=production
+COPY --from=build /repo/package.json /repo/pnpm-workspace.yaml /repo/pnpm-lock.yaml ./
+COPY --from=build /repo/node_modules            node_modules
+COPY --from=build /repo/packages                packages
+COPY --from=build /repo/apps/api/package.json   apps/api/
+COPY --from=build /repo/apps/api/node_modules   apps/api/node_modules
+COPY --from=build /repo/apps/api/dist           apps/api/dist
+COPY --from=build /repo/apps/api/prisma         apps/api/prisma
+
+# Never run as root — the API holds DB and queue credentials.
+USER node
+EXPOSE 4000
+WORKDIR /repo/apps/api
+CMD ["node", "dist/main"]

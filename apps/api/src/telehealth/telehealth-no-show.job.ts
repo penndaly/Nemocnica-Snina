@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { TelehealthStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { CronHeartbeatService } from '../health/cron-heartbeat.service';
 
 @Injectable()
 export class TelehealthNoShowJob {
@@ -14,6 +15,7 @@ export class TelehealthNoShowJob {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     cfg: ConfigService,
+    private readonly heartbeat: CronHeartbeatService,
   ) {
     this.gracePeriodMinutes = cfg.get<number>('TELEHEALTH_NO_SHOW_GRACE_MINUTES') ?? 15;
   }
@@ -21,6 +23,11 @@ export class TelehealthNoShowJob {
   // Every 5 minutes: mark sessions as no_show if patient never joined within grace period
   @Cron(CronExpression.EVERY_5_MINUTES)
   async markNoShows(): Promise<void> {
+    // track() re-throws, preserving this job's existing failure behaviour.
+    await this.heartbeat.track('telehealth.no-show', () => this.runMarkNoShows());
+  }
+
+  private async runMarkNoShows(): Promise<void> {
     const graceCutoff = new Date(
       Date.now() - this.gracePeriodMinutes * 60 * 1000,
     );

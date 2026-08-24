@@ -1,5 +1,6 @@
 import { TelehealthStatus } from '@prisma/client';
 import { TelehealthNoShowJob } from '../telehealth-no-show.job';
+import { CronHeartbeatService } from '../../health/cron-heartbeat.service';
 
 function baseSession(scheduledAt: Date) {
   return {
@@ -28,7 +29,7 @@ describe('TelehealthNoShowJob', () => {
   it('marks overdue scheduled sessions as no_show', async () => {
     const pastDate = new Date(Date.now() - 30 * 60 * 1000); // 30 min ago
     const { prisma, audit, cfg } = buildDeps([baseSession(pastDate)]);
-    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
+    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never, new CronHeartbeatService());
 
     await job.markNoShows();
 
@@ -47,7 +48,7 @@ describe('TelehealthNoShowJob', () => {
     const pastDate = new Date(Date.now() - 30 * 60 * 1000);
     const { prisma, audit, cfg } = buildDeps([baseSession(pastDate)]);
     prisma.telehealthSession.updateMany.mockResolvedValueOnce({ count: 0 }); // patient just joined
-    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
+    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never, new CronHeartbeatService());
 
     await job.markNoShows();
 
@@ -56,7 +57,7 @@ describe('TelehealthNoShowJob', () => {
 
   it('does nothing when no sessions are overdue', async () => {
     const { prisma, audit, cfg } = buildDeps([]);
-    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
+    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never, new CronHeartbeatService());
 
     await job.markNoShows();
 
@@ -74,7 +75,7 @@ describe('TelehealthNoShowJob', () => {
     prisma.telehealthSession.updateMany
       .mockRejectedValueOnce(new Error('DB error'))
       .mockResolvedValueOnce({ count: 1 });
-    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never);
+    const job = new TelehealthNoShowJob(prisma as never, audit as never, cfg as never, new CronHeartbeatService());
 
     await job.markNoShows(); // Must not throw
 
