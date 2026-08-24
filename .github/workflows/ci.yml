@@ -70,7 +70,7 @@ jobs:
       DATABASE_URL: postgresql://nstest:nstest@localhost:5432/nemocnica_test
       # Application role URL — used by audit immutability test
       DATABASE_URL_APP: postgresql://ns_app:ns_app_ci@localhost:5432/nemocnica_test
-      JWT_SECRET: test_secret_for_ci_only
+      JWT_SECRET: test_secret_for_ci_e2e_pipeline_min32chars
       NS_APP_PASSWORD: ns_app_ci
     steps:
       - uses: actions/checkout@v4
@@ -138,7 +138,7 @@ jobs:
         ports: ["5432:5432"]
     env:
       DATABASE_URL: postgresql://nstest:nstest@localhost:5432/nemocnica_test
-      JWT_SECRET: test_secret_for_ci_only
+      JWT_SECRET: test_secret_for_ci_e2e_pipeline_min32chars
       NS_APP_PASSWORD: ns_app_ci
     steps:
       - uses: actions/checkout@v4
@@ -239,7 +239,7 @@ jobs:
       DATABASE_URL:     postgresql://nstest:nstest@localhost:5432/nemocnica_test
       REDIS_URL:        redis://localhost:6379
       RABBITMQ_URL:     amqp://guest:guest@localhost:5672
-      JWT_SECRET:       test_secret_for_ci_only
+      JWT_SECRET:       test_secret_for_ci_e2e_pipeline_min32chars
       SMS_PROVIDER:     console
       HIS_MOCK_ENABLED: "true"
       OIDC_MOCK_ENABLED: "true"
@@ -250,6 +250,21 @@ jobs:
       STRAPI_API_TOKEN: dev-token
       NEXT_PUBLIC_API_URL: http://localhost:3001
       NS_APP_PASSWORD: ns_app_ci
+      # This job does a real `node dist/main` full-app bootstrap (unlike
+      # test/test-edge, which build minimal Nest testing modules and never
+      # trigger startup config validation) — these are all-zero-hex-rejected
+      # by config.schema.ts's hexSecret() the moment NODE_ENV=production, but
+      # this job doesn't set NODE_ENV, so the all-zero dev default should
+      # apply... except it didn't reliably in local testing, so setting
+      # explicit CI-only values here is both correct and doesn't depend on
+      # figuring out why. Fixed, throwaway values — this is an ephemeral CI
+      # runner, not a real deployment.
+      STAFF_JWT_SECRET:    7adfce29c94b95f41cf252c0cd642d9f98eda34978c1e8d7f0a6dbace8304c30
+      STAFF_MFA_SECRET:    2151ad5b4c04e1f0e8e575d1dd765555d4e924d463fa7d15605a49f662d1c28b
+      STAFF_TOTP_KEY:      7d6973fc35bc1393a070ba727a7846328649a084e5ce72dff6acfb344dc0105a
+      RC_ENCRYPTION_KEY:   a3c4c275157fa44eab73cec7cb7db38303eb045a9f7dbf52635213e67c571baf
+      GDPR_EXPORT_KEY:     72e1e587cbeb5c73b104c4ede3fc3db3685dc844a90789efd29ae1d671148160
+      WEARABLES_TOKEN_KEY: e17ecb937553296b9e02f15466ff8251eec15e46c8a6a389c7d5c6f743ff8171
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -265,6 +280,20 @@ jobs:
           PGPASSWORD=nstest psql -h localhost -U nstest -d nemocnica_test \
             -v NS_APP_PASSWORD="$NS_APP_PASSWORD" \
             -f infra/postgres/audit-immutability.sql
+
+      # This job starts the API/web servers from their production builds
+      # (`node dist/main`, `next start`) but never built anything — dist/ and
+      # .next/ don't exist in a fresh checkout, so both would fail
+      # immediately and "Wait for servers" would just time out. Can't reuse
+      # the shared `build` job's output either: Next.js inlines NEXT_PUBLIC_*
+      # at build time, and that job bakes in the production API/CMS URLs —
+      # this job needs the localhost ones already in its own `env:` block
+      # above, so it needs its own build.
+      - name: Build API + web for e2e
+        run: |
+          pnpm --filter=@ns/api exec prisma generate
+          pnpm --filter=@ns/api build
+          pnpm --filter=@ns/web build
 
       # webkit as well as chromium — playwright.config.ts has a `mobile`
       # project on iPhone 13, which is WebKit. Installing chromium alone made
