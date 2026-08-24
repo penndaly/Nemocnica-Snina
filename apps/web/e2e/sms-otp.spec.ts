@@ -22,7 +22,7 @@ skipIfRealSms('SMS1: OTP is sent and verifiable via test helper', async () => {
   expect(r1.status).toBe(201);
 
   // Retrieve last OTP via test helper (console mode only)
-  const r2 = await fetch(`${API}/api/sms/last-otp?phone=${phone}&purpose=test`);
+  const r2 = await fetch(`${API}/api/sms/last-otp?phone=${encodeURIComponent(phone)}&purpose=test`);
   expect(r2.status).toBe(200);
   const { code } = await r2.json() as { code: string };
   expect(code).toMatch(/^\d{6}$/);
@@ -68,7 +68,7 @@ skipIfRealSms('SMS3: expired OTP is rejected', async () => {
 
   await new Promise((r) => setTimeout(r, 50)); // wait for expiry
 
-  const r2 = await fetch(`${API}/api/sms/last-otp?phone=${phone}&purpose=expired-test`);
+  const r2 = await fetch(`${API}/api/sms/last-otp?phone=${encodeURIComponent(phone)}&purpose=expired-test`);
   if (!r2.ok) { test.skip(); return; } // helper not available
   const { code } = await r2.json() as { code: string };
 

@@ -45,10 +45,21 @@ export default async function globalSetup() {
   const nextTuesday  = nextWeekday(2);
   const nextThursday = nextWeekday(4);
   const clinicSlots = [
-    // Urology: a few slots on the next available weekday
-    { clinicId: 'urologicka', date: nextTuesday, time: '09:00' },
-    { clinicId: 'urologicka', date: nextTuesday, time: '09:20' },
-    { clinicId: 'urologicka', date: nextTuesday, time: '09:40' },
+    // Urology: bookingDays is every weekday (seed.ts: [1,2,3,4,5]), and the
+    // wizard offers up to 8 upcoming bookable dates, clicking whichever
+    // renders first (the chronologically nearest one) — seeding only a
+    // single weekday (e.g. "next Tuesday") means the actual nearest date
+    // the wizard offers has no matching slot whenever "today" isn't the
+    // day right before that Tuesday. Seed every weekday Mon-Fri so
+    // whichever date is nearest always has a slot.
+    ...([1, 2, 3, 4, 5] as const).flatMap((day) => {
+      const date = nextWeekday(day);
+      return [
+        { clinicId: 'urologicka', date, time: '09:00' },
+        { clinicId: 'urologicka', date, time: '09:20' },
+        { clinicId: 'urologicka', date, time: '09:40' },
+      ];
+    }),
     // Trauma surgery: Tue/Thu
     { clinicId: 'urazova-chirurgia', date: nextTuesday,  time: '09:00' },
     { clinicId: 'urazova-chirurgia', date: nextThursday, time: '09:00' },

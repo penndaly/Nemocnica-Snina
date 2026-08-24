@@ -31,7 +31,12 @@ test('ON3: invalid RC is rejected client-side before submit', async ({ page }) =
   // runs. Pick a real insurer (index 1) so this test isolates the RC check.
   await page.selectOption('[name="insurerCode"]', { index: 1 }).catch(() => null);
   await page.click('button[type="submit"], button:has-text("Odoslať")');
-  await expect(page.locator('text=Neplatné rodné číslo, [role="alert"]')).toBeVisible({ timeout: 3_000 });
+  // NOTE: `text=A, [role="alert"]` is NOT a selector union — Playwright's text
+  // engine treats an unquoted comma as part of the search string itself, so
+  // this never matched anything. .or() is the correct way to combine engines.
+  await expect(
+    page.getByText('Neplatné rodné číslo').or(page.locator('[role="alert"]')),
+  ).toBeVisible({ timeout: 3_000 });
 });
 
 test('ON4: valid submission succeeds (API creates application)', async () => {

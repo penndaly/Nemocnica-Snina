@@ -31,8 +31,11 @@ test('A2: invalid password shows error', async ({ page }) => {
   // thing as CSS once the string starts with `[role="alert"]`, and chokes on
   // the embedded `text=`). getByRole covers the app's actual markup
   // (`role="alert"` on the error banner) without needing to match its exact
-  // (untranslated) message text.
-  await expect(page.getByRole('alert')).toBeVisible({ timeout: 5_000 });
+  // (untranslated) message text. Filtered to non-empty text: Next.js always
+  // renders its own empty `role="alert"` route-announcer div for a11y route
+  // changes, so an unfiltered getByRole('alert') is a strict-mode
+  // multi-match once the error banner also appears.
+  await expect(page.getByRole('alert').filter({ hasText: /.+/ })).toBeVisible({ timeout: 5_000 });
 });
 
 test('A3: valid login + TOTP → reaches admin dashboard', async ({ page }) => {
