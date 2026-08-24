@@ -40,6 +40,17 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+// Both layers documented in audit-immutability.sql are valid rejection paths:
+// Postgres checks table-level privileges (Layer 1: REVOKE UPDATE/DELETE)
+// before a statement ever reaches row-level trigger execution (Layer 2), so
+// ns_app's mutations are always rejected by the privilege check first —
+// "permission denied for table audit_log" — never by the trigger's own
+// "append-only..." message. The trigger fires only if a role WITH grant-level
+// UPDATE/DELETE privileges attempts a mutation (e.g. a superuser slipping
+// through), which this ns_app-scoped test can't exercise. Both messages
+// indicate the same correct outcome: the mutation was rejected.
+const REJECTION_MESSAGE = /append-only|prohibited|insufficient_privilege|permission denied/i;
+
 describe('audit_log DB-level immutability (Decree 179/2020)', () => {
   it('INSERT succeeds — application can write audit events', async () => {
     await expect(
@@ -74,7 +85,7 @@ describe('audit_log DB-level immutability (Decree 179/2020)', () => {
         WHERE id = ${TEST_ENTRY_ID}
       `,
     ).rejects.toMatchObject({
-      message: expect.stringMatching(/append-only|prohibited|insufficient_privilege/i),
+      message: expect.stringMatching(REJECTION_MESSAGE),
     });
   });
 
@@ -85,7 +96,7 @@ describe('audit_log DB-level immutability (Decree 179/2020)', () => {
         WHERE id = ${TEST_ENTRY_ID}
       `,
     ).rejects.toMatchObject({
-      message: expect.stringMatching(/append-only|prohibited|insufficient_privilege/i),
+      message: expect.stringMatching(REJECTION_MESSAGE),
     });
   });
 
@@ -96,7 +107,7 @@ describe('audit_log DB-level immutability (Decree 179/2020)', () => {
         data: { action: 'TAMPERED' },
       }),
     ).rejects.toMatchObject({
-      message: expect.stringMatching(/append-only|prohibited|insufficient_privilege/i),
+      message: expect.stringMatching(REJECTION_MESSAGE),
     });
   });
 

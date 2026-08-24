@@ -87,9 +87,7 @@ services:
     restart: always
     environment:
       NODE_ENV: production
-      # apps/cms/config/database.js reads DB_* — NOT the DATABASE_* names used
-      # by docker-compose.production.yml, which is why Strapi there would fall
-      # back to 127.0.0.1 and never reach the postgres service.
+      # apps/cms/config/database.js reads DB_* — NOT DATABASE_*.
       DB_CLIENT: postgres
       DB_HOST: postgres
       DB_PORT: 5432
@@ -99,6 +97,7 @@ services:
       APP_KEYS: ${STRAPI_APP_KEYS:?set STRAPI_APP_KEYS}
       API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT:?set STRAPI_API_TOKEN_SALT}
       ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT:?set STRAPI_ADMIN_JWT}
+      TRANSFER_TOKEN_SALT: ${STRAPI_TRANSFER_TOKEN_SALT:?set STRAPI_TRANSFER_TOKEN_SALT}
       JWT_SECRET: ${STRAPI_JWT:?set STRAPI_JWT}
       ALLOWED_ORIGINS: ${APP_BASE_URL}
     depends_on:

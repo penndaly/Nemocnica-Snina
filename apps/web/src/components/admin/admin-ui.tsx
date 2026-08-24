@@ -7,6 +7,7 @@
  * than introducing a second design language.
  */
 import React from 'react';
+export { ScrollArea } from '@/components/ScrollArea';
 
 export const INK = '#e8f0fb';
 export const MUTED = '#94a3b8';
@@ -79,22 +80,6 @@ export const th: React.CSSProperties = {
   letterSpacing: '.06em',
   textAlign: 'left',
 };
-
-/**
- * Horizontally scrollable wrapper for wide tables.
- *
- * `overflow-x: auto` alone fails WCAG 2.1 AA (axe `scrollable-region-focusable`):
- * a keyboard-only user cannot scroll the region. tabIndex makes it focusable and
- * the labelled role gives screen readers something to announce. Caught on the
- * mobile viewport, where the tables actually overflow.
- */
-export function ScrollArea({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div role="region" aria-label={label} tabIndex={0} style={{ overflowX: 'auto' }}>
-      {children}
-    </div>
-  );
-}
 
 export function Card({ title, children, actions }: { title?: string; children: React.ReactNode; actions?: React.ReactNode }) {
   return (

@@ -31,10 +31,17 @@
   /* Warm ink */
   --ink:    #2c2820;
   --ink-2:  #5b5347;
-  --ink-3:  #8a8073;
+  /* #8a8073 was 3.88:1 on white — fails WCAG AA (4.5:1) for normal text,
+     e.g. table.data th. --ink-3 is used across --surface/--bg/--bg-2/
+     --warm-100; darkened to clear 4.5:1 against the darkest of those
+     (--warm-100, 4.61:1) so it holds everywhere, not just on white. */
+  --ink-3:  #71695e;
 
   /* Accents */
-  --terra:   #c06a38;
+  /* #c06a38 was 3.38:1 on --terra-50 (badge-terra text) — fails AA.
+     Darkened to hit 4.56:1; also improves .btn-terra's white-on-terra
+     text from 3.92:1 to 5.3:1. */
+  --terra:   #a0592f;
   --terra-50:#f8ece3;
   --green:   #2f8a64;
   --green-50:#e6f2ec;

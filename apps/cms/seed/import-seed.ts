@@ -12,7 +12,7 @@
  */
 
 // Import SEED from the web package (already ported as TypeScript)
-import { SEED } from '../../apps/web/src/lib/seed';
+import { SEED } from '../../web/src/lib/seed';
 
 const BASE  = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
 const TOKEN = process.env['STRAPI_API_TOKEN'] ?? '';
@@ -39,6 +39,28 @@ async function findBySlug(path: string, slug: string): Promise<number | null> {
   const res = await fetch(`${BASE}/api/${path}?filters[slug][$eq]=${slug}&locale=sk`, { headers });
   const json = await res.json() as { data: Array<{ id: number }> };
   return json.data[0]?.id ?? null;
+}
+
+// disclosures don't have a `slug` field — they're keyed by `documentId` (the
+// human document number, e.g. "ZML-2024-051"), so they need their own lookup.
+async function findByDocumentId(path: string, documentId: string): Promise<number | null> {
+  const res = await fetch(`${BASE}/api/${path}?filters[documentId][$eq]=${documentId}&locale=sk`, { headers });
+  const json = await res.json() as { data: Array<{ id: number }> };
+  return json.data[0]?.id ?? null;
+}
+
+async function putSingleton(path: string, data: unknown, locale?: string): Promise<void> {
+  const qs = locale ? `?locale=${locale}` : '';
+  const res = await fetch(`${BASE}/api/${path}${qs}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`PUT ${path}${qs} failed: ${res.status} ${err}`);
+  }
+  console.log(`  set: ${path}${locale ? ` (${locale})` : ''}`);
 }
 
 async function upsert(path: string, slug: string, data: unknown): Promise<number> {
@@ -170,7 +192,7 @@ async function main() {
   // ── Disclosures ───────────────────────────────────────
   console.log('\nDisclosures:');
   for (const d of SEED.disclosures) {
-    const existing = await findBySlug('disclosures', d.id);
+    const existing = await findByDocumentId('disclosures', d.id);
     if (!existing) {
       await post('disclosures', {
         documentId: d.id,
@@ -185,6 +207,40 @@ async function main() {
       console.log(`  skip (exists): disclosures/${d.id}`);
     }
   }
+
+  // ── Hospital (singleton, not locale-split at the type level) ──
+  console.log('\nHospital:');
+  await putSingleton('hospital', {
+    name:      SEED.hospital.name,
+    tagline:   SEED.hospital.tagline.sk,
+    address:   SEED.hospital.address,
+    ico:       SEED.hospital.ico,
+    dic:       SEED.hospital.dic,
+    phone:     SEED.hospital.phone,
+    reception: SEED.hospital.reception,
+    pharmacy:  SEED.hospital.pharmacy,
+    emergency: SEED.hospital.emergency,
+    email:     SEED.hospital.email,
+    region:    SEED.hospital.region.sk,
+  });
+
+  // ── Pages content (singleton, i18n-localized) ──────────
+  // gdprBody/accessibilityBody are required by the schema but aren't part of
+  // SEED.pages (data.js only covers hero/about/aps) — sourced from the
+  // design-handoff's own kontakt.html copy (assets/data.js has no equivalent
+  // field; this is the real prototype text, not placeholder copy).
+  console.log('\nPages content:');
+  await putSingleton('pages-content', {
+    heroBadge:    SEED.pages.hero.badge.sk,
+    heroTitle:    SEED.pages.hero.title.sk,
+    heroSubtitle: SEED.pages.hero.subtitle.sk,
+    aboutTitle:   SEED.pages.about.title.sk,
+    aboutBody:    SEED.pages.about.body.sk,
+    apsTitle:     SEED.pages.aps.title.sk,
+    apsNote:      SEED.pages.aps.note.sk,
+    gdprBody:     'Vaše osobné a zdravotné údaje spracúvame v súlade s Nariadením GDPR a zákonom č. 18/2018 Z. z. Údaje uchovávame v rámci EÚ, šifrované pri prenose aj v úložisku. Spracúvame len nevyhnutné údaje na zabezpečenie vyšetrenia a zdravotnej starostlivosti.',
+    accessibilityBody: 'Web spĺňa štandardy WCAG 2.1 úrovne AA v zmysle zákona č. 351/2022 Z. z. Stránky sú ovládateľné klávesnicou, kompatibilné s čítačmi obrazovky a poskytujú dostatočný kontrast.',
+  }, 'sk');
 
   console.log('\nSeed complete.');
 }

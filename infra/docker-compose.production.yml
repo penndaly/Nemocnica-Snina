@@ -59,14 +59,19 @@ services:
     restart: always
     environment:
       NODE_ENV: production
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_NAME: nemocnica_strapi
-      DATABASE_USERNAME: nsadmin
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      # apps/cms/config/database.js reads DB_* — NOT the DATABASE_* names this
+      # file used previously, which meant Strapi silently fell back to
+      # 127.0.0.1 and never reached the postgres service.
+      DB_CLIENT: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: nemocnica_strapi
+      DB_USER: nsadmin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       APP_KEYS: ${STRAPI_APP_KEYS}
       API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT}
       ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT}
+      TRANSFER_TOKEN_SALT: ${STRAPI_TRANSFER_TOKEN_SALT}
       JWT_SECRET: ${STRAPI_JWT}
       ALLOWED_ORIGINS: ${APP_BASE_URL}
     ports: []

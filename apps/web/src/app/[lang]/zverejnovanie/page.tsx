@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Download, Search } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { ScrollArea } from '@/components/ScrollArea';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Disclosure } from '@ns/types';
@@ -22,6 +23,16 @@ export default function DisclosuresPage() {
       .then((r) => r.json() as Promise<Disclosure[]>)
       .then(setDisclosures)
       .catch(() => {});
+  }, [locale]);
+
+  // This route is a Client Component (needs useState/useEffect for the
+  // filter UI), so it can't export Next.js `metadata` — that only works in
+  // Server Components. document.title in an effect is the standard
+  // workaround; without it the page has no <title> at all (axe: document-title).
+  useEffect(() => {
+    document.title = locale === 'sk'
+      ? 'Zverejňovanie zmlúv a faktúr — Nemocnica Snina'
+      : 'Contracts & invoices — Nemocnica Snina';
   }, [locale]);
 
   const filtered = disclosures.filter((d) => {
@@ -73,8 +84,9 @@ export default function DisclosuresPage() {
             </div>
           </div>
 
-          <div className="card" style={{ overflowX: 'auto' }}>
-            <table className="data" aria-label={locale === 'sk' ? 'Zverejnené dokumenty' : 'Published documents'}>
+          <div className="card">
+            <ScrollArea label={locale === 'sk' ? 'Zverejnené dokumenty' : 'Published documents'}>
+            <table className="data">
               <thead>
                 <tr>
                   <th>{locale === 'sk' ? 'Číslo' : 'ID'}</th>
@@ -128,6 +140,7 @@ export default function DisclosuresPage() {
                 )}
               </tbody>
             </table>
+            </ScrollArea>
           </div>
         </div>
       </div>

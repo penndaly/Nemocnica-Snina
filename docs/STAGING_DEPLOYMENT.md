@@ -39,8 +39,9 @@ nginx with TLS, on a single hostname:
 | `scripts/provision-db.sh` on an empty DB | baselines, then "Database schema is up to date!" |
 | re-running it | takes the `migrate deploy` path, no-ops |
 
-**Postgres, Redis and RabbitMQ come up healthy. Strapi does not — see
-[Known gap: the CMS](#known-gap-the-cms).**
+**Postgres, Redis and RabbitMQ come up healthy. Strapi now does too — see
+[Known gap: the CMS](#known-gap-the-cms) for what was actually wrong (it
+wasn't missing schemas) and what's still open.**
 
 ---
 
@@ -151,25 +152,28 @@ docker compose --env-file infra/.env.staging \
 
 ---
 
-## Known gap: the CMS
+## CMS boot — fixed (2026-08-24)
 
-Strapi sits behind the `cms` compose profile and does **not** start by default,
-because it cannot boot: `apps/cms/src/api/*` ships controllers, routes and
-services for all nine collections but **no `content-types/<name>/schema.json`**.
-`createCoreRouter` therefore has nothing to bind to and Strapi dies with
-`Cannot read properties of undefined (reading 'kind')`.
+Strapi sits behind the `cms` compose profile and doesn't start by default, but
+it now boots cleanly when the profile is enabled. The "no `content-types/*/schema.json`"
+diagnosis in earlier versions of this doc was wrong — all nine `schema.json`
+files already existed (and are considerably more complete than `DATA_MODEL.md`/
+`assets/admin.js` describe: i18n-localized, real relations, a translation-review
+publish gate). The actual boot blocker (`Cannot read properties of undefined
+(reading 'kind')` in `createCoreRouter`) was a one-character UID typo —
+`apps/cms/src/api/news-item/{routes,controllers,services}/news-item.js` called
+`createCoreRouter('api::news-item.newsUitem')` instead of `'api::news-item.news-item'`,
+so Strapi's route registration looked up a content-type UID that was never
+registered. Fixed, plus a second, separate blocker: `apps/cms/config/admin.js`
+(required for `auth.secret`/admin-panel auth) didn't exist at all — added.
 
-Defining those nine content types is a content-model task (see `DATA_MODEL.md`
-and `assets/admin.js` `SCHEMAS`), not an infrastructure one, so it is out of
-scope here.
-
-Until it is done, the web app falls back to the bundled `SEED` data exactly as
-it does in local dev — `CmsClinicService` logs *"fetch failed, using last
-cache/seed"* — so **the demo site is fully browsable without the CMS**. Editing
-content through the admin portal writes via the NestJS CMS API, which is what
-`/admin` already uses.
-
-Once the content types exist:
+Verified by building `infra/docker/Dockerfile.cms` and running it against a
+real (empty) Postgres: `strapi start` boots, `GET /admin` → 200, admin
+registration + API-token creation works, and `apps/cms/seed/import-seed.ts`
+(which had two of its own bugs — a wrong relative import path assuming one
+`..` too few, and a `findBySlug` lookup on `disclosures` which has no `slug`
+field, only `documentId` — both fixed) successfully seeds all 9 collections/
+singletons with content matching `apps/web/src/lib/seed.ts`'s `SEED`.
 
 ```bash
 docker compose --env-file infra/.env.staging \
