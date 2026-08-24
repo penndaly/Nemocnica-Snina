@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Download, Search } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { ScrollArea } from '@/components/ScrollArea';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Disclosure } from '@ns/types';
@@ -73,8 +74,9 @@ export default function DisclosuresPage() {
             </div>
           </div>
 
-          <div className="card" style={{ overflowX: 'auto' }}>
-            <table className="data" aria-label={locale === 'sk' ? 'Zverejnené dokumenty' : 'Published documents'}>
+          <div className="card">
+            <ScrollArea label={locale === 'sk' ? 'Zverejnené dokumenty' : 'Published documents'}>
+            <table className="data">
               <thead>
                 <tr>
                   <th>{locale === 'sk' ? 'Číslo' : 'ID'}</th>
@@ -128,6 +130,7 @@ export default function DisclosuresPage() {
                 )}
               </tbody>
             </table>
+            </ScrollArea>
           </div>
         </div>
       </div>

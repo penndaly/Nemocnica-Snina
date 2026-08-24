@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { ShieldCheck, X, Trash2, AlertTriangle } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { ScrollArea } from '@/components/ScrollArea';
 import {
   getWearables, getConsents, getConsentAuditLog, updateConsent, disconnectDevice,
   type WearableDevice, type ConsentDto, type ConsentAuditEntry,
@@ -250,7 +251,8 @@ export default function ConsentManagementPage() {
 
               {/* Audit trail */}
               <h2 style={{ fontSize: '1.1rem', margin: '2rem 0 .75rem' }}>{c.auditTrail}</h2>
-              <div className="card" style={{ overflowX: 'auto' }}>
+              <div className="card">
+                <ScrollArea label={c.auditTrail}>
                 <table className="data" style={{ width: '100%' }}>
                   <thead>
                     <tr>
@@ -273,6 +275,7 @@ export default function ConsentManagementPage() {
                     ))}
                   </tbody>
                 </table>
+                </ScrollArea>
               </div>
               <p style={{ fontSize: '.78rem', color: 'var(--ink-3)', marginTop: '.5rem' }}>{c.auditImmutable}</p>
 

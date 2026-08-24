@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, ArrowRight, AlertTriangle, CreditCard, X, ShieldCheck, Video, Watch } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { ScrollArea } from '@/components/ScrollArea';
 import { WearablesTab } from './WearablesTab';
 import type { SupportedLocale } from '@/i18n/config';
 import type { FhirCondition, FhirMedicationRequest, FhirObservation, FhirAppointment } from '@ns/types';
@@ -785,29 +786,31 @@ export default function PortalPage() {
               {tab === 'records' && (
                 <div>
                   <h3 style={{ marginBottom: '1rem' }}>{t('portal.records')}</h3>
-                  <div className="card" style={{ overflowX: 'auto' }}>
-                    <table className="data">
-                      <thead>
-                        <tr>
-                          <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
-                          <th>ICD-10</th>
-                          <th>{locale === 'sk' ? 'Diagnóza' : 'Diagnosis'}</th>
-                          <th>{locale === 'sk' ? 'Lekár' : 'Doctor'}</th>
-                          <th>{locale === 'sk' ? 'Stav' : 'Status'}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(records?.conditions ?? []).map((c) => (
-                          <tr key={c.id}>
-                            <td>{c.date}</td>
-                            <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{c.code}</td>
-                            <td>{loc(c.dx, locale)}</td>
-                            <td style={{ fontSize: '.85rem' }}>{c.doctor}</td>
-                            <td><span className={`badge ${c.status === 'active' ? 'badge-amber' : 'badge-green'}`}>{c.status}</span></td>
+                  <div className="card">
+                    <ScrollArea label={locale === 'sk' ? 'Tabuľka zdravotných záznamov' : 'Health records table'}>
+                      <table className="data">
+                        <thead>
+                          <tr>
+                            <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
+                            <th>ICD-10</th>
+                            <th>{locale === 'sk' ? 'Diagnóza' : 'Diagnosis'}</th>
+                            <th>{locale === 'sk' ? 'Lekár' : 'Doctor'}</th>
+                            <th>{locale === 'sk' ? 'Stav' : 'Status'}</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {(records?.conditions ?? []).map((c) => (
+                            <tr key={c.id}>
+                              <td>{c.date}</td>
+                              <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{c.code}</td>
+                              <td>{loc(c.dx, locale)}</td>
+                              <td style={{ fontSize: '.85rem' }}>{c.doctor}</td>
+                              <td><span className={`badge ${c.status === 'active' ? 'badge-amber' : 'badge-green'}`}>{c.status}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ScrollArea>
                   </div>
                 </div>
               )}
@@ -847,35 +850,37 @@ export default function PortalPage() {
                       ? 'Stiahnutie PDF výsledkov vyžaduje overenie kódom z SMS.'
                       : 'PDF download requires SMS verification code.'}
                   </div>
-                  <div className="card" style={{ overflowX: 'auto' }}>
-                    <table className="data">
-                      <thead>
-                        <tr>
-                          <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
-                          <th>{locale === 'sk' ? 'Vyšetrenie' : 'Test'}</th>
-                          <th>{locale === 'sk' ? 'Výsledok' : 'Result'}</th>
-                          <th>{locale === 'sk' ? 'Pracovisko' : 'Dept'}</th>
-                          <th>PDF</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(records?.observations ?? []).map((l) => (
-                          <tr key={l.id}>
-                            <td>{l.date}</td>
-                            <td style={{ fontWeight: 600 }}>{loc(l.test, locale)}</td>
-                            <td>
-                              <span style={{ color: FLAG_COLORS[l.flag] ?? 'inherit', fontWeight: 700 }}>
-                                {loc(l.result, locale)}
-                              </span>
-                            </td>
-                            <td style={{ fontSize: '.82rem' }}>{loc(l.dept, locale)}</td>
-                            <td>
-                              <LabPdfButton observationId={l.id} locale={locale} />
-                            </td>
+                  <div className="card">
+                    <ScrollArea label={locale === 'sk' ? 'Tabuľka laboratórnych výsledkov' : 'Lab results table'}>
+                      <table className="data">
+                        <thead>
+                          <tr>
+                            <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
+                            <th>{locale === 'sk' ? 'Vyšetrenie' : 'Test'}</th>
+                            <th>{locale === 'sk' ? 'Výsledok' : 'Result'}</th>
+                            <th>{locale === 'sk' ? 'Pracovisko' : 'Dept'}</th>
+                            <th>PDF</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {(records?.observations ?? []).map((l) => (
+                            <tr key={l.id}>
+                              <td>{l.date}</td>
+                              <td style={{ fontWeight: 600 }}>{loc(l.test, locale)}</td>
+                              <td>
+                                <span style={{ color: FLAG_COLORS[l.flag] ?? 'inherit', fontWeight: 700 }}>
+                                  {loc(l.result, locale)}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '.82rem' }}>{loc(l.dept, locale)}</td>
+                              <td>
+                                <LabPdfButton observationId={l.id} locale={locale} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ScrollArea>
                   </div>
                 </div>
               )}
@@ -888,36 +893,38 @@ export default function PortalPage() {
                       {locale === 'sk' ? 'Žiadne platby.' : 'No payments found.'}
                     </div>
                   ) : (
-                    <div className="card" style={{ overflowX: 'auto' }}>
-                      <table className="data">
-                        <thead>
-                          <tr>
-                            <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
-                            <th>{locale === 'sk' ? 'Transakcia' : 'Transaction'}</th>
-                            <th>{locale === 'sk' ? 'Rezervácia' : 'Booking'}</th>
-                            <th>{locale === 'sk' ? 'Doklad' : 'Receipt'}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {receipts.map((r) => (
-                            <tr key={r.id}>
-                              <td>{new Date(r.createdAt).toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-GB')}</td>
-                              <td style={{ fontFamily: 'monospace', fontSize: '.82rem' }}>{r.transactionRef.slice(0, 16)}…</td>
-                              <td style={{ fontSize: '.82rem' }}>{r.bookingId ?? '—'}</td>
-                              <td>
-                                <a
-                                  href={`/api/payments/receipt/${r.transactionRef}`}
-                                  download={`receipt-${r.transactionRef}.pdf`}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem', fontSize: '.82rem', color: 'var(--blue-700)', textDecoration: 'none' }}
-                                >
-                                  <Download size={13} />
-                                  PDF
-                                </a>
-                              </td>
+                    <div className="card">
+                      <ScrollArea label={locale === 'sk' ? 'Tabuľka platieb a dokladov' : 'Payments and receipts table'}>
+                        <table className="data">
+                          <thead>
+                            <tr>
+                              <th>{locale === 'sk' ? 'Dátum' : 'Date'}</th>
+                              <th>{locale === 'sk' ? 'Transakcia' : 'Transaction'}</th>
+                              <th>{locale === 'sk' ? 'Rezervácia' : 'Booking'}</th>
+                              <th>{locale === 'sk' ? 'Doklad' : 'Receipt'}</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {receipts.map((r) => (
+                              <tr key={r.id}>
+                                <td>{new Date(r.createdAt).toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-GB')}</td>
+                                <td style={{ fontFamily: 'monospace', fontSize: '.82rem' }}>{r.transactionRef.slice(0, 16)}…</td>
+                                <td style={{ fontSize: '.82rem' }}>{r.bookingId ?? '—'}</td>
+                                <td>
+                                  <a
+                                    href={`/api/payments/receipt/${r.transactionRef}`}
+                                    download={`receipt-${r.transactionRef}.pdf`}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem', fontSize: '.82rem', color: 'var(--blue-700)', textDecoration: 'none' }}
+                                  >
+                                    <Download size={13} />
+                                    PDF
+                                  </a>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </ScrollArea>
                     </div>
                   )}
                 </div>

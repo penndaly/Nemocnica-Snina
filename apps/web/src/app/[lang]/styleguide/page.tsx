@@ -1,5 +1,6 @@
 import { Plus, Activity } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
+import { ScrollArea } from '@/components/ScrollArea';
 
 export default async function StyleguidePage() {
 
@@ -176,26 +177,28 @@ export default async function StyleguidePage() {
 
           {/* Data table */}
           <Section title="Data table (table.data)">
-            <div className="card" style={{ overflowX: 'auto' }}>
-              <table className="data">
-                <thead>
-                  <tr>
-                    <th>Column A</th><th>Column B</th><th>Status</th><th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Row 1, A</td><td>Row 1, B</td>
-                    <td><span className="badge badge-green"><span className="dot"/>Open</span></td>
-                    <td><a href="#" className="btn btn-ghost btn-sm">Edit</a></td>
-                  </tr>
-                  <tr>
-                    <td>Row 2, A</td><td>Row 2, B</td>
-                    <td><span className="badge badge-amber">Limited</span></td>
-                    <td><a href="#" className="btn btn-ghost btn-sm">Edit</a></td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="card">
+              <ScrollArea label="Data table example">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Column A</th><th>Column B</th><th>Status</th><th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Row 1, A</td><td>Row 1, B</td>
+                      <td><span className="badge badge-green"><span className="dot"/>Open</span></td>
+                      <td><a href="#" className="btn btn-ghost btn-sm">Edit</a></td>
+                    </tr>
+                    <tr>
+                      <td>Row 2, A</td><td>Row 2, B</td>
+                      <td><span className="badge badge-amber">Limited</span></td>
+                      <td><a href="#" className="btn btn-ghost btn-sm">Edit</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ScrollArea>
             </div>
           </Section>
 
