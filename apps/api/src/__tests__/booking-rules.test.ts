@@ -104,7 +104,11 @@ describe('BookingRulesService.validate', () => {
     today.setHours(0, 0, 0, 0);
     // Find a day in bookingDays=[1,2,3,4,5]
     if ([1, 2, 3, 4, 5].includes(today.getDay())) {
-      const todayStr = today.toISOString().substring(0, 10);
+      // .toISOString() converts to UTC — in a timezone ahead of UTC, local
+      // midnight is still "yesterday" in UTC, so this could report a date
+      // BookingRulesService correctly rejects as past. Local components match
+      // the getDay() check above (also local), same fix as futureDate().
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       expect(() =>
         service.validate(baseClinic, { clinicId: 'test', date: todayStr, time: '09:00' }),
       ).not.toThrow();
