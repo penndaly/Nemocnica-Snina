@@ -2,9 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
+import { AuthModule } from '../auth/auth.module';
 import { HisModule } from '../his/his.module';
 import { SmsModule } from '../sms/sms.module';
 import { WearablesController } from './wearables.controller';
+import { WearablesAdminController } from './wearables-admin.controller';
+import { WearablesMonitoringController } from './wearables-monitoring.controller';
+import { WearablesAdminService } from './wearables-admin.service';
+import { WearablesMonitoringService } from './wearables-monitoring.service';
 import { GarminWebhookController } from './webhooks/garmin.webhook.controller';
 import { WearablesService } from './wearables.service';
 import { ConsentService } from './consent.service';
@@ -36,10 +41,12 @@ import { ConsumerAdaptersModule } from './adapters/consumer/consumer-adapters.mo
  * WEARABLES_PROVIDER (mock in dev/CI).
  */
 @Module({
-  imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule, MedicalAdaptersModule, ConsumerAdaptersModule],
-  controllers: [WearablesController, GarminWebhookController],
+  imports: [ConfigModule, PrismaModule, AuditModule, AuthModule, HisModule, SmsModule, MedicalAdaptersModule, ConsumerAdaptersModule],
+  controllers: [WearablesController, WearablesAdminController, WearablesMonitoringController, GarminWebhookController],
   providers: [
     WearablesService,
+    WearablesAdminService,
+    WearablesMonitoringService,
     ConsentService,
     ConsentGuard,
     TokenCryptoService,

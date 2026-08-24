@@ -14,8 +14,20 @@
 <script src="assets/admin.js"></script>
 <script>
 const app = document.getElementById("app");
-let current = { type: "collection", key: "departments" }; // or {type:'singleton'} / {type:'editor', ...}
+let current = { type: "collection", key: "departments" }; // or {type:'singleton'} / {type:'editor', ...} / {type:'section'}
 let toast = null;
+/* Demo RBAC (A4): production resolves the role from the staff JWT. The switcher in
+   the top bar lets reviewers verify visibility rules: editor sees neither admin
+   section; the Platforms tab is super_admin-only. */
+let ROLE = "super_admin"; // super_admin | administrator | clinician | editor
+let devicesTab = "overview"; // overview | platforms
+
+/* Deep-link support so ?section=bookings / ?section=devices land directly on a
+   section (used by the A4 e2e + axe checks). */
+(function initSectionFromUrl() {
+  const s = new URLSearchParams(location.search).get("section");
+  if (s === "bookings" || s === "devices") current = { type: "section", key: s };
+})();
 
 function showToast(msg) {
   clearTimeout(toast);
@@ -70,6 +82,11 @@ function renderShell() {
       ${count!==null?`<span class="anav-count">${count}</span>`:``}
     </button>`;
   };
+  const sectionNav = (key, ic, label) => {
+    const isActive = current.type === "section" && current.key === key;
+    return `<button class="anav ${isActive?'active':''}" data-key="${key}" data-type="section">
+      ${icon(ic)} <span>${esc(L(label))}</span></button>`;
+  };
 
   app.innerHTML = `
   <div class="admin-layout">
@@ -86,6 +103,16 @@ function renderShell() {
         <p class="anav-label">${esc(L({sk:"Nastavenia",en:"Settings"}))}</p>
         ${singKeys.map(k => navItem(k, ADMIN.SINGLETONS[k], "singleton")).join("")}
       </div>
+      ${roleCan("bookings") ? `
+      <div class="anav-group">
+        <p class="anav-label">${esc(L({sk:"Prevádzka",en:"Operations"}))}</p>
+        ${sectionNav("bookings", "calendar", {sk:"Objednania",en:"Appointments"})}
+      </div>` : ``}
+      ${roleCan("devices") ? `
+      <div class="anav-group">
+        <p class="anav-label">${esc(L({sk:"Monitorovanie",en:"Monitoring"}))}</p>
+        ${sectionNav("devices", "activity", {sk:"Zariadenia",en:"Devices"})}
+      </div>` : ``}
       <div class="anav-group">
         <p class="anav-label">${esc(L({sk:"Nástroje",en:"Tools"}))}</p>
         <button class="anav" id="btnExport">${icon("download")} <span>${esc(L({sk:"Export údajov",en:"Export data"}))}</span></button>
@@ -96,9 +123,17 @@ function renderShell() {
 
     <div class="admin-main">
       <header class="admin-top">
-        <div class="lang-switch lang-dark" role="group">
-          <button class="${getLang()==='sk'?'active':''}" onclick="setLang('sk')">SK</button>
-          <button class="${getLang()==='en'?'active':''}" onclick="setLang('en')">EN</button>
+        <div class="flex gap-sm" style="align-items:center">
+          <div class="lang-switch lang-dark" role="group">
+            <button class="${getLang()==='sk'?'active':''}" onclick="setLang('sk')">SK</button>
+            <button class="${getLang()==='en'?'active':''}" onclick="setLang('en')">EN</button>
+          </div>
+          <label class="role-pick small muted" title="${esc(L({sk:'Demo rola — v produkcii z JWT',en:'Demo role — from JWT in production'}))}">
+            ${esc(L({sk:"Rola",en:"Role"}))}
+            <select id="rolePick">
+              ${["super_admin","administrator","clinician","editor"].map(r => `<option value="${r}" ${ROLE===r?"selected":""}>${r}</option>`).join("")}
+            </select>
+          </label>
         </div>
         <div class="flex gap-sm">
           <a href="index.html" target="_blank" class="btn btn-ghost btn-sm">${icon("globe")} ${esc(L({sk:"Zobraziť web",en:"View website"}))}</a>
@@ -114,6 +149,12 @@ function renderShell() {
     renderShell();
   });
   document.getElementById("btnLogout").onclick = () => { ADMIN.logout(); render(); };
+  document.getElementById("rolePick").onchange = (e) => {
+    ROLE = e.target.value;
+    // If the current section is no longer visible to this role, fall back to Content.
+    if (current.type === "section" && !roleCan(current.key)) current = { type: "collection", key: "departments" };
+    renderShell();
+  };
   document.getElementById("btnReset").onclick = () => {
     if (confirm(L({sk:"Naozaj obnoviť všetok obsah na predvolené hodnoty? Vaše zmeny sa stratia.",en:"Reset all content to defaults? Your changes will be lost."}))) {
       DB.reset(); showToast(L({sk:"Obsah obnovený.",en:"Content reset."})); renderShell();
@@ -127,9 +168,22 @@ function renderShell() {
 
 function renderContent() {
   const c = document.getElementById("content");
+  if (current.type === "section") {
+    if (current.key === "bookings") { renderBookings(c); return; }
+    if (current.key === "devices") { renderDevices(c); return; }
+  }
   if (current.type === "editor") { renderEditor(c); return; }
   if (current.type === "singleton") { renderSingleton(c); return; }
   renderList(c);
+}
+
+/* Visibility rules (A4): editor sees no admin section; bookings = clinician+,
+   devices = administrator+; the Platforms tab is super_admin-only (gated in-view). */
+function roleCan(section) {
+  if (section === "bookings") return ["clinician","administrator","super_admin"].includes(ROLE);
+  if (section === "devices") return ["administrator","super_admin"].includes(ROLE);
+  if (section === "platforms") return ROLE === "super_admin";
+  return false;
 }
 
 /* ---------------- LIST ---------------- */
@@ -388,6 +442,350 @@ function importData() {
   inp.click();
 }
 
+/* ================================================================
+   A4 — Appointments (bookings) & Devices (wearables) admin sections
+   Prototype views with demo data. Production wires these to
+   /api/admin/bookings and /api/admin/wearables (token preview only —
+   never a patient name/RC). Mutations call the audited API routes.
+   ================================================================ */
+
+const A4_DEMO = {
+  bookings: [
+    { id:"bk1", token:"PT-84A2…", clinic:{sk:"Urológia",en:"Urology"}, doctor:"MUDr. Horváth", slot:"2026-06-25T09:00", status:"booked", payment:"paid" },
+    { id:"bk2", token:"PT-2F91…", clinic:{sk:"FRO",en:"Phys. rehab"}, doctor:"MUDr. Borščová", slot:"2026-06-25T10:30", status:"booked", payment:"free" },
+    { id:"bk3", token:"PT-8C34…", clinic:{sk:"Vnútorné lekárstvo",en:"Internal medicine"}, doctor:"—", slot:"2026-06-26T08:00", status:"pending", payment:"paid" },
+    { id:"bk4", token:"PT-1B7E…", clinic:{sk:"Urológia",en:"Urology"}, doctor:"MUDr. Horváth", slot:"2026-06-24T11:00", status:"no_show", payment:"free" },
+    { id:"bk5", token:"PT-90AA…", clinic:{sk:"Chirurgia",en:"Surgery"}, doctor:"MUDr. Kováč", slot:"2026-06-23T14:00", status:"completed", payment:"paid" },
+  ],
+  alerts: [
+    { id:"al1", severity:"critical", metric:"glucose_mmol", platform:"Dexcom G7", token:"PT-84A2…", reading:18.2, threshold:16.7, dir:">", time:"14:32", ack:false },
+    { id:"al2", severity:"high", metric:"heart_rate_bpm", platform:"Fitbit", token:"PT-2F91…", reading:124, threshold:120, dir:">", time:"14:18", ack:false },
+    { id:"al3", severity:"critical", metric:"spo2_pct", platform:"Withings", token:"PT-8C34…", reading:88, threshold:90, dir:"<", time:"13:55", ack:true },
+  ],
+  thresholds: [
+    { metric:"glucose_mmol", clow:3.0, hlow:3.9, hhigh:10.0, chigh:16.7 },
+    { metric:"heart_rate_bpm", clow:null, hlow:null, hhigh:100, chigh:120 },
+    { metric:"spo2_pct", clow:88, hlow:92, hhigh:null, chigh:null },
+    { metric:"systolic_bp_mmhg", clow:null, hlow:null, hhigh:140, chigh:180 },
+  ],
+  platforms: [
+    { id:"abbott_libre", name:"Abbott Libre EU", cat:"medical", creds:"set", patients:243, enabled:true },
+    { id:"dexcom", name:"Dexcom G7", cat:"medical", creds:"set", patients:89, enabled:true },
+    { id:"withings", name:"Withings", cat:"medical", creds:"missing", patients:0, enabled:false, missingVars:["WITHINGS_CLIENT_ID","WITHINGS_CLIENT_SECRET"] },
+    { id:"omron", name:"Omron", cat:"medical", creds:"set", patients:31, enabled:true },
+    { id:"medtronic_cgm", name:"Medtronic Guardian", cat:"medical", creds:"partnership", patients:0, enabled:false },
+    { id:"medtronic_cardiac", name:"Medtronic CGM/Cardiac", cat:"medical", creds:"partnership", patients:0, enabled:false },
+    { id:"fitbit", name:"Fitbit", cat:"consumer", creds:"set", patients:512, enabled:true },
+    { id:"garmin", name:"Garmin", cat:"consumer", creds:"set", patients:178, enabled:true },
+    { id:"google_health", name:"Google Health", cat:"consumer", creds:"set", patients:334, enabled:true },
+    { id:"samsung_health", name:"Samsung", cat:"consumer", creds:"set", patients:201, enabled:true },
+    { id:"huawei", name:"Huawei", cat:"consumer", creds:"eu_blocked", patients:0, enabled:false },
+    { id:"apple_health", name:"Apple Health", cat:"consumer", creds:"ios", patients:0, enabled:false },
+  ],
+};
+
+const STATUS_BADGE = { booked:"badge-blue", completed:"badge-green", cancelled:"badge-gray", no_show:"badge-amber", pending:"badge-amber" };
+const PAY_BADGE = { paid:"badge-green", free:"badge-gray", refunded:"badge-blue", pending:"badge-amber" };
+const SEV = { critical:{cls:"badge-red",sk:"Kritické",en:"Critical"}, high:{cls:"badge-amber",sk:"Vysoké",en:"High"}, medium:{cls:"badge-blue",sk:"Stredné",en:"Medium"} };
+
+function fmtSlot(iso) { const d=new Date(iso); return d.toLocaleString(getLang()==="sk"?"sk-SK":"en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}); }
+
+/* ---- Modal overlay (accessible: role=dialog, focus, ESC/backdrop close) ---- */
+function openModal(titleLoc, bodyHtml, onMount) {
+  closeModal();
+  const ov = document.createElement("div");
+  ov.className = "modal-ov"; ov.id = "modalOv";
+  ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(L(titleLoc))}">
+      <div class="modal-head"><h3 class="mb-0">${esc(L(titleLoc))}</h3>
+        <button class="icon-btn" id="modalX" aria-label="${esc(L({sk:'Zavrieť',en:'Close'}))}">${icon("x")||"✕"}</button></div>
+      <div class="modal-body">${bodyHtml}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => closeModal();
+  document.getElementById("modalX").onclick = close;
+  ov.addEventListener("mousedown", (e) => { if (e.target === ov) close(); });
+  document.addEventListener("keydown", escClose);
+  if (onMount) onMount(ov);
+  const f = ov.querySelector("input,textarea,select,button:not(#modalX)"); if (f) f.focus();
+}
+function escClose(e) { if (e.key === "Escape") closeModal(); }
+function closeModal() {
+  const ov = document.getElementById("modalOv");
+  if (ov) ov.remove();
+  document.removeEventListener("keydown", escClose);
+}
+
+/* ============================ BOOKINGS ============================ */
+function renderBookings(c) {
+  const rows = A4_DEMO.bookings;
+  const isToday = (iso) => iso.slice(0,10) === "2026-06-25";
+  const stat = {
+    today: rows.filter(r => isToday(r.slot) && r.status==="booked").length,
+    week: rows.filter(r => r.status==="booked").length,
+    pending: rows.filter(r => r.status==="pending").length,
+    noshow: rows.filter(r => r.status==="no_show").length,
+  };
+  const canResched = ["administrator","super_admin"].includes(ROLE);
+
+  c.innerHTML = `
+    <div class="content-head"><div><h1>${esc(L({sk:"Objednania",en:"Appointments"}))}</h1>
+      <p class="muted mb-0">${esc(L({sk:"Fronta termínov · pravidlá sa vynucujú na serveri",en:"Appointment queue · rules enforced server-side"}))}</p></div></div>
+    <div class="stat-row">
+      ${statCard({sk:"Dnes",en:"Today"}, stat.today, {sk:"objednaní",en:"booked"})}
+      ${statCard({sk:"Tento týždeň",en:"This week"}, stat.week, {sk:"objednaní",en:"booked"})}
+      ${statCard({sk:"Na schválenie",en:"Pending"}, stat.pending, {sk:"na kontrolu",en:"to review"})}
+      ${statCard({sk:"Nedostavenia",en:"No-shows"}, stat.noshow, {sk:"dnes",en:"today"})}
+    </div>
+    <div class="filter-row">
+      <label class="ftr"><span class="small muted">${esc(L({sk:"Klinika",en:"Clinic"}))}</span>
+        <select id="fClinic"><option value="">${esc(L({sk:"Všetky kliniky",en:"All clinics"}))}</option>
+          ${[...new Set(rows.map(r=>L(r.clinic)))].map(n=>`<option>${esc(n)}</option>`).join("")}</select></label>
+      <label class="ftr"><span class="small muted">${esc(L({sk:"Stav",en:"Status"}))}</span>
+        <select id="fStatus"><option value="">${esc(L({sk:"Všetky stavy",en:"All statuses"}))}</option>
+          ${["booked","pending","cancelled","no_show","completed"].map(s=>`<option value="${s}">${s}</option>`).join("")}</select></label>
+      <label class="ftr"><span class="small muted">${esc(L({sk:"Hľadať",en:"Search"}))}</span>
+        <input type="search" id="fSearch" placeholder="${esc(L({sk:"token / klinika",en:"token / clinic"}))}"></label>
+    </div>
+    <div class="tbl-wrap"><table class="dtable">
+      <thead><tr>
+        <th>${esc(L({sk:"Pacient (token)",en:"Patient token"}))}</th><th>${esc(L({sk:"Klinika",en:"Clinic"}))}</th>
+        <th>${esc(L({sk:"Lekár",en:"Physician"}))}</th><th>${esc(L({sk:"Termín",en:"Slot"}))}</th>
+        <th>${esc(L({sk:"Stav",en:"Status"}))}</th><th>${esc(L({sk:"Platba",en:"Payment"}))}</th>
+        <th class="ta-r">${esc(L({sk:"Akcie",en:"Actions"}))}</th>
+      </tr></thead>
+      <tbody id="bkBody">${rows.map(bookingRowHtml).join("")}</tbody>
+    </table></div>`;
+
+  const filter = () => {
+    const cl = document.getElementById("fClinic").value;
+    const st = document.getElementById("fStatus").value;
+    const q = document.getElementById("fSearch").value.toLowerCase();
+    document.getElementById("bkBody").innerHTML = rows.filter(r =>
+      (!cl || L(r.clinic)===cl) && (!st || r.status===st) &&
+      (!q || r.token.toLowerCase().includes(q) || L(r.clinic).toLowerCase().includes(q))
+    ).map(bookingRowHtml).join("");
+    bindBookingActions(canResched);
+  };
+  ["fClinic","fStatus","fSearch"].forEach(id => document.getElementById(id).oninput = filter);
+  bindBookingActions(canResched);
+}
+function bookingRowHtml(r) {
+  return `<tr data-bk="${r.id}">
+    <td><code class="tok">${esc(r.token)}</code></td>
+    <td>${esc(L(r.clinic))}</td><td>${esc(r.doctor)}</td><td>${esc(fmtSlot(r.slot))}</td>
+    <td><span class="badge ${STATUS_BADGE[r.status]||'badge-gray'}">${esc(r.status)}</span></td>
+    <td><span class="badge ${PAY_BADGE[r.payment]||'badge-gray'}">${esc(r.payment)}</span></td>
+    <td class="ta-r"><div class="row-acts">
+      <button class="icon-btn" data-act="cancel" aria-label="${esc(L({sk:'Zrušiť',en:'Cancel'}))}" title="${esc(L({sk:'Zrušiť objednanie',en:'Cancel appointment'}))}">${icon("x")||"✕"}</button>
+      <button class="icon-btn" data-act="resched" aria-label="${esc(L({sk:'Preobjednať',en:'Reschedule'}))}" title="${esc(L({sk:'Preobjednať',en:'Reschedule'}))}">${icon("calendar")}</button>
+      <button class="icon-btn" data-act="noshow" aria-label="${esc(L({sk:'Nedostavil sa',en:'No-show'}))}" title="${esc(L({sk:'Označiť ako nedostavenie',en:'Mark as no-show'}))}">${icon("alert")||"!"}</button>
+    </div></td></tr>`;
+}
+function bindBookingActions(canResched) {
+  document.querySelectorAll("#bkBody [data-act]").forEach(b => b.onclick = () => {
+    const id = b.closest("[data-bk]").dataset.bk;
+    const bk = A4_DEMO.bookings.find(x => x.id === id);
+    if (b.dataset.act === "cancel") return openCancelModal(bk);
+    if (b.dataset.act === "resched") {
+      if (!canResched) return showToast(L({sk:"Len administrátor môže preobjednať.",en:"Reschedule is administrator+ only."}));
+      return openRescheduleModal(bk);
+    }
+    if (b.dataset.act === "noshow") return openNoShowModal(bk);
+  });
+}
+function openCancelModal(bk) {
+  const inWindow = bk.payment === "paid" && new Date(bk.slot) > new Date(Date.now()+24*3600e3);
+  openModal({sk:"Zrušiť objednanie",en:"Cancel appointment"}, `
+    <form id="cxForm">
+      <div class="efield"><label class="efield-lbl" for="cxReason">${esc(L({sk:"Dôvod zrušenia",en:"Reason for cancellation"}))}</label>
+        <textarea id="cxReason" rows="3" required minlength="10" placeholder="${esc(L({sk:"min. 10 znakov",en:"min. 10 chars"}))}"></textarea></div>
+      <label class="switch-row"><input type="checkbox" id="cxNotify" checked><span>${esc(L({sk:"Notifikovať pacienta (SMS + portál)",en:"Notify patient via SMS + portal"}))}</span></label>
+      ${inWindow ? `<label class="switch-row"><input type="checkbox" id="cxRefund" checked><span>${esc(L({sk:"Vrátiť platbu",en:"Refund payment"}))}</span></label>` : ``}
+      <div class="editor-actions"><button type="submit" class="btn btn-primary">${esc(L({sk:"Zrušiť objednanie",en:"Cancel appointment"}))}</button>
+        <button type="button" class="btn btn-ghost" id="cxBack">${esc(L({sk:"Späť",en:"Back"}))}</button></div>
+    </form>`, () => {
+    document.getElementById("cxBack").onclick = closeModal;
+    document.getElementById("cxForm").onsubmit = (e) => {
+      e.preventDefault();
+      if (document.getElementById("cxReason").value.trim().length < 10) return;
+      bk.status = "cancelled";
+      closeModal(); showToast(L({sk:"Objednanie zrušené.",en:"Appointment cancelled."})); renderShell();
+    };
+  });
+}
+function openRescheduleModal(bk) {
+  openModal({sk:"Preobjednať",en:"Reschedule"}, `
+    <form id="rsForm">
+      <div class="efield"><label class="efield-lbl" for="rsSlot">${esc(L({sk:"Nový termín (rovnaká klinika)",en:"New slot (same clinic)"}))}</label>
+        <input type="datetime-local" id="rsSlot" required value="${esc(bk.slot)}"></div>
+      <div class="efield"><label class="efield-lbl" for="rsReason">${esc(L({sk:"Dôvod (nepovinné)",en:"Reason (optional)"}))}</label>
+        <input type="text" id="rsReason"></div>
+      <div class="editor-actions"><button type="submit" class="btn btn-primary">${esc(L({sk:"Preobjednať",en:"Reschedule"}))}</button>
+        <button type="button" class="btn btn-ghost" id="rsBack">${esc(L({sk:"Späť",en:"Back"}))}</button></div>
+    </form>`, () => {
+    document.getElementById("rsBack").onclick = closeModal;
+    document.getElementById("rsForm").onsubmit = (e) => {
+      e.preventDefault();
+      bk.slot = document.getElementById("rsSlot").value; bk.status = "booked";
+      closeModal(); showToast(L({sk:"Preobjednané.",en:"Rescheduled."})); renderShell();
+    };
+  });
+}
+function openNoShowModal(bk) {
+  openModal({sk:"Nedostavenie",en:"No-show"}, `
+    <p>${esc(L({sk:"Označiť",en:"Mark"}))} <code class="tok">${esc(bk.token)}</code> ${esc(L({sk:"ako nedostavenie pre termín",en:"as no-show for the"}))} ${esc(fmtSlot(bk.slot))}?</p>
+    <div class="editor-actions"><button class="btn btn-primary" id="nsOk">${esc(L({sk:"Potvrdiť",en:"Confirm"}))}</button>
+      <button class="btn btn-ghost" id="nsBack">${esc(L({sk:"Späť",en:"Back"}))}</button></div>`, () => {
+    document.getElementById("nsBack").onclick = closeModal;
+    document.getElementById("nsOk").onclick = () => { bk.status = "no_show"; closeModal(); showToast(L({sk:"Zaznamenané.",en:"Recorded."})); renderShell(); };
+  });
+}
+
+/* ============================ DEVICES ============================ */
+function renderDevices(c) {
+  const showPlatforms = roleCan("platforms");
+  if (devicesTab === "platforms" && !showPlatforms) devicesTab = "overview";
+  c.innerHTML = `
+    <div class="content-head"><div><h1>${esc(L({sk:"Zariadenia",en:"Devices"}))}</h1>
+      <p class="muted mb-0">${esc(L({sk:"Nositeľné zariadenia a vzdialený monitoring",en:"Wearables & remote monitoring"}))}</p></div></div>
+    <div class="tabs" role="tablist">
+      <button class="tab ${devicesTab==='overview'?'active':''}" data-tab="overview" role="tab" aria-selected="${devicesTab==='overview'}">${esc(L({sk:"Prehľad",en:"Overview"}))}</button>
+      ${showPlatforms ? `<button class="tab ${devicesTab==='platforms'?'active':''}" data-tab="platforms" role="tab" aria-selected="${devicesTab==='platforms'}">${esc(L({sk:"Platformy",en:"Platforms"}))}</button>` : ``}
+    </div>
+    <div id="devPane"></div>`;
+  c.querySelectorAll(".tab").forEach(b => b.onclick = () => { devicesTab = b.dataset.tab; renderShell(); });
+  if (devicesTab === "platforms" && showPlatforms) renderDevicesPlatforms(document.getElementById("devPane"));
+  else renderDevicesOverview(document.getElementById("devPane"));
+}
+function renderDevicesOverview(p) {
+  const a = A4_DEMO.alerts;
+  p.innerHTML = `
+    <div class="stat-row">
+      ${statCard({sk:"Pripojené",en:"Connected"}, "1 588", {sk:"zariadení",en:"devices"})}
+      ${statCard({sk:"Chyby synch.",en:"Sync errors"}, 3, {sk:"vyžadujú akciu",en:"need attention"})}
+      ${statCard({sk:"Súhlas vyprší",en:"Consent expiring"}, 12, {sk:"< 30 dní",en:"< 30 days"})}
+      ${statCard({sk:"Čakajúce upozornenia",en:"Pending alerts"}, a.filter(x=>!x.ack).length, {sk:"neprečítané",en:"unread"})}
+    </div>
+    <div class="content-head" style="margin:6px 0 12px"><h3 class="mb-0">${esc(L({sk:"Záznam upozornení — posledných 500",en:"Alert log — last 500"}))}</h3>
+      <button class="btn btn-ghost btn-sm" id="csvBtn">${icon("download")} ${esc(L({sk:"Export CSV",en:"Export CSV"}))}</button></div>
+    <div class="filter-row">
+      <label class="ftr"><span class="small muted">${esc(L({sk:"Závažnosť",en:"Severity"}))}</span>
+        <select id="aSev"><option value="">${esc(L({sk:"Všetky",en:"All"}))}</option>${Object.keys(SEV).map(s=>`<option value="${s}">${esc(L(SEV[s]))}</option>`).join("")}</select></label>
+    </div>
+    <div class="tbl-wrap"><table class="dtable">
+      <thead><tr><th>${esc(L({sk:"Závažnosť",en:"Severity"}))}</th><th>${esc(L({sk:"Metrika",en:"Metric"}))}</th>
+        <th>${esc(L({sk:"Platforma",en:"Platform"}))}</th><th>${esc(L({sk:"Pacient",en:"Patient"}))}</th>
+        <th>${esc(L({sk:"Hodnota vs limit",en:"Value vs threshold"}))}</th><th>${esc(L({sk:"Čas",en:"Time"}))}</th></tr></thead>
+      <tbody id="aBody">${a.map(alertRowHtml).join("")}</tbody>
+    </table></div>
+    <details class="thr-block"><summary>${esc(L({sk:"Predvolené limity",en:"Default thresholds"}))}</summary>
+      <div class="tbl-wrap"><table class="dtable">
+        <thead><tr><th>${esc(L({sk:"Metrika",en:"Metric"}))}</th><th>Critical low</th><th>High low</th><th>High high</th><th>Critical high</th>${roleCan("devices")?`<th class="ta-r"></th>`:``}</tr></thead>
+        <tbody>${A4_DEMO.thresholds.map(thrRowHtml).join("")}</tbody></table></div>
+      <p class="small muted mt-2">${esc(L({sk:"Limity nastavené lekárom vždy prepíšu tieto predvolené hodnoty.",en:"Physician-level thresholds always override these defaults."}))}</p>
+    </details>`;
+  document.getElementById("aSev").onchange = (e) => {
+    const v = e.target.value;
+    document.getElementById("aBody").innerHTML = a.filter(x => !v || x.severity===v).map(alertRowHtml).join("");
+  };
+  document.getElementById("csvBtn").onclick = exportAlertsCsv;
+  if (roleCan("devices")) bindThresholdEdit();
+}
+function alertRowHtml(x) {
+  const s = SEV[x.severity] || SEV.medium;
+  return `<tr><td><span class="badge ${s.cls}"><span class="dot"></span>${esc(L(s))}</span></td>
+    <td>${esc(x.metric)}</td><td>${esc(x.platform)}</td><td><code class="tok">${esc(x.token)}</code></td>
+    <td>${esc(String(x.reading))} ${esc(x.dir)} ${esc(String(x.threshold))}</td><td>${esc(x.time)}</td></tr>`;
+}
+function thrRowHtml(t, i) {
+  const v = (n) => n==null ? "—" : n;
+  return `<tr data-thr="${i}">
+    <td>${esc(t.metric)}</td><td>${v(t.clow)}</td><td>${v(t.hlow)}</td><td>${v(t.hhigh)}</td><td>${v(t.chigh)}</td>
+    ${roleCan("devices")?`<td class="ta-r"><button class="btn btn-ghost btn-sm" data-edit-thr="${i}">${esc(L({sk:"Upraviť",en:"Edit"}))}</button></td>`:``}</tr>`;
+}
+function bindThresholdEdit() {
+  document.querySelectorAll("[data-edit-thr]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.editThr; const t = A4_DEMO.thresholds[i];
+    const tr = b.closest("[data-thr]");
+    const cell = (k) => `<input type="number" step="any" class="thr-in" data-k="${k}" value="${t[k]==null?'':t[k]}">`;
+    tr.innerHTML = `<td>${esc(t.metric)}</td><td>${cell("clow")}</td><td>${cell("hlow")}</td><td>${cell("hhigh")}</td><td>${cell("chigh")}</td>
+      <td class="ta-r"><button class="btn btn-primary btn-sm" data-save>${esc(L({sk:"Uložiť",en:"Save"}))}</button>
+        <button class="btn btn-ghost btn-sm" data-cancel>${esc(L({sk:"Zrušiť",en:"Cancel"}))}</button></td>`;
+    tr.querySelector("[data-cancel]").onclick = () => renderShell();
+    tr.querySelector("[data-save]").onclick = () => {
+      const num = (k) => { const v = tr.querySelector(`[data-k="${k}"]`).value; return v===""?null:Number(v); };
+      const next = { clow:num("clow"), hlow:num("hlow"), hhigh:num("hhigh"), chigh:num("chigh") };
+      const ord = [next.clow, next.hlow, next.hhigh, next.chigh].filter(x => x!=null);
+      for (let j=1;j<ord.length;j++) if (ord[j] <= ord[j-1]) { showToast(L({sk:"Neplatný rozsah limitov.",en:"Invalid threshold range."})); return; }
+      Object.assign(t, next); renderShell(); showToast(L({sk:"Limity uložené (scope: global).",en:"Defaults saved (scope: global)."}));
+    };
+  });
+}
+function exportAlertsCsv() {
+  const head = ["severity","metric","platform","patientToken","reading","threshold","time","acknowledged"];
+  const lines = [head.join(",")].concat(A4_DEMO.alerts.map(x => [x.severity,x.metric,x.platform,x.token,x.reading,x.threshold,x.time,x.ack].join(",")));
+  const blob = new Blob([lines.join("\n")], { type:"text/csv" });
+  const url = URL.createObjectURL(blob); const aEl = document.createElement("a");
+  aEl.href = url; aEl.download = "wearable-alerts.csv"; aEl.click(); URL.revokeObjectURL(url);
+  showToast(L({sk:"Záznam exportovaný.",en:"Alert log exported."}));
+}
+function renderDevicesPlatforms(p) {
+  const credLabel = { set:{sk:"✔ Nastavené",en:"✔ Set"}, missing:{sk:"✕ Chýba",en:"✕ Missing"}, partnership:{sk:"Partnerstvo",en:"Partnership"}, eu_blocked:{sk:"Blokované EÚ",en:"EU blocked"}, ios:{sk:"Len iOS",en:"iOS only"} };
+  let catFilter = "all";
+  const draw = () => {
+    const list = A4_DEMO.platforms.filter(p => catFilter==="all" || p.cat===catFilter);
+    document.getElementById("pfBody").innerHTML = list.map(platformRowHtml.bind(null, credLabel)).join("");
+    bindPlatformActions(credLabel);
+  };
+  p.innerHTML = `
+    <div class="filter-row">
+      ${["all","medical","consumer"].map(cat => `<button class="chip-btn ${cat==='all'?'active':''}" data-cat="${cat}">${esc(L({all:{sk:"Všetky",en:"All"},medical:{sk:"Medicínske",en:"Medical"},consumer:{sk:"Fitness",en:"Fitness & Wellness"}}[cat]))}</button>`).join("")}
+    </div>
+    <div class="tbl-wrap"><table class="dtable">
+      <thead><tr><th>${esc(L({sk:"Platforma",en:"Platform"}))}</th><th>${esc(L({sk:"Kategória",en:"Category"}))}</th>
+        <th>${esc(L({sk:"Prístupy",en:"Credentials"}))}</th><th>${esc(L({sk:"Pacienti",en:"Patients"}))}</th>
+        <th>${esc(L({sk:"Stav",en:"Status"}))}</th><th class="ta-r">${esc(L({sk:"Akcie",en:"Actions"}))}</th></tr></thead>
+      <tbody id="pfBody"></tbody>
+    </table></div>
+    <p class="small muted mt-2">${esc(L({sk:"Prístupové údaje sú v UI len na zápis — API nikdy nevracia ich hodnoty.",en:"Credentials are write-only in the UI — the API never returns their values."}))}</p>`;
+  p.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { catFilter = b.dataset.cat; p.querySelectorAll("[data-cat]").forEach(x=>x.classList.toggle("active", x===b)); draw(); });
+  draw();
+}
+function platformRowHtml(credLabel, pf) {
+  const locked = ["partnership","eu_blocked","ios"].includes(pf.creds);
+  const credTip = pf.creds==="missing" && pf.missingVars ? ` title="${esc(L({sk:"Nastavte",en:"Set"}))} ${pf.missingVars.join(", ")} ${esc(L({sk:"v .env",en:"in .env"}))}"` : "";
+  const toggle = locked
+    ? `<span class="badge badge-gray">${esc(L({sk:"Zamknuté",en:"Locked"}))}</span>`
+    : `<button class="toggle ${pf.enabled?'on':''}" data-toggle aria-pressed="${pf.enabled}">${pf.enabled?esc(L({sk:"Zap",en:"On"})):esc(L({sk:"Vyp",en:"Off"}))}</button>`;
+  const test = (locked) ? "" : `<button class="btn btn-ghost btn-sm" data-test>${esc(L({sk:"Test pripojenia",en:"Test connection"}))}</button>`;
+  return `<tr data-pf="${pf.id}">
+    <td>${esc(pf.name)}</td><td>${esc(L(pf.cat==="medical"?{sk:"Medicínske",en:"Medical"}:{sk:"Fitness",en:"Consumer"}))}</td>
+    <td><span class="cred cred-${pf.creds}"${credTip}>${esc(L(credLabel[pf.creds]))}</span></td>
+    <td>${locked?"—":pf.patients}</td><td>${toggle}</td>
+    <td class="ta-r"><span class="test-out small"></span> ${test}</td></tr>`;
+}
+function bindPlatformActions(credLabel) {
+  document.querySelectorAll("#pfBody [data-toggle]").forEach(b => b.onclick = () => {
+    const pf = A4_DEMO.platforms.find(x => x.id === b.closest("[data-pf]").dataset.pf);
+    const turningOff = pf.enabled;
+    const msg = turningOff
+      ? L({sk:`Vypnúť ${pf.name}? Existujúce zariadenia synchronizujú ďalej, nové pripojenia sa zablokujú.`, en:`Turn off ${pf.name}? Existing devices keep syncing; new connections are blocked.`})
+      : L({sk:`Zapnúť ${pf.name}?`, en:`Turn on ${pf.name}?`});
+    if (confirm(msg)) { pf.enabled = !pf.enabled; renderShell(); showToast(L({sk:"Platforma aktualizovaná.",en:"Platform updated."})); }
+  });
+  document.querySelectorAll("#pfBody [data-test]").forEach(b => b.onclick = () => {
+    const out = b.closest("tr").querySelector(".test-out");
+    out.textContent = "…";
+    setTimeout(() => { const ms = 80 + Math.floor(Math.random()*180); out.innerHTML = `<span class="cred cred-set">✔ OK · ${ms} ms</span>`; }, 350);
+  });
+}
+
+/* ---- shared card helper ---- */
+function statCard(title, value, sub) {
+  return `<div class="stat-card"><span class="stat-t">${esc(L(title))}</span>
+    <span class="stat-v">${esc(String(value))}</span><span class="small muted">${esc(L(sub))}</span></div>`;
+}
+
 render();
 </script>
 
@@ -458,7 +856,46 @@ render();
 .toast svg{width:20px;height:20px;color:#7fe0b0;}
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
+/* A4 — sections (appointments + devices) */
+.role-pick { display:inline-flex; align-items:center; gap:6px; }
+.role-pick select { font-family:inherit; font-size:.8rem; padding:4px 6px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--ink); }
+.stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+.stat-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; display:flex; flex-direction:column; gap:3px; border-top:3px solid var(--blue-600); }
+.stat-t { font-weight:700; font-size:.8rem; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3); }
+.stat-v { font-size:1.9rem; font-weight:800; font-family:'Newsreader',serif; line-height:1.05; color:var(--ink); }
+.filter-row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px; }
+.ftr { display:flex; flex-direction:column; gap:4px; }
+.ftr select, .ftr input { font-family:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); min-width:160px; }
+.tbl-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+.dtable { width:100%; border-collapse:collapse; font-size:.92rem; }
+.dtable th { text-align:left; font-size:.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); padding:12px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+.dtable td { padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.dtable tr:last-child td { border-bottom:none; }
+.dtable tbody tr:hover { background:var(--blue-50); }
+.ta-r { text-align:right; }
+.tok { font-family:ui-monospace,Menlo,monospace; font-size:.85rem; background:var(--warm-100); padding:2px 7px; border-radius:6px; color:var(--ink-2); }
+.row-acts { display:inline-flex; gap:6px; justify-content:flex-end; }
+.tabs { display:flex; gap:6px; border-bottom:1px solid var(--line); margin-bottom:20px; }
+.tab { background:none; border:none; border-bottom:2px solid transparent; padding:10px 14px; font-family:inherit; font-weight:700; font-size:.92rem; color:var(--ink-2); cursor:pointer; margin-bottom:-1px; }
+.tab.active { color:var(--blue-700); border-bottom-color:var(--blue-600); }
+.chip-btn { background:var(--warm-100); border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-family:inherit; font-weight:600; font-size:.85rem; color:var(--ink-2); cursor:pointer; }
+.chip-btn.active { background:var(--blue-600); color:#fff; border-color:var(--blue-600); }
+.toggle { border:1px solid var(--line); background:var(--warm-100); color:var(--ink-2); border-radius:999px; padding:4px 14px; font-family:inherit; font-weight:700; font-size:.82rem; cursor:pointer; }
+.toggle.on { background:var(--green-50); color:var(--green); border-color:var(--green); }
+.cred { font-weight:700; font-size:.82rem; }
+.cred-set { color:var(--green); } .cred-missing { color:var(--red); }
+.cred-partnership, .cred-eu_blocked, .cred-ios { color:var(--ink-3); }
+.thr-in { width:84px; padding:5px 7px; border:1px solid var(--line); border-radius:6px; font-family:inherit; }
+.thr-block { margin-top:22px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px; }
+.thr-block summary { font-weight:700; cursor:pointer; }
+.test-out { color:var(--ink-3); }
+.modal-ov { position:fixed; inset:0; background:rgba(15,28,46,.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:300; }
+.modal { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow-lg); width:100%; max-width:480px; max-height:90vh; overflow:auto; }
+.modal-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--line); }
+.modal-body { padding:20px; }
+
 @media (max-width:860px){
+  .stat-row { grid-template-columns:repeat(2,1fr); }
   .admin-layout { grid-template-columns:1fr; }
   .admin-side { position:static; height:auto; }
   .anav-group { display:flex; flex-wrap:wrap; gap:6px; }

@@ -28,6 +28,9 @@ describe('classify (pure threshold logic)', () => {
 function makeAlertService(thresholdRow: unknown = null) {
   const prisma = {
     deviceAlertThreshold: { findUnique: jest.fn().mockResolvedValue(thresholdRow) },
+    // A4: thresholdsFor now consults the global-default table between the
+    // per-patient row and the hardcoded DEFAULT_THRESHOLDS. No global row here.
+    wearableGlobalThreshold: { findUnique: jest.fn().mockResolvedValue(null) },
   } as never;
   const queue = { publish: jest.fn().mockResolvedValue(undefined) } as never;
   return { svc: new AlertService(prisma, queue), queue };
