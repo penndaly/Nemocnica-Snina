@@ -25,6 +25,16 @@ export default function DisclosuresPage() {
       .catch(() => {});
   }, [locale]);
 
+  // This route is a Client Component (needs useState/useEffect for the
+  // filter UI), so it can't export Next.js `metadata` — that only works in
+  // Server Components. document.title in an effect is the standard
+  // workaround; without it the page has no <title> at all (axe: document-title).
+  useEffect(() => {
+    document.title = locale === 'sk'
+      ? 'Zverejňovanie zmlúv a faktúr — Nemocnica Snina'
+      : 'Contracts & invoices — Nemocnica Snina';
+  }, [locale]);
+
   const filtered = disclosures.filter((d) => {
     const type = localizeField(d.type, locale).toLowerCase();
     const matchesFilter =
