@@ -123,7 +123,7 @@ function buildMocks() {
 
 describe('OnboardingService.review — accept flow', () => {
   it('updates status to ACCEPTED and stores ncziXmlPayload + signToken', async () => {
-    const { service, prisma } = buildMocks();
+    const { service, prisma, rcCrypto } = buildMocks();
 
     const result = await service.review('app-uuid-1', 'accept', 'clinician@ns.sk', 'CLINICIAN', '', '127.0.0.1');
 
@@ -133,7 +133,11 @@ describe('OnboardingService.review — accept flow', () => {
 
     const updateCall = prisma.onboardingApplication.update.mock.calls[0][0];
     expect(updateCall.data.status).toBe('ACCEPTED');
-    expect(updateCall.data.ncziXmlPayload).toContain('<eDohoda');
+    // Persisted ncziXmlPayload goes through rcCrypto.encrypt() (RC-embedding
+    // XML must never be at rest in plaintext) — not the raw XML the caller
+    // gets back in result.edohodaXml.
+    expect(rcCrypto.encrypt).toHaveBeenCalledWith(result.edohodaXml);
+    expect(updateCall.data.ncziXmlPayload).toBe(rcCrypto.encrypt.mock.results.at(-1)?.value);
     expect(updateCall.data.signToken).toBeDefined();
     expect(updateCall.data.signToken).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,

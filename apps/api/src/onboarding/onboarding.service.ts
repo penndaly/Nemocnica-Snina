@@ -157,9 +157,14 @@ export class OnboardingService {
         validTo,
       });
 
+      // The generated XML necessarily embeds the plaintext RC (NCZI's own
+      // eDohoda schema requires it) — encrypt before persisting so it's never
+      // at rest in plaintext, matching patientRcEncrypted's treatment. Never
+      // read back elsewhere in the app (review() returns the in-memory `xml`
+      // directly), so no decrypt-on-read path is needed.
       await this.prisma.onboardingApplication.update({
         where: { id: applicationId },
-        data: { status: newStatus, reviewNote, ncziXmlPayload: xml, signToken },
+        data: { status: newStatus, reviewNote, ncziXmlPayload: this.rcCrypto.encrypt(xml), signToken },
       });
 
       await this.his.publish({
