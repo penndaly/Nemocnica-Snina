@@ -31,6 +31,8 @@ const STR = {
     doctors: { sk: "Lekári", en: "Physicians" },
     services: { sk: "Služby", en: "Services" },
     diagnostics: { sk: "Diagnostika", en: "Diagnostics" },
+    patients: { sk: "Pre pacientov", en: "For patients" },
+    about: { sk: "O nemocnici", en: "About us" },
     news: { sk: "Aktuality", en: "News" },
     contact: { sk: "Kontakt", en: "Contact" }
   },
@@ -39,6 +41,10 @@ const STR = {
     patients: { sk: "Pre pacientov", en: "For patients" },
     legal: { sk: "Povinné informácie", en: "Mandatory information" },
     disclosures: { sk: "Zverejňovanie zmlúv a faktúr", en: "Contracts & invoices" },
+    careers: { sk: "Voľné pracovné miesta", en: "Careers" },
+    education: { sk: "Materiály pre pacientov", en: "Patient education library" },
+    careers: { sk: "Voľné pracovné miesta", en: "Careers" },
+    education: { sk: "Príprava a starostlivosť (materiály)", en: "Patient education library" },
     privacy: { sk: "Ochrana osobných údajov (GDPR)", en: "Privacy policy (GDPR)" },
     accessibility: { sk: "Vyhlásenie o prístupnosti", en: "Accessibility statement" },
     admin: { sk: "Správa obsahu (admin)", en: "Content administration" },
@@ -137,6 +143,8 @@ const Site = {
       ["doctors", "lekari.html"],
       ["services", "sluzby.html"],
       ["diagnostics", "diagnostika.html"],
+      ["patients", "pre-pacientov.html"],
+      ["about", "o-nemocnici.html"],
       ["news", "aktuality.html"],
       ["contact", "kontakt.html"]
     ];
@@ -204,6 +212,7 @@ const Site = {
                 <li><a href="ambulancie.html">${esc(t("nav.clinics"))}</a></li>
                 <li><a href="lekari.html">${esc(t("nav.doctors"))}</a></li>
                 <li><a href="diagnostika.html">${esc(t("nav.diagnostics"))}</a></li>
+                <li><a href="o-nemocnici.html">${esc(t("nav.about"))}</a></li>
               </ul>
             </div>
             <div>
@@ -211,13 +220,17 @@ const Site = {
               <ul>
                 <li><a href="objednanie.html">${esc(t("book"))}</a></li>
                 <li><a href="portal.html">${esc(t("portal"))}</a></li>
-                <li><a href="aktuality.html">${esc(t("nav.news"))}</a></li>
-                <li><a href="kontakt.html">${esc(t("nav.contact"))}</a></li>
+                <li><a href="pre-pacientov.html#cennik">${esc(L({sk:"Cenník",en:"Price list"}))}</a></li>
+                <li><a href="pre-pacientov.html#staznosti">${esc(L({sk:"Sťažnosti",en:"Complaints"}))}</a></li>
+                <li><a href="edukacia.html">${esc(t("footer.education"))}</a></li>
+                <li><a href="kariera.html">${esc(t("footer.careers"))}</a></li>
               </ul>
             </div>
             <div>
               <h4>${esc(t("footer.legal"))}</h4>
               <ul>
+                <li><a href="aktuality.html">${esc(t("nav.news"))}</a></li>
+                <li><a href="kontakt.html">${esc(t("nav.contact"))}</a></li>
                 <li><a href="zverejnovanie.html">${esc(t("footer.disclosures"))}</a></li>
                 <li><a href="kontakt.html#gdpr">${esc(t("footer.privacy"))}</a></li>
                 <li><a href="kontakt.html#pristupnost">${esc(t("footer.accessibility"))}</a></li>

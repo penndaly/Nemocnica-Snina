@@ -5,18 +5,19 @@
    collections; the public pages read from them.
    ========================================================= */
 
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
 
 const SEED = {
   hospital: {
     name: "Nemocnica Snina, s.r.o.",
     tagline: { sk: "Poliklinika a lôžková časť", en: "Polyclinic & Inpatient Care" },
     address: "Sládkovičova 300/3, 069 01 Snina",
-    ico: "36 476 138",
-    dic: "2020025684",
+    ico: "36 509 108",
+    dic: "2022075770",
     phone: "+421 57 766 01 11",
     reception: "057 / 7871 200",
-    pharmacy: "057 / 7871 232",
+    pharmacy: "057 / 7871 233",
+    regTitle: { sk: "Obchodný register Okresného súdu Prešov, odd. Sro, vložka č. 16588/P", en: "Commercial Register, Prešov District Court, Section Sro, File No. 16588/P" },
     emergency: "112",
     email: "sekretariat@nemocnicasnina.sk",
     region: { sk: "Spádová oblasť Snina a Prešovský kraj", en: "Snina district & Prešov region" }
@@ -431,7 +432,123 @@ const SEED = {
     appointments: [
       { id: "a1", date: "2024-11-15", time: "09:30", clinic: { sk: "Diabetologická ambulancia", en: "Diabetology clinic" }, doctor: "MUDr. Lenka Lajtarová" }
     ]
-  }
+  },
+
+  /* ---------------- Pre pacientov — pricing, waits, testimonials ---------------- */
+  patientInfo: {
+    pricing: [
+      { id: "p1", category: { sk: "Klinická biochémia", en: "Clinical biochemistry" }, item: { sk: "Základný biochemický panel (samoplatca)", en: "Basic biochemistry panel (self-pay)" }, price: "18,00 €" },
+      { id: "p2", category: { sk: "Klinická biochémia", en: "Clinical biochemistry" }, item: { sk: "Lipidový profil", en: "Lipid panel" }, price: "12,50 €" },
+      { id: "p3", category: { sk: "Hematológia", en: "Hematology" }, item: { sk: "Krvný obraz s diferenciálom", en: "Complete blood count with differential" }, price: "9,00 €" },
+      { id: "p4", category: { sk: "Hematológia", en: "Hematology" }, item: { sk: "Koagulačné vyšetrenie", en: "Coagulation panel" }, price: "14,00 €" },
+      { id: "p5", category: { sk: "Zobrazovacia diagnostika", en: "Imaging" }, item: { sk: "CT vyšetrenie (samoplatca, bez kontrastu)", en: "CT scan (self-pay, without contrast)" }, price: "85,00 €" },
+      { id: "p6", category: { sk: "Zobrazovacia diagnostika", en: "Imaging" }, item: { sk: "Ultrazvukové vyšetrenie", en: "Ultrasound scan" }, price: "25,00 €" },
+      { id: "p7", category: { sk: "Ústavná starostlivosť", en: "Inpatient care" }, item: { sk: "Nadštandardná izba (gynekologicko-pôrodnícke odd., za deň)", en: "Premium room (gynecology & obstetrics, per day)" }, price: "8,00 €" },
+      { id: "p8", category: { sk: "Administratíva", en: "Administrative" }, item: { sk: "Poplatok LSPP (ambulantná pohotovostná služba)", en: "LSPP fee (ambulatory emergency service)" }, price: "1,99 €" }
+    ],
+    waitingTimes: [
+      { clinic: { sk: "Urologická ambulancia", en: "Urology clinic" }, wait: { sk: "do 1 týždňa — nová ambulancia", en: "within 1 week — new clinic" }, level: "good" },
+      { clinic: { sk: "Angiologická ambulancia", en: "Angiology clinic" }, wait: { sk: "2–3 týždne · vyžaduje sa výmenný lístok", en: "2–3 weeks · referral required" }, level: "ok" },
+      { clinic: { sk: "Hematologická ambulancia", en: "Hematology clinic" }, wait: { sk: "1–2 týždne", en: "1–2 weeks" }, level: "good" },
+      { clinic: { sk: "Diabetologická ambulancia", en: "Diabetology clinic" }, wait: { sk: "dočasne neprijíma nových pacientov", en: "temporarily not accepting new patients" }, level: "closed" },
+      { clinic: { sk: "Neurologická ambulancia", en: "Neurology clinic" }, wait: { sk: "dočasný režim — náhradný kontakt 0918 088 183", en: "temporary measures — substitute contact 0918 088 183" }, level: "closed" },
+      { clinic: { sk: "Fyziatricko-rehabilitačné oddelenie (FRO)", en: "Physiatry & rehabilitation (FRO)" }, wait: { sk: "do 2 týždňov · pilotné online objednávanie", en: "up to 2 weeks · online-booking pilot" }, level: "good" }
+    ],
+    testimonials: [
+      { id: "t1", quote: { sk: "Personál gynekologicko-pôrodníckeho oddelenia bol počas pôrodu mimoriadne empatický a trpezlivý.", en: "The staff on the maternity ward were extraordinarily empathetic and patient throughout my delivery." }, author: { sk: "Pacientka · Gynekologicko-pôrodnícke oddelenie", en: "Patient · Gynecology & Obstetrics" } },
+      { id: "t2", quote: { sk: "Rýchle a presné vyšetrenie, personál ma upokojil počas celého zákroku.", en: "Fast, precise care — the staff kept me calm throughout the procedure." }, author: { sk: "Pacient · Chirurgicko-traumatologické oddelenie", en: "Patient · Surgery & Traumatology" } },
+      { id: "t3", quote: { sk: "Nová centrálna recepcia mi ušetrila veľa času, hneď som vedel, kam ísť.", en: "The new central reception saved me a lot of time — I knew exactly where to go." }, author: { sk: "Pacient · Ambulantná starostlivosť", en: "Patient · Outpatient care" } }
+    ]
+  },
+
+  /* ---------------- O nemocnici — history, governance, transparency ---------------- */
+  aboutInfo: {
+    owner: { sk: "100 % vlastníkom spoločnosti je Mesto Snina, v zastúpení primátorom Petrom Vološinom.", en: "The company is 100% owned by the City of Snina, represented by Mayor Peter Vološin." },
+    leadershipTeam: [
+      { name: "MUDr. Andrej Kulan", role: { sk: "Konateľ spoločnosti", en: "Managing director" }, phone: "057/7871 226", email: "sekretariat@nemocnicasnina.sk" },
+      { name: "Ing. Iveta Šimonová", role: { sk: "Vedúca ekonomicko-technického úseku", en: "Head of Economic & Technical Division" }, phone: "057/7871 640", email: "ekonom@nemocnicasnina.sk" },
+      { name: "MUDr. Norbert Orinín", role: { sk: "Námestník pre liečebno-preventívnu starostlivosť", en: "Deputy Director for Medical Care" }, phone: "057/7871 242", email: "nemocnica@nemocnicasnina.sk" },
+      { name: "PhDr. Jana Kapáková, MBA", role: { sk: "Námestníčka pre ošetrovateľstvo", en: "Deputy Director for Nursing" }, phone: "057/7871 245", email: "namosetrovatelstvo@nemocnicasnina.sk" }
+    ],
+    board: ["Marek Gerboc", "Mgr. Jana Karľová", "JUDr. Tomáš Kirňák", "Marián Lojan", "Tomáš Potocký", "Mgr. Mária Todáková", "Ing. Michal Vohar", "Ing. Dana Mariničová"],
+    antiCorruption: { sk: "Podozrenie na korupčné správanie možno nahlásiť dôverne cez antikorupčnú linku nemocnice, nezávisle od bežného sťažnostného konania.", en: "Suspected corrupt conduct can be reported confidentially via the hospital's anti-corruption line, independent of the standard complaints process." },
+    transfusionCommittee: { sk: "Transfúzna komisia dohliada na bezpečné používanie krvi a krvných derivátov naprieč oddeleniami.", en: "The transfusion committee oversees the safe use of blood and blood products across departments." },
+    leadership: { sk: "Nemocnicu vedie MUDr. Andrej Kulan, ktorý zároveň pôsobí ako konateľ spoločnosti a primár chirurgicko-traumatologického oddelenia. Nemocnica aktívne žiada o zaradenie medzi urgentné príjmy 1. typu v rámci reformy Optimalizácie siete nemocníc (OSN).", en: "The hospital is led by MUDr. Andrej Kulan, who serves as both managing director and Head of Surgery & Traumatology. The hospital has petitioned for Type 1 urgent-care status under the national Hospital Network Optimisation (OSN) reform." },
+    ethics: { sk: "Etická komisia posudzuje klinické štúdie a etické otázky starostlivosti a metodicky usmerňuje personál v otázkach informovaného súhlasu a dôstojnosti pacienta. Podnety možno adresovať sekretariátu nemocnice.", en: "The ethics committee reviews clinical studies and care-related ethics questions, and guides staff on informed consent and patient dignity. Submissions can be addressed to the hospital secretariat." },
+    adverseEvents: { sk: "Nežiaduce udalosti evidujeme a vyhodnocujeme interne s cieľom priebežne zvyšovať bezpečnosť starostlivosti. Pacienti a návštevy môžu nežiaducu udalosť nahlásiť cez sekretariát alebo formulár sťažností.", en: "Adverse events are logged and reviewed internally to continuously improve care safety. Patients and visitors can report an adverse event via the secretariat or the complaints form." },
+    certifications: [
+      { name: "ISO 9001:2015", desc: { sk: "Systém manažérstva kvality — nadväzuje na certifikáciu ISO 9001:2008.", en: "Quality management system — succeeding the ISO 9001:2008 certification." } }
+    ],
+    rankings: { sk: "Inštitút pre ekonomické a sociálne reformy (INEKO) v spolupráci s Transparency International Slovensko pravidelne hodnotí nemocnicu podľa kvality, efektívnosti a spokojnosti pacientov.", en: "The Institute for Economic and Social Reforms (INEKO), with Transparency International Slovakia, regularly ranks the hospital on quality, efficiency and patient satisfaction." },
+    investments: [
+      { amount: "340 000 €", desc: { sk: "Modernizácia rádiológie z Plánu obnovy a odolnosti SR — nové CT, sonografia, chirurgické C-rameno.", en: "Radiology modernisation via the Recovery & Resilience Plan — new CT scanner, sonography, surgical C-arm." } },
+      { amount: "50 000 €", desc: { sk: "Mestská dotácia na nové gastroskopy a kolonoskopy.", en: "Municipal subsidy for new gastroscopes and colonoscopes." } }
+    ],
+    financials: { revenue: "14 027 000 €", assets: "4 039 000 €", profit: "398 000 €", year: "2024" },
+    history: [
+      { year: "1945", text: { sk: "Vznik Ligy proti TBC a poradne pre matky — základ zdravotnej starostlivosti v regióne.", en: "The League against TB and a maternal counselling centre are founded — the origin of regional healthcare." } },
+      { year: "1948", text: { sk: "Založený Okresný ústav národného zdravia (OÚNZ) pod vedením MUDr. Gabriela Hoffmanna.", en: "The District Institute of National Health (OÚNZ) is founded, led by Dr. Gabriel Hoffmann." } },
+      { year: "1951–1952", text: { sk: "Otvorené samostatné detské a gynekologické oddelenie.", en: "Independent pediatric and gynecological wards open." } },
+      { year: "1963", text: { sk: "Slávnostné otvorenie hlavnej nemocničnej budovy so 180 lôžkami.", en: "The main 180-bed hospital building officially opens." } },
+      { year: "1985", text: { sk: "Vzniká samostatné oddelenie anestéziológie a resuscitácie (ARO).", en: "An independent Anesthesiology & Resuscitation department (ARO) is established." } },
+      { year: "2007", text: { sk: "Uvedenie mamografického pracoviska do prevádzky.", en: "A mammography unit is commissioned." } },
+      { year: "2008", text: { sk: "Prvé pracovisko počítačovej tomografie (CT).", en: "The first computed tomography (CT) workplace opens." } },
+      { year: "2024", text: { sk: "Spustenie centrálnej recepcie a nových ambulancií — urológia, angiológia.", en: "Central reception launches, alongside new urology and angiology clinics." } },
+      { year: "2025–2026", text: { sk: "Komplexná modernizácia rádiológie z Plánu obnovy — nové CT, sonografia, C-rameno; rozšírenie o jednodňovú urologickú starostlivosť.", en: "Comprehensive radiology modernisation via the Recovery & Resilience Plan — new CT, sonography, C-arm; expansion into one-day urological care." } }
+    ]
+  },
+
+  /* ---------------- Careers ---------------- */
+  /* ---------------- Careers ---------------- */
+  careersInfo: {
+    contact: { sk: "Erika Ferková · sekretariát konateľa", en: "Erika Ferková · Managing Director's Secretariat" },
+    phone: "057/7871 226",
+    benefits: [
+      { sk: "Podpora zvyšovania kvalifikácie a špecializačného štúdia", en: "Support for further education and specialisation training" },
+      { sk: "Finančné benefity — príplatky, príspevky zo sociálneho fondu, motivačná zložka mzdy", en: "Financial benefits — allowances, social-fund contributions, a motivational wage component" },
+      { sk: "Možnosť osobného rastu v stabilnej a rozvíjajúcej sa organizácii", en: "Room for personal growth in a stable, growing organisation" }
+    ]
+  },
+
+  jobs: [
+    { id: "j1", title: { sk: "Lekár – pediater", en: "Physician – Pediatrician" }, dept: "pediatria", desc: { sk: "Diagnostická a liečebno-preventívna starostlivosť o pacientov detského oddelenia. Vhodné aj pre absolventov. Výhodou je špecializácia v odbore pediatria.", en: "Diagnostic and therapeutic-preventive care for pediatric ward patients. Open to recent graduates. Pediatric specialisation is an advantage." } },
+    { id: "j2", title: { sk: "Lekár – internista", en: "Physician – Internist" }, dept: "interne", desc: { sk: "Diagnostická a liečebno-preventívna starostlivosť o pacientov interného oddelenia. Výhodou je špecializácia v internej medicíne a postupová skúška — internistický kmeň.", en: "Diagnostic and therapeutic-preventive care for internal medicine patients. Internal-medicine specialisation and the core-exam are an advantage." } },
+    { id: "j3", title: { sk: "Lekár – anestéziológ a intenzivista", en: "Physician – Anesthesiologist & Intensivist" }, dept: "oaim", desc: { sk: "Starostlivosť o pacientov OAIM. Ponúkame plný úväzok, čiastočný úväzok aj ústavnú pohotovostnú službu (ÚPS).", en: "Care for OAIM patients. Full-time, part-time, and on-call service (ÚPS) all available." } },
+    { id: "j4", title: { sk: "Lekár – gynekológ", en: "Physician – Gynecologist" }, dept: "gynekologia", desc: { sk: "Diagnostická a liečebno-preventívna starostlivosť o pacientky gynekologicko-pôrodníckeho oddelenia. Špecializácia v gynekológii a pôrodníctve vítaná.", en: "Diagnostic and therapeutic-preventive care for gynecology & obstetrics patients. Specialisation welcomed." } },
+    { id: "j5", title: { sk: "Lekár – diabetológ", en: "Physician – Diabetologist" }, clinic: "diabetologicka", desc: { sk: "Ambulantná starostlivosť v odbore diabetológia, poruchy látkovej premeny a výživy. Vyžaduje sa špecializácia alebo zaradenie v tomto odbore.", en: "Outpatient care in diabetology and metabolic disorders. Specialisation or enrolment in this field is required." } }
+  ],
+
+  /* ---------------- Patient education library (replaces AlejTech's PDF/PNG library) ---------------- */
+  educationLibrary: [
+    { id: "predoperacne", category: { sk: "Pred operáciou a anestézia", en: "Pre-operative & anesthesia" }, articles: [
+      { id: "priprava", title: { sk: "Príprava pred operáciou", en: "Preparing for your operation" }, full: true },
+      { id: "lokalna", title: { sk: "Miestna anestézia — čo očakávať", en: "Local anesthesia — what to expect" }, full: false, summary: { sk: "Ako prebieha miestne znecitlivenie a na čo sa pripraviť pred a po zákroku.", en: "How local numbing works and what to prepare for before and after the procedure." } },
+      { id: "celkova", title: { sk: "Celková anestézia — čo očakávať", en: "General anesthesia — what to expect" }, full: false, summary: { sk: "Priebeh celkovej anestézie, nutné lačnenie a zotavenie po prebudení.", en: "The course of general anesthesia, required fasting, and recovery after waking." } }
+    ] },
+    { id: "chronicke", category: { sk: "Chronické a akútne stavy", en: "Chronic & acute management" }, articles: [
+      { id: "hypertenzia", title: { sk: "Artériová hypertenzia", en: "Arterial hypertension" }, full: true },
+      { id: "cdiff", title: { sk: "Infekcia Clostridioides difficile", en: "Clostridioides difficile infection" }, full: false, summary: { sk: "Prenos, izolačné opatrenia a hygiena rúk pri liečbe C. difficile.", en: "Transmission, isolation precautions and hand hygiene while treating C. difficile." } },
+      { id: "warfarin", title: { sk: "Užívanie warfarínu", en: "Taking warfarin" }, full: false, summary: { sk: "Pravidelné kontroly INR, liekové a potravinové interakcie.", en: "Regular INR monitoring, drug and dietary interactions." } },
+      { id: "heparin", title: { sk: "Aplikácia nízkomolekulárneho heparínu", en: "Administering low-molecular-weight heparin" }, full: false, summary: { sk: "Postup podania injekcie doma a bezpečná likvidácia striekačiek.", en: "How to self-inject at home and safely dispose of syringes." } }
+    ] },
+    { id: "materska", category: { sk: "Materská a detská starostlivosť", en: "Maternal & pediatric care" }, articles: [
+      { id: "porod-info", title: { sk: "Informácie o pôrode", en: "About childbirth" }, full: false, summary: { sk: "Čo si zbaliť do pôrodnice a ako prebieha príjem na pôrodnú sálu.", en: "What to pack for the maternity ward and how admission to the delivery room works." } },
+      { id: "novorodenec", title: { sk: "Starostlivosť o novorodenca", en: "Newborn care" }, full: false, summary: { sk: "Dojčenie, kúpanie a starostlivosť o pupočný pahýľ v prvých dňoch.", en: "Feeding, bathing and umbilical-cord care in the first days." } },
+      { id: "diastaza", title: { sk: "Diastáza brušných svalov po pôrode", en: "Postpartum abdominal diastasis" }, full: false, summary: { sk: "Rozpoznanie diastázy a bezpečné cvičenia po pôrode.", en: "Recognising diastasis and safe postpartum exercises." } }
+    ] },
+    { id: "dieta", category: { sk: "Nemocničná diétna terapia", en: "Inpatient nutritional therapy" }, articles: [
+      { id: "dieta9", title: { sk: "Diabetická diéta č. 9", en: "Diabetic diet No. 9" }, full: false, summary: { sk: "Zásady sacharidových jednotiek a plán stravovania pri diabete.", en: "Carbohydrate-unit principles and a meal plan for diabetes." } },
+      { id: "dieta5", title: { sk: "Diéta so zníženým obsahom zvyškov č. 5", en: "Residue-restricted diet No. 5" }, full: false, summary: { sk: "Potraviny vhodné pri ochoreniach tráviaceho traktu s nízkym obsahom vlákniny.", en: "Low-fibre foods suited to digestive-tract conditions." } },
+      { id: "dieta4", title: { sk: "Diéta so zníženým obsahom tuku č. 4", en: "Fat-restricted diet No. 4" }, full: false, summary: { sk: "Odporúčania pri ochoreniach pečene, žlčníka a pankreasu.", en: "Guidance for liver, gallbladder and pancreatic conditions." } },
+      { id: "dieta6", title: { sk: "Diéta so zníženým obsahom bielkovín č. 6", en: "Protein-restricted diet No. 6" }, full: false, summary: { sk: "Plán stravovania pri ochoreniach obličiek.", en: "A meal plan for kidney disease." } },
+      { id: "bezlepok", title: { sk: "Bezlepková diéta", en: "Gluten-free diet" }, full: false, summary: { sk: "Potraviny bez lepku a čítanie etikiet pri celiakii.", en: "Gluten-free foods and label-reading for celiac disease." } }
+    ] },
+    { id: "fyziatria", category: { sk: "Fyziatria a rehabilitácia", en: "Physiatry & rehabilitation" }, articles: [
+      { id: "lymfodrenaz", title: { sk: "Lymfodrenáž", en: "Lymphatic drainage" }, full: false, summary: { sk: "Ako prebieha manuálna lymfodrenáž a kedy je indikovaná.", en: "How manual lymphatic drainage works and when it's indicated." } },
+      { id: "dlaha", title: { sk: "Motorová dlaha", en: "Motor splint therapy" }, full: false, summary: { sk: "Používanie motorovej dlahy na obnovu pohybu kĺbu po operácii.", en: "Using a motor splint to restore joint movement after surgery." } },
+      { id: "ultrazvuk-terapia", title: { sk: "Ultrazvuková terapia", en: "Ultrasound therapy" }, full: false, summary: { sk: "Účinky terapeutického ultrazvuku pri bolestiach kĺbov a mäkkých tkanív.", en: "The effects of therapeutic ultrasound for joint and soft-tissue pain." } }
+    ] }
+  ]
 };
 
 /* =========================================================
