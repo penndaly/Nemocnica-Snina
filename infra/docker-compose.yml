@@ -60,15 +60,17 @@ services:
     command: sh -c "npm install && npm run develop"
     restart: unless-stopped
     environment:
-      DATABASE_CLIENT: postgres
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_NAME: nemocnica_strapi
-      DATABASE_USERNAME: nsadmin
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev}
+      # apps/cms/config/database.js reads DB_* — NOT DATABASE_*.
+      DB_CLIENT: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: nemocnica_strapi
+      DB_USER: nsadmin
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev}
       APP_KEYS: ${STRAPI_APP_KEYS:-toBeModified}
       API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT:-toBeModified}
       ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT:-toBeModified}
+      TRANSFER_TOKEN_SALT: ${STRAPI_TRANSFER_TOKEN_SALT:-toBeModified}
       JWT_SECRET: ${STRAPI_JWT:-toBeModified}
     ports:
       - "1337:1337"
