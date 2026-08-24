@@ -46,8 +46,14 @@ export default async function globalSetup() {
   }
 
   // Seed a test staff user (clinician) with known TOTP secret for admin tests
-  const bcrypt = await import('bcryptjs');
-  const totp   = await import('otplib');
+  //
+  // bcryptjs is CommonJS; dynamic import() of a CJS module from this ESM
+  // context wraps its exports under `.default` in this bundling
+  // environment (Playwright's esbuild transform) rather than exposing them
+  // directly on the module namespace object — bcrypt.hash was undefined.
+  // Fall back to the namespace object itself in case that's ever untrue.
+  const bcryptModule = await import('bcryptjs');
+  const bcrypt = bcryptModule.default ?? bcryptModule;
   const secret = 'JBSWY3DPEHPK3PXP'; // well-known test TOTP secret
   process.env['TEST_TOTP_SECRET'] = secret;
   process.env['TEST_STAFF_EMAIL'] = 'test-clinician@nemocnicasnina.sk';
