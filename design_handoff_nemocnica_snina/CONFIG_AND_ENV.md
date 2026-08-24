@@ -86,8 +86,8 @@ HIS_MOCK_ENABLED=true                         # 🟢 dev/ci sandbox; false in pr
 NCZI_EDOHODY_ENDPOINT=https://nczi.example/edohody   # 🟢 hospital-provided
 NCZI_API_KEY=CHANGEME                         # 🔴
 NCZI_DOCTOR_CODE_DEFAULT=CHANGEME             # 🟢 used in eDohoda XML
-APS_FEED_URL=https://psk.example/aps          # 🟢 e-VÚC Prešov region
-APS_FEED_API_KEY=CHANGEME                     # 🔴
+PSK_APS_API_URL=https://psk.example/aps       # 🟢 e-VÚC Prešov region
+PSK_APS_API_KEY=CHANGEME                      # 🔴 optional — omit if the feed is unauthenticated
 APS_CACHE_TTL_SECONDS=600                     # 🟢
 
 # ───────────────────────── SMS ─────────────────────────

@@ -175,6 +175,10 @@ export const ConfigSchema = z.object({
 
   // ── APS (Ambulatory Emergency Service) ───────────────
   PSK_APS_API_URL:        z.string().url().optional(),
+  // Optional — if the PSK feed requires authentication, set this and it's
+  // sent as `Authorization: Bearer <key>`. Unset behaves exactly as before
+  // (unauthenticated request), so this is purely additive.
+  PSK_APS_API_KEY:        z.string().optional(),
   APS_CACHE_TTL_SECONDS:  z.coerce.number().default(600),
 
   // ── Payments ─────────────────────────────────────────
