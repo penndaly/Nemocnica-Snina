@@ -133,7 +133,8 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
   // Appointment / EpisodeOfCare / MedicationRequest / Task. booking.cancelled is a
   // conditional PATCH and telehealth.session.ended has its own hisSynced guard.
   private static readonly IDEMPOTENT_TYPES = new Set([
-    'booking.confirmed', 'onboarding.accepted', 'medication.prescribed', 'portal.refill.requested',
+    'booking.confirmed', 'telehealth.booking.confirmed', 'onboarding.accepted',
+    'medication.prescribed', 'portal.refill.requested',
   ]);
 
   private async syncToHis(event: HisEvent): Promise<void> {
@@ -178,6 +179,14 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
   private async dispatchToFhir(event: HisEvent, fhirToken: string): Promise<void> {
     switch (event.type) {
       case 'booking.confirmed':
+      // Same payload shape (clinicId/date/time/patientName) as booking.confirmed,
+      // just with an extra `mode: 'telehealth'` field buildFhirAppointment doesn't
+      // need — was declared as a valid HisEventType and published by
+      // BookingService for every telehealth booking, but had no case here, so it
+      // silently fell through: syncToHis/processWithRetry logged "his_sync_success"
+      // and acked the message without ever creating a FHIR Appointment. No
+      // telehealth booking was ever actually synced to HIS.
+      case 'telehealth.booking.confirmed':
         await this.postFhir('Appointment', this.buildFhirAppointment(event), fhirToken);
         break;
       case 'booking.cancelled':
@@ -257,6 +266,17 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
       case 'telehealth.session.ended': {
         await this.syncTelehealthSession(event, fhirToken);
         break;
+      }
+
+      default: {
+        // Exhaustiveness check: a HisEventType with no case here used to fall
+        // through silently — syncToHis/processWithRetry logged "his_sync_success"
+        // and acked the message without dispatching anything (this is exactly
+        // how telehealth.booking.confirmed went unsynced for every telehealth
+        // booking). Adding a new HisEventType without a case above is now a
+        // compile error instead of a silent runtime no-op.
+        const exhaustive: never = event.type;
+        throw new Error(`Unhandled HIS event type: ${String(exhaustive)}`);
       }
     }
   }
