@@ -126,6 +126,7 @@ function DeviceCheckCallout({ state, onCheck }: { state: DeviceState; onCheck: (
     <div
       role="status"
       aria-live="polite"
+      data-testid="device-check"
       style={{
         background: colours.bg,
         border: `1px solid ${colours.border}`,
@@ -254,7 +255,7 @@ export default function BookingPage() {
   if (step === 1) {
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div style={{ padding: '2rem 0 4rem' }}>
+        <div data-step="1" style={{ padding: '2rem 0 4rem' }}>
           <div className="container-narrow">
             {isTelehealth && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.75rem' }}>
@@ -269,6 +270,7 @@ export default function BookingPage() {
               {visibleClinics.map((clinic) => (
                 <button
                   key={clinic.id}
+                  data-clinic-id={clinic.id}
                   onClick={() => { setBooking((p) => ({ ...p, clinicId: clinic.id })); setStep(2); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '1rem',
@@ -321,7 +323,7 @@ export default function BookingPage() {
 
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div style={{ padding: '2rem 0 4rem' }}>
+        <div data-step="2" style={{ padding: '2rem 0 4rem' }}>
           <div className="container-narrow">
             <p className="eyebrow">{localizeField(selectedClinic.name, locale)}</p>
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step2')}</h1>
@@ -364,6 +366,7 @@ export default function BookingPage() {
                   return (
                     <button
                       key={d}
+                      data-date={d}
                       onClick={() => { setBooking((p) => ({ ...p, date: d, time: '' })); setStep(3); }}
                       style={{
                         background: active ? 'var(--blue-700)' : 'var(--surface)',
@@ -400,7 +403,7 @@ export default function BookingPage() {
   if (step === 3) {
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div style={{ padding: '2rem 0 4rem' }}>
+        <div data-step="3" style={{ padding: '2rem 0 4rem' }}>
           <div className="container-narrow">
             <p className="eyebrow">{booking.date}</p>
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step3')}</h1>
@@ -414,6 +417,7 @@ export default function BookingPage() {
                   return (
                     <button
                       key={slot}
+                      data-time={slot}
                       onClick={() => { setBooking((p) => ({ ...p, time: slot })); setStep(4); }}
                       style={{
                         background: active ? 'var(--blue-700)' : 'var(--surface)',
@@ -488,7 +492,7 @@ export default function BookingPage() {
 
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div style={{ padding: '2rem 0 4rem' }}>
+        <div data-step="4" style={{ padding: '2rem 0 4rem' }}>
           <div className="container-narrow">
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step4')}</h1>
             <Stepper />
@@ -499,6 +503,7 @@ export default function BookingPage() {
                   <span>{t('booking.nameLabel')}</span>
                   <input
                     type="text"
+                    name="patientName"
                     value={booking.patientName}
                     onChange={(e) => setBooking((p) => ({ ...p, patientName: e.target.value }))}
                     required
@@ -510,6 +515,7 @@ export default function BookingPage() {
                   <span>{t('booking.phoneLabel')}</span>
                   <input
                     type="tel"
+                    name="patientPhone"
                     value={booking.patientPhone}
                     onChange={(e) => setBooking((p) => ({ ...p, patientPhone: e.target.value }))}
                     required
@@ -523,6 +529,7 @@ export default function BookingPage() {
                     <span>{t('booking.rcLabel')}</span>
                     <input
                       type="text"
+                      name="patientRc"
                       value={booking.patientRc}
                       onChange={(e) => {
                         setBooking((p) => ({ ...p, patientRc: e.target.value }));
@@ -567,6 +574,7 @@ export default function BookingPage() {
                   <label style={{ display: 'flex', gap: '.7rem', cursor: 'pointer', alignItems: 'flex-start' }}>
                     <input
                       type="checkbox"
+                      name="referralConsent"
                       checked={booking.referralConsent}
                       onChange={(e) => setBooking((p) => ({ ...p, referralConsent: e.target.checked }))}
                       required
@@ -580,6 +588,7 @@ export default function BookingPage() {
                 <label style={{ display: 'flex', gap: '.7rem', cursor: 'pointer', alignItems: 'flex-start' }}>
                   <input
                     type="checkbox"
+                    name="gdprConsent"
                     checked={booking.gdprConsent}
                     onChange={(e) => setBooking((p) => ({ ...p, gdprConsent: e.target.checked }))}
                     required
@@ -600,6 +609,7 @@ export default function BookingPage() {
                     <label style={{ display: 'flex', gap: '.7rem', cursor: 'pointer', alignItems: 'flex-start' }}>
                       <input
                         type="checkbox"
+                        name="telehealthConsent"
                         checked={booking.telehealthConsent}
                         onChange={(e) => setBooking((p) => ({ ...p, telehealthConsent: e.target.checked }))}
                         required
@@ -625,6 +635,7 @@ export default function BookingPage() {
                       <label style={{ display: 'flex', gap: '.7rem', cursor: 'pointer', alignItems: 'flex-start' }}>
                         <input
                           type="checkbox"
+                          name="minorGuardianConsent"
                           checked={booking.minorGuardianConsent}
                           onChange={(e) => setBooking((p) => ({ ...p, minorGuardianConsent: e.target.checked }))}
                           required
@@ -711,7 +722,7 @@ export default function BookingPage() {
       const joinActive = isJoinActive(booking.date, booking.time);
       return (
         <SiteLayout activePath={`/${locale}/objednanie`}>
-          <div style={{ padding: '3rem 0 5rem' }}>
+          <div data-step="5" style={{ padding: '3rem 0 5rem' }}>
             <div className="container-narrow" style={{ textAlign: 'center' }}>
               <div
                 style={{
@@ -730,7 +741,7 @@ export default function BookingPage() {
                 className="card card-pad"
                 style={{ display: 'inline-block', textAlign: 'left', minWidth: 320, marginBottom: '1.5rem' }}
               >
-                <div style={{ fontFamily: 'monospace', fontSize: '1.3rem', fontWeight: 700, color: 'var(--blue-700)', textAlign: 'center', marginBottom: '1rem' }}>
+                <div data-booking-id style={{ fontFamily: 'monospace', fontSize: '1.3rem', fontWeight: 700, color: 'var(--blue-700)', textAlign: 'center', marginBottom: '1rem' }}>
                   {booking.bookingId}
                 </div>
                 {[
@@ -789,7 +800,7 @@ export default function BookingPage() {
     // Pre-confirm summary
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div style={{ padding: '2rem 0 4rem' }}>
+        <div data-step="5" style={{ padding: '2rem 0 4rem' }}>
           <div className="container-narrow">
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step5')}</h1>
             <Stepper />
@@ -817,6 +828,8 @@ export default function BookingPage() {
             )}
             <div style={{ display: 'flex', gap: '.75rem', marginTop: '1.5rem' }}>
               <button
+                type="submit"
+                data-action="confirm"
                 className="btn btn-primary btn-lg"
                 onClick={handleConfirm}
                 disabled={submitting}

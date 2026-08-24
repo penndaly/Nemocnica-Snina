@@ -38,7 +38,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
         borderBottom: '1px solid var(--line)',
-        height: 'var(--header-h)',
+        minHeight: 'var(--header-h)',
         display: 'flex',
         alignItems: 'center',
       }}
@@ -96,11 +96,14 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           </div>
         </Link>
 
-        {/* Primary nav — hidden < 940px */}
+        {/* Primary nav — hidden < 940px. flexWrap so 8 nowrap items wrapping onto a
+            second row (taller header) is preferred over forcing the page to scroll
+            horizontally — WCAG 1.4.10 Reflow — on viewports just above the breakpoint
+            or with enlarged text. */}
         <nav
           className="hidden-mobile"
           aria-label="Hlavná navigácia"
-          style={{ display: 'flex', gap: '.2rem', flex: 1 }}
+          style={{ display: 'flex', flexWrap: 'wrap', gap: '.2rem', flex: 1, minWidth: 0 }}
         >
           {navItems.map(({ key, href }) => {
             const isActive = activePath.startsWith(href);

@@ -310,6 +310,25 @@
   }
 }
 
+/*
+ * SiteHeader responsive nav swap (apps/web/src/components/layout/SiteHeader.tsx).
+ * Mirrors design_handoff_nemocnica_snina/assets/styles.css's .nav-links/.nav-cta/
+ * .nav-toggle rules at the same 940px breakpoint — these two classes were never
+ * ported when the header was rewritten, so both the desktop nav *and* the mobile
+ * hamburger rendered at once below 940px (and the hamburger never appeared at all).
+ */
+.show-mobile {
+  display: none;
+}
+@media (max-width: 940px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+  .show-mobile {
+    display: inline-flex;
+  }
+}
+
 /* High-contrast mode support */
 @media (prefers-contrast: more) {
   :root {

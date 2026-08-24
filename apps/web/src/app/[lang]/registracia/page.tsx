@@ -156,6 +156,8 @@ export default function OnboardingPage() {
                       <button
                         key={physician.id}
                         type="button"
+                        data-physician-id={physician.id}
+                        data-accepting={physician.accepting}
                         onClick={() => setSelectedPhysicianId(physician.id)}
                         aria-pressed={selected}
                         style={{
@@ -205,7 +207,7 @@ export default function OnboardingPage() {
                   <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: '.9rem' }}>
                     <label className="field">
                       <span>{t('onboarding.nameLabel')}</span>
-                      <input type="text" value={patientName} onChange={e => setPatientName(e.target.value)} required autoComplete="name" />
+                      <input type="text" name="patientName" value={patientName} onChange={e => setPatientName(e.target.value)} required autoComplete="name" />
                     </label>
 
                     <div>
@@ -213,6 +215,7 @@ export default function OnboardingPage() {
                         <span>{t('onboarding.rcLabel')}</span>
                         <input
                           type="text"
+                          name="patientRc"
                           value={patientRc}
                           onChange={e => { setPatientRc(e.target.value); setRcError(''); }}
                           required
@@ -227,7 +230,7 @@ export default function OnboardingPage() {
 
                     <label className="field">
                       <span>{t('onboarding.insurerLabel')}</span>
-                      <select value={insurerCode} onChange={e => setInsurerCode(e.target.value)} required>
+                      <select name="insurerCode" value={insurerCode} onChange={e => setInsurerCode(e.target.value)} required>
                         <option value="">— {locale === 'sk' ? 'Vyberte poisťovňu' : 'Select insurer'} —</option>
                         {INSURERS.map(ins => (
                           <option key={ins.code} value={ins.code}>{ins.name}</option>
@@ -237,12 +240,12 @@ export default function OnboardingPage() {
 
                     <label className="field">
                       <span>{locale === 'sk' ? 'Telefónne číslo' : 'Phone number'}</span>
-                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required autoComplete="tel" placeholder="+421 9XX XXX XXX" />
+                      <input type="tel" name="phone" value={phone} onChange={e => setPhone(e.target.value)} required autoComplete="tel" placeholder="+421 9XX XXX XXX" />
                     </label>
 
                     <label className="field">
                       <span>{locale === 'sk' ? 'E-mail (nepovinné)' : 'Email (optional)'}</span>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+                      <input type="email" name="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
                     </label>
                   </div>
                 </section>
