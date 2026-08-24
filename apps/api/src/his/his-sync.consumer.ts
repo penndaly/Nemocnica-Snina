@@ -179,6 +179,8 @@ export class HisSyncConsumer implements OnModuleInit, OnModuleDestroy {
   private async dispatchToFhir(event: HisEvent, fhirToken: string): Promise<void> {
     switch (event.type) {
       case 'booking.confirmed':
+        await this.postFhir('Appointment', this.buildFhirAppointment(event), fhirToken);
+        break;
       // Same payload shape (clinicId/date/time/patientName) as booking.confirmed,
       // just with an extra `mode: 'telehealth'` field buildFhirAppointment doesn't
       // need — was declared as a valid HisEventType and published by
