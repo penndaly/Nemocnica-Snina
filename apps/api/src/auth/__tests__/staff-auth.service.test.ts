@@ -2,12 +2,19 @@ import { HttpException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 
 // otplib v13 ships ESM (@scure/base) that Jest can't transform — mock it.
+//
+// v13 is a full rewrite: there is no `authenticator` singleton (that was the
+// v11/v12 API) — exports are flat top-level functions, `verify`/`generate`
+// are async, and `verify` resolves an object (`{ valid, delta, ... }`), not
+// a plain boolean. This mock previously mirrored the OLD API, which matched
+// a bug in staff-auth.service.ts's production code (it called
+// `otplib.authenticator.verify(...)`, `.generateSecret()`, `.keyuri(...)` —
+// all undefined at runtime against the installed v13.4.1) — the mock hid a
+// real MFA-verify outage. Fixed alongside the production call sites.
 jest.mock('otplib', () => ({
-  authenticator: {
-    verify: jest.fn().mockReturnValue(true),
-    generateSecret: jest.fn().mockReturnValue('GENERATED'),
-    keyuri: jest.fn().mockReturnValue('otpauth://totp/x'),
-  },
+  verify: jest.fn().mockResolvedValue({ valid: true }),
+  generateSecret: jest.fn().mockReturnValue('GENERATED'),
+  generateURI: jest.fn().mockReturnValue('otpauth://totp/x'),
 }));
 import * as otplib from 'otplib';
 import { StaffAuthService } from '../staff-auth.service';
@@ -85,10 +92,10 @@ describe('StaffAuthService.verifyMfa', () => {
     const account = { id: 's1', email: 'a@x.sk', role: 'editor', status: 'active', totpEnabled: true, totpSecret: 'enc' };
     const prisma = { staffAccount: { findUnique: jest.fn().mockResolvedValue(account) } };
     const { svc, redis } = makeService({ prisma, jwt: { verify: jest.fn().mockReturnValue({ sub: 's1' }), sign: jest.fn() } });
-    (otplib as any).authenticator.verify.mockReturnValue(false);
+    (otplib.verify as jest.Mock).mockResolvedValue({ valid: false });
     await expect(svc.verifyMfa('mfa.token', '000000')).rejects.toBeInstanceOf(UnauthorizedException);
     expect(redis.incrLoginFailure).toHaveBeenCalledWith('a@x.sk');
-    (otplib as any).authenticator.verify.mockReturnValue(true);
+    (otplib.verify as jest.Mock).mockResolvedValue({ valid: true });
   });
 
   it('rejects an invalid/expired MFA challenge token', async () => {

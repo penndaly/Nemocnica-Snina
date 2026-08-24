@@ -117,7 +117,7 @@ export class TelehealthController {
   @UseGuards(AuthGuard('jwt'))
   async admitPatient(@Param('id') id: string, @Req() req: RequestWithUser) {
     if (!req.user || !['CLINICIAN', 'ADMIN'].includes(req.user.role)) {
-      throw new BadRequestException('Only clinicians can admit patients');
+      throw new ForbiddenException('Only clinicians can admit patients');
     }
     await this.sessionSvc.admitPatient(id, req.user.userId, req.ip);
     return { ok: true };
@@ -164,6 +164,35 @@ export class TelehealthController {
     }
 
     await this.sessionSvc.submitIntake(id, { reason, currentMedications, symptoms, vitalsNote }, req.ip, callerOf(req));
+    return { ok: true };
+  }
+
+  // POST /api/telehealth/sessions/:id/save-summary — physician saves post-call clinical note
+  @Post(':id/save-summary')
+  @UseGuards(AuthGuard('jwt'))
+  async saveSummary(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+    @Req() req: RequestWithUser,
+  ) {
+    if (!req.user || !['CLINICIAN', 'ADMIN'].includes(req.user.role)) {
+      throw new ForbiddenException('Only clinicians can save a session summary');
+    }
+    const clinicalNote = String(body['clinicalNote'] ?? '');
+    if (!clinicalNote) throw new BadRequestException('clinicalNote is required');
+
+    await this.sessionSvc.saveSummary(
+      id,
+      {
+        clinicalNote,
+        followUpRecommendationSk: body['followUpRecommendationSk'] ? String(body['followUpRecommendationSk']) : undefined,
+        followUpRecommendationEn: body['followUpRecommendationEn'] ? String(body['followUpRecommendationEn']) : undefined,
+        prescriptionIssued: body['prescriptionIssued'] === true,
+        prescriptionRef: body['prescriptionRef'] ? String(body['prescriptionRef']) : undefined,
+      },
+      req.user.email ?? req.user.userId,
+      req.ip,
+    );
     return { ok: true };
   }
 

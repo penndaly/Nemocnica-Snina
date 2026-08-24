@@ -56,7 +56,10 @@ export class OnboardingService {
       },
     });
 
-    return { applicationId: application.id };
+    // `id`/`status` mirror `applicationId`/SUBMITTED for callers that expect
+    // a standard create-response shape (e.g. the eDohody E2E flow); kept
+    // alongside `applicationId`, which the onboarding UI already consumes.
+    return { applicationId: application.id, id: application.id, status: application.status };
   }
 
   /**

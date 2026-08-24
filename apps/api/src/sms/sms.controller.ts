@@ -21,7 +21,7 @@ export class SmsController {
   @HttpCode(201)
   @Throttle({ default: { ttl: 60_000, limit: 3 } })
   async sendOtp(@Body() body: { phone: string; purpose: string; ttlOverrideMs?: number }) {
-    await this.sms.sendOtp(body.phone, body.purpose ?? 'booking');
+    await this.sms.sendOtp(body.phone, body.purpose ?? 'booking', body.ttlOverrideMs);
     return { sent: true };
   }
 
@@ -42,20 +42,19 @@ export class SmsController {
     if (!this.isConsole) {
       return { error: 'Not available in production' };
     }
-    // Fetch the most recent unused OTP for this phone/purpose
-    const otp = await prisma.smsOtp.findFirst({
-      where: { phone, purpose, used: false, expiresAt: { gt: new Date() } },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!otp) return { code: null, message: 'No active OTP found' };
-    // The code is stored as bcrypt hash — we can't reverse it.
-    // In console mode, we log the plaintext; here we return a sentinel for integration tests.
-    // For real E2E OTP testing, check the console/log output.
-    return {
-      code: null,
-      message: 'OTP was logged to console (SMS_PROVIDER=console). Check API logs for the code.',
-      otpId: otp.id,
-      expiresAt: otp.expiresAt,
-    };
+    // Plaintext code comes from the console-mode-only in-memory cache
+    // (SmsService.getConsoleOtp) — the DB row only ever holds a bcrypt hash,
+    // which is intentionally not reversible.
+    const code = this.sms.getConsoleOtp(phone, purpose);
+    if (!code) {
+      // Still surface metadata about an active (but cache-missed / already
+      // expired) OTP row when one exists, for debugging.
+      const otp = await prisma.smsOtp.findFirst({
+        where: { phone, purpose, used: false, expiresAt: { gt: new Date() } },
+        orderBy: { createdAt: 'desc' },
+      });
+      return { code: null, message: 'No active OTP found', otpId: otp?.id, expiresAt: otp?.expiresAt };
+    }
+    return { code };
   }
 }

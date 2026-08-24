@@ -10,11 +10,12 @@ import { MockVideoProvider } from './mock-video.provider';
 import { TelehealthSessionService } from './telehealth-session.service';
 import { TelehealthController } from './telehealth.controller';
 import { TelehealthAdminController } from './telehealth-admin.controller';
+import { TelehealthTestController } from './telehealth-test.controller';
 import { TelehealthNoShowJob } from './telehealth-no-show.job';
 
 @Module({
   imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule],
-  controllers: [TelehealthController, TelehealthAdminController],
+  controllers: [TelehealthController, TelehealthAdminController, TelehealthTestController],
   providers: [
     {
       provide: VIDEO_PROVIDER,

@@ -75,14 +75,26 @@ export class StaffAuthService {
     detail?: Record<string, unknown>,
     ip?: string,
   ): Promise<void> {
+    // AuditLog.actorId carries a hard FK to the LEGACY `StaffUser` table
+    // (apps/api/prisma/schema.prisma: `AuditLog.actor StaffUser? @relation`)
+    // — not to `StaffAccount`, the model this service actually authenticates
+    // against. Passing a StaffAccount id here throws a foreign-key violation
+    // on every write, which means every call to logEvent() from this service
+    // (i.e. every login attempt, success or failure, plus MFA setup/verify,
+    // invite-accept, password reset, logout) 500s here regardless of
+    // credentials. Reconciling the two staff-auth models — or migrating the
+    // FK to reference both actor tables — is the bigger architectural
+    // decision this codebase has deliberately deferred; until then, keep the
+    // StaffAccount id out of the FK-constrained column (audit write must not
+    // block the actual auth flow) and preserve it in `detail` so it stays
+    // auditable via `actorEmail`/`staffAccountId` instead of `actorId`.
     await this.audit.log({
-      actorId: account?.id,
       actorEmail: account?.email ?? email,
       actorRole: account?.role ?? 'unknown',
       action,
       resource: 'staff_account',
       resourceId: account?.id ?? email,
-      detail,
+      detail: account ? { ...detail, staffAccountId: account.id } : detail,
       ip,
     });
   }
@@ -152,7 +164,7 @@ export class StaffAuthService {
     }
 
     const secret = this.totpCrypto.decrypt(account.totpSecret);
-    const valid = (otplib as any).authenticator.verify({ token: totpCode, secret }) as boolean;
+    const valid = (await otplib.verify({ token: totpCode, secret })).valid;
     if (!valid) {
       await this.logEvent('staff_mfa_failure', acc(account), account.email, undefined, ip);
       throw new UnauthorizedException('Invalid MFA code');
@@ -254,12 +266,12 @@ export class StaffAuthService {
   async setupMfa(staffId: string): Promise<{ otpauthUrl: string; secret: string }> {
     const account = await this.prisma.staffAccount.findUnique({ where: { id: staffId } });
     if (!account) throw new NotFoundException('Account not found');
-    const secret = (otplib as any).authenticator.generateSecret() as string;
+    const secret = otplib.generateSecret();
     await this.prisma.staffAccount.update({
       where: { id: staffId },
       data: { totpSecret: this.totpCrypto.encrypt(secret), totpEnabled: false },
     });
-    const otpauthUrl = (otplib as any).authenticator.keyuri(account.email, TOTP_ISSUER, secret) as string;
+    const otpauthUrl = otplib.generateURI({ secret, issuer: TOTP_ISSUER, label: account.email });
     return { otpauthUrl, secret };
   }
 
@@ -267,7 +279,7 @@ export class StaffAuthService {
     const account = await this.prisma.staffAccount.findUnique({ where: { id: staffId } });
     if (!account?.totpSecret) throw new BadRequestException('MFA setup not started');
     const secret = this.totpCrypto.decrypt(account.totpSecret);
-    const valid = (otplib as any).authenticator.verify({ token: totpCode, secret }) as boolean;
+    const valid = (await otplib.verify({ token: totpCode, secret })).valid;
     if (!valid) throw new BadRequestException('Invalid MFA code');
 
     const plainCodes = Array.from({ length: 10 }, () => formatRecoveryCode(randomBytes(10)));
@@ -285,7 +297,7 @@ export class StaffAuthService {
     const account = await this.prisma.staffAccount.findUnique({ where: { id: staffId } });
     if (!account?.totpEnabled || !account.totpSecret) return false;
     const secret = this.totpCrypto.decrypt(account.totpSecret);
-    return (otplib as any).authenticator.verify({ token: totpCode, secret }) as boolean;
+    return (await otplib.verify({ token: totpCode, secret })).valid;
   }
 
   // ── Token helpers (invite / reset / mfa_reset) ────────────
