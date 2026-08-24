@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 import { SiteLayout } from '@/components/layout/SiteLayout';
@@ -12,8 +12,12 @@ type State = 'idle' | 'loading' | 'success' | 'already_cancelled' | 'not_found' 
 export default function CancelBookingPage({
   params,
 }: {
-  params: { token: string; lang: string };
+  // Next 15 passes route params as a Promise; a client component unwraps it
+  // with React.use(). Typing it as a plain object fails `next build`'s
+  // PageProps constraint (tsc alone does not catch this).
+  params: Promise<{ token: string; lang: string }>;
 }) {
+  const { token, lang } = use(params);
   const t = useTranslations();
   const [state, setState] = useState<State>('idle');
   const [confirmed, setConfirmed] = useState(false);
@@ -21,7 +25,7 @@ export default function CancelBookingPage({
   async function doCancel() {
     setState('loading');
     try {
-      const res = await fetch(`${API_BASE}/api/booking/cancel/${params.token}`, {
+      const res = await fetch(`${API_BASE}/api/booking/cancel/${token}`, {
         method: 'POST',
       });
       if (res.ok) {
@@ -78,7 +82,7 @@ export default function CancelBookingPage({
                   {t('booking.cancelConfirm', { defaultValue: 'Áno, zrušiť objednávku' })}
                 </button>
                 <a
-                  href={`/${params.lang}`}
+                  href={`/${lang}`}
                   className="btn btn-ghost"
                 >
                   {t('backHome')}
@@ -110,7 +114,7 @@ export default function CancelBookingPage({
                     'Vaša objednávka bola úspešne zrušená. Termín je opäť voľný.',
                 })}
               </p>
-              <a href={`/${params.lang}`} className="btn btn-primary mt-6 btn-block">
+              <a href={`/${lang}`} className="btn btn-primary mt-6 btn-block">
                 {t('backHome')}
               </a>
             </div>
@@ -131,7 +135,7 @@ export default function CancelBookingPage({
                   defaultValue: 'Táto objednávka bola predtým zrušená.',
                 })}
               </p>
-              <a href={`/${params.lang}`} className="btn btn-ghost mt-6">
+              <a href={`/${lang}`} className="btn btn-ghost mt-6">
                 {t('backHome')}
               </a>
             </div>
@@ -158,7 +162,7 @@ export default function CancelBookingPage({
                         'Zrušenie sa nepodarilo. Skúste to znovu alebo nás kontaktujte telefonicky.',
                     })}
               </p>
-              <a href={`/${params.lang}`} className="btn btn-ghost mt-6">
+              <a href={`/${lang}`} className="btn btn-ghost mt-6">
                 {t('backHome')}
               </a>
             </div>

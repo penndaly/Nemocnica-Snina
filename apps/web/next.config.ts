@@ -50,6 +50,10 @@ function scriptSrc(): string {
 }
 
 const nextConfig: NextConfig = {
+  // Emits .next/standalone — a self-contained server with only the traced
+  // dependencies, which is what infra/docker/Dockerfile.web ships. `next start`
+  // continues to work unchanged for local dev and the CI e2e job.
+  output: 'standalone',
   experimental: {
   },
   images: {

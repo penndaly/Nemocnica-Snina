@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCode, verifyIdToken } from '@/lib/oidc-client';
 import { SignJWT } from 'jose';
-import { SESSION_SECRET, PATIENT_AUDIENCE } from '@/lib/session-secret';
+import { getSessionSecret, PATIENT_AUDIENCE } from '@/lib/session-secret';
 
 const SESSION_MAX_AGE = 30 * 60; // 30 minutes
 
@@ -64,7 +64,7 @@ export async function GET(
       // staff routes (and rejects staff tokens here) despite the shared secret.
       .setAudience(PATIENT_AUDIENCE)
       .setExpirationTime(`${SESSION_MAX_AGE}s`)
-      .sign(SESSION_SECRET);
+      .sign(getSessionSecret());
 
     const res = NextResponse.redirect(new URL(`/${lang}/portal`, req.url));
 

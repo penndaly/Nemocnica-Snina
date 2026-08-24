@@ -1,0 +1,58 @@
+# Next.js web app — multi-stage build for the pnpm workspace.
+#
+#   docker build -f infra/docker/Dockerfile.web -t nemocnica-web \
+#     --build-arg NEXT_PUBLIC_API_URL=https://api.staging.example.eu .
+#
+# NEXT_PUBLIC_* are inlined at BUILD time and also feed the CSP connect-src in
+# next.config.ts, so an image built for one environment cannot be re-pointed at
+# another by changing runtime env — rebuild per environment.
+
+FROM node:22-alpine AS base
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json      apps/api/
+COPY apps/web/package.json      apps/web/
+COPY apps/cms/package.json      apps/cms/
+COPY packages/ui/package.json   packages/ui/
+COPY packages/types/package.json packages/types/
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS build
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_LIVEKIT_URL
+ARG NEXT_PUBLIC_TELEHEALTH_PROVIDER
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
+ARG NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL \
+    NEXT_PUBLIC_LIVEKIT_URL=$NEXT_PUBLIC_LIVEKIT_URL \
+    NEXT_PUBLIC_TELEHEALTH_PROVIDER=$NEXT_PUBLIC_TELEHEALTH_PROVIDER \
+    NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN \
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID \
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET \
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
+    NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID \
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+COPY . .
+RUN pnpm --filter @ns/web build
+
+# ── runtime: Next standalone output (server + traced deps only) ───────────────
+FROM base AS runtime
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
+COPY --from=build /repo/apps/web/.next/standalone ./
+COPY --from=build /repo/apps/web/.next/static     ./apps/web/.next/static
+# NOTE: apps/web has no public/ directory today. If one is added, copy it here —
+# standalone output does not include it automatically.
+USER node
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]

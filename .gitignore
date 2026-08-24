@@ -14,3 +14,9 @@ coverage
 # Playwright run artefacts
 test-results
 playwright-report
+
+# Strapi build artefacts
+apps/cms/build
+apps/cms/.strapi
+apps/cms/.strapi-updater.json
+apps/cms/.tmp

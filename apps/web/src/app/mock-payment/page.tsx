@@ -14,14 +14,14 @@
  */
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { CreditCard, Lock, CheckCircle, XCircle } from 'lucide-react';
 
 const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 
 type State = 'idle' | 'processing' | 'paid' | 'error';
 
-export default function MockPaymentPage() {
+function MockPaymentInner() {
   const params     = useSearchParams();
   const router     = useRouter();
   const sessionId  = params.get('session')   ?? 'unknown';
@@ -162,5 +162,17 @@ export default function MockPaymentPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * useSearchParams() forces client-side bailout, which fails `next build`
+ * prerendering unless it sits inside a Suspense boundary.
+ */
+export default function MockPaymentPage() {
+  return (
+    <Suspense fallback={null}>
+      <MockPaymentInner />
+    </Suspense>
   );
 }
