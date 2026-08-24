@@ -24,6 +24,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter=@ns/api exec prisma generate
       - run: pnpm typecheck
 
   # ── Lint ──────────────────────────────────────────────────
