@@ -1,16 +1,54 @@
 /**
  * Booking wizard test helpers.
- * TEST_NOW is 2026-06-08 (Monday) — defined in global-setup.ts.
- * NEXT_TUESDAY  = 2026-06-09 — valid for urazova-chirurgia (bookingDays=[2,4])
- * NEXT_THURSDAY = 2026-06-11 — valid for angiologicka (window 13:00–14:00) + urazova
+ *
+ * NOTE: there is no actual server-clock mocking in this suite — the
+ * `timezoneId: 'Europe/Bratislava'` in playwright.config.ts only pins the
+ * *browser's* timezone, and TEST_NOW in global-setup.ts (2026-06-08) is
+ * never wired into the NestJS API process (a separate OS process;
+ * global-setup can't touch its clock). booking-rules.service.ts rejects any
+ * date before the real server "now" — so hardcoded fixture dates silently
+ * drift into the past over time and trip the (correct) past-date guard
+ * instead of the rule under test. MONDAY/TUESDAY/WEDNESDAY/THURSDAY below
+ * are computed relative to the actual current date instead, using local
+ * Date components (not toISOString(), which shifts a local date across the
+ * UTC boundary) — mirrors the working reference implementation in
+ * booking-rules.service.ts's nextAvailableDates().
  */
 import { Page } from '@playwright/test';
 
-export const VALID_RC  = '9001014719'; // passes modulo-11
-export const CLINIC_TRAUMA = 'urazova-chirurgia';
-export const CLINIC_ANGIOLOGY = 'angiologicka';
-export const TUESDAY  = '2026-06-09';
-export const THURSDAY = '2026-06-11';
+export const VALID_RC  = '9001010007'; // passes modulo-11 (9001014719 did NOT: 9001014719 % 11 === 4)
+export const CLINIC_TRAUMA = 'urazova-chirurgia';       // bookingDays=[2,4] (Tue/Thu), referral not required
+export const CLINIC_ANGIOLOGY = 'angiologicka';         // bookingDays=[4,5] (Thu/Fri), window 13:00–14:00, referral required
+
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Next future date (strictly after today) that falls on the given JS weekday (Sun=0 … Sat=6). */
+export function nextWeekday(targetDay: 0 | 1 | 2 | 3 | 4 | 5 | 6, from: Date = new Date()): string {
+  const cursor = new Date(from);
+  cursor.setHours(0, 0, 0, 0);
+  cursor.setDate(cursor.getDate() + 1); // start from tomorrow — "today" itself is never offered by the wizard
+  while (cursor.getDay() !== targetDay) {
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return toLocalDateString(cursor);
+}
+
+/** A date guaranteed to be in the past relative to whenever the suite runs. */
+export function pastDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return toLocalDateString(d);
+}
+
+export const MONDAY    = nextWeekday(1); // not a bookingDay for CLINIC_TRAUMA — negative weekday fixture
+export const TUESDAY   = nextWeekday(2); // valid for CLINIC_TRAUMA
+export const WEDNESDAY = nextWeekday(3); // not a bookingDay for CLINIC_ANGIOLOGY — negative weekday fixture
+export const THURSDAY  = nextWeekday(4); // valid for CLINIC_TRAUMA and CLINIC_ANGIOLOGY
 
 export async function selectClinic(page: Page, clinicId: string): Promise<void> {
   await page.goto(`/sk/objednanie?clinic=${clinicId}`);
