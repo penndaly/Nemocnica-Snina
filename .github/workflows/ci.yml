@@ -95,16 +95,28 @@ jobs:
             -v NS_APP_PASSWORD="$NS_APP_PASSWORD" \
             -f infra/postgres/audit-immutability.sql
 
+      # 3–5 each report independently: `if: always()` means one of these
+      # failing (e.g. the known timezone-sensitive booking-date flakiness in
+      # step 4) no longer skips the others — GitHub Actions skips later steps
+      # in a job by default once one fails, which was silently hiding
+      # DB-level audit immutability test results behind unrelated failures.
+      # Setup steps above (migrations, audit-immutability apply) intentionally
+      # keep default behavior — if those fail, running tests against a broken
+      # DB would just produce confusing noise instead of a real skip.
+
       # 3. Pure unit tests (no DB required)
       - name: Unit tests (rc-validation, booking-rules)
+        if: always()
         run: pnpm --filter=@ns/api test -- --testPathPattern="rc-validation|booking-rules\\.test"
 
       # 4. HTTP integration tests (Prisma mocked, rules are REAL)
       - name: HTTP integration tests — booking API rule enforcement
+        if: always()
         run: pnpm --filter=@ns/api test -- --testPathPattern="booking-api\\.e2e"
 
       # 5. DB-level audit immutability test (uses ns_app role against real DB)
       - name: DB-level audit immutability test
+        if: always()
         run: pnpm --filter=@ns/api test -- --testPathPattern="audit-immutability\\.db"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL_APP }}
