@@ -19,6 +19,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { WearablesDigestService } from './wearables-digest.service';
+import { CronHeartbeatService } from '../health/cron-heartbeat.service';
 
 @Injectable()
 export class WearablesCronService {
@@ -30,6 +31,7 @@ export class WearablesCronService {
     private readonly audit: AuditService,
     private readonly digest: WearablesDigestService,
     cfg: ConfigService,
+    private readonly heartbeat: CronHeartbeatService,
   ) {
     this.retentionDays = Number(cfg.get<string>('WEARABLES_GDPR_RETENTION_DAYS') ?? 90);
   }
@@ -37,6 +39,10 @@ export class WearablesCronService {
   // ── Part B — flush due digest windows ───────────────────
   @Cron('* * * * *')
   async flushAlertDigests(): Promise<void> {
+    await this.heartbeat.track('wearables.sync', () => this.runFlushAlertDigests());
+  }
+
+  private async runFlushAlertDigests(): Promise<void> {
     try {
       const n = await this.digest.flushDue();
       if (n > 0) this.logger.log(`Flushed ${n} batch-alert digest window(s)`);
@@ -48,6 +54,10 @@ export class WearablesCronService {
   // ── Part C — retention purge ────────────────────────────
   @Cron('0 2 * * *')
   async purgeExpiredReadings(): Promise<void> {
+    await this.heartbeat.track('wearables.retention-purge', () => this.runPurgeExpiredReadings());
+  }
+
+  private async runPurgeExpiredReadings(): Promise<void> {
     try {
       const cutoff = new Date(Date.now() - this.retentionDays * 86_400_000);
 
@@ -88,6 +98,10 @@ export class WearablesCronService {
   // ── Part C — consent-grace suspension ───────────────────
   @Cron('0 3 * * *')
   async suspendStaleConsent(): Promise<void> {
+    await this.heartbeat.track('wearables.consent-grace', () => this.runSuspendStaleConsent());
+  }
+
+  private async runSuspendStaleConsent(): Promise<void> {
     try {
       const cutoff = new Date();
       cutoff.setMonth(cutoff.getMonth() - 13);

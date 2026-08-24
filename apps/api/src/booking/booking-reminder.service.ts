@@ -16,6 +16,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
+import { CronHeartbeatService } from '../health/cron-heartbeat.service';
 
 const REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000; // ±1h around the 48h mark
 
@@ -26,10 +27,15 @@ export class BookingReminderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sms: SmsService,
+    private readonly heartbeat: CronHeartbeatService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async sendReminders(): Promise<void> {
+    await this.heartbeat.track('booking.reminders', () => this.runSendReminders());
+  }
+
+  private async runSendReminders(): Promise<void> {
     const now = new Date();
     const windowStart = new Date(now.getTime() + 47 * 60 * 60 * 1000);
     const windowEnd   = new Date(now.getTime() + 49 * 60 * 60 * 1000);

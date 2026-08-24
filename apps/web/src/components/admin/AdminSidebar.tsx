@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import {
   Building2, Calendar, User, Activity, FlaskConical, Newspaper,
   FileText, Shield, Edit3, Download, ExternalLink, LogOut, Plus,
-  Wrench, Lock, Video,
+  Wrench, Lock, Video, CalendarCheck, Watch, ScrollText, Languages,
+  Users, HeartPulse,
 } from 'lucide-react';
 import { useAdminAuth } from './AdminAuthContext';
 import { SCHEMAS, SINGLETONS } from './admin-schemas';
@@ -182,9 +183,11 @@ export function AdminSidebar({ data }: AdminSidebarProps) {
           />
         ))}
 
-        <SectionLabel text="Pacienti" />
+        <SectionLabel text="Prevádzka" />
+        <NavItem href="/admin/bookings" label="Objednania" icon={<CalendarCheck size={16} />} />
         <NavItem href="/admin/onboarding" label="eDohody — Žiadosti" icon={<User size={16} />} count={0} />
         <NavItem href="/admin/gdpr" label="GDPR — DSAR / Výmaz" icon={<Lock size={16} />} />
+        <NavItem href="/admin/translations" label="Preklady — na kontrolu" icon={<Languages size={16} />} />
 
         {/* Telehealth — clinician and admin only */}
         {['CLINICIAN', 'ADMIN'].includes(role ?? '') && (
@@ -192,6 +195,26 @@ export function AdminSidebar({ data }: AdminSidebarProps) {
             <SectionLabel text="Telehealth" />
             <NavItem href="/admin/telehealth" label="Plán konzultácií" icon={<Video size={16} />} />
           </>
+        )}
+
+        {/* Wearables + monitoring — administrator and super_admin only, matching
+            the @StaffRoles gate on the monitoring/platform controllers. */}
+        {['administrator', 'super_admin'].includes(role ?? '') && (
+          <>
+            <SectionLabel text="Nositeľné zariadenia" />
+            <NavItem href="/admin/wearables" label="Platformy a monitoring" icon={<Watch size={16} />} />
+          </>
+        )}
+
+        <SectionLabel text="Dohľad" />
+        {['administrator', 'super_admin'].includes(role ?? '') && (
+          <>
+            <NavItem href="/admin/health" label="Stav integrácií" icon={<HeartPulse size={16} />} />
+            <NavItem href="/admin/audit" label="Audit log" icon={<ScrollText size={16} />} />
+          </>
+        )}
+        {role === 'super_admin' && (
+          <NavItem href="/admin/users" label="Používatelia" icon={<Users size={16} />} />
         )}
 
         <SectionLabel text="Nástroje" />
