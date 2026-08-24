@@ -250,6 +250,15 @@ jobs:
       STRAPI_API_TOKEN: dev-token
       NEXT_PUBLIC_API_URL: http://localhost:3001
       NS_APP_PASSWORD: ns_app_ci
+      # TELEHEALTH_PROVIDER already defaults to 'mock' on the API side
+      # (telehealth.module.ts's provider factory), but the web app's telehealth
+      # room page (apps/web/src/app/[lang]/telehealth/konzultacia/[sessionId]/page.tsx)
+      # reads NEXT_PUBLIC_TELEHEALTH_PROVIDER directly with no fallback — baked
+      # in at build time. Without it, the room page tries a real LiveKit
+      # connection to a non-existent wss:// host instead of taking the mock
+      # short-circuit path, hanging every telehealth.spec.ts room test.
+      TELEHEALTH_PROVIDER: mock
+      NEXT_PUBLIC_TELEHEALTH_PROVIDER: mock
       # This job does a real `node dist/main` full-app bootstrap (unlike
       # test/test-edge, which build minimal Nest testing modules and never
       # trigger startup config validation) — these are all-zero-hex-rejected
