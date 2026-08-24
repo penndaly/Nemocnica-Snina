@@ -29,7 +29,7 @@ import { AuditService } from '../audit/audit.service';
 import { CmsClinicService } from '../cms/cms-clinic.service';
 import { CLINICS_SEED } from '../config/seed-clinics';
 
-const VALID_RC = '9001014719';
+const VALID_RC = '9001010007';
 
 // ── Next occurrence of a JS weekday ────────────────────────
 function nextWeekday(target: 0 | 1 | 2 | 3 | 4 | 5 | 6): string {

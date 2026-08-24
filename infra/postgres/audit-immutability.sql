@@ -17,16 +17,27 @@
 -- =========================================================
 
 -- ── Create the application role (idempotent) ─────────────
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ns_app') THEN
-    CREATE ROLE ns_app LOGIN PASSWORD :'NS_APP_PASSWORD';
-  END IF;
-END$$;
+-- psql's `:'VAR'` substitution does not apply inside dollar-quoted ($$...$$)
+-- blocks (it's a plain client-side text substitution done before the DO
+-- block's body is sent to the server as an opaque string), so the previous
+-- `CREATE ROLE ns_app LOGIN PASSWORD :'NS_APP_PASSWORD';` inside
+-- DO $$ ... $$ failed with "syntax error at or near ':'" in every
+-- environment that ran it — ns_app was never actually created by this
+-- script. Fixed by moving it to a plain top-level statement, where :'VAR'
+-- substitutes correctly. Idempotency comes the same way the rest of this
+-- script already gets it: psql continues past a single statement's error by
+-- default (no ON_ERROR_STOP), so re-running this against a database where
+-- ns_app already exists just errors on this one line and moves on.
+CREATE ROLE ns_app LOGIN PASSWORD :'NS_APP_PASSWORD';
 
 -- ── Grant only what the application actually needs ───────
--- nemocnica_snina operational DB
-GRANT CONNECT ON DATABASE nemocnica_snina TO ns_app;
+-- :"DBNAME" — psql auto-sets this to the currently-connected database name,
+-- substituted as a quoted identifier. This script runs against
+-- nemocnica_snina in production but nemocnica_test (or other names) in
+-- CI/local dev; GRANT CONNECT ON DATABASE <wrong hardcoded name> silently
+-- errored out before (psql continues past individual statement errors by
+-- default, so this never failed the script, it just never worked).
+GRANT CONNECT ON DATABASE :"DBNAME" TO ns_app;
 GRANT USAGE ON SCHEMA public TO ns_app;
 
 -- Full CRUD on all tables except audit_log

@@ -42,7 +42,7 @@ import { CmsClinicService } from '../cms/cms-clinic.service';
 import { CLINICS_SEED } from '../config/seed-clinics';
 
 // A valid Slovak RC that passes modulo-11 (used in all tests that aren't testing RC validation)
-const VALID_RC = '9001014719';
+const VALID_RC = '9001010007';
 
 // Prisma mock — returns null for availabilitySlot.findFirst (no slots exist)
 // This means: rules-rejected requests never reach this mock; slot-unavailable
