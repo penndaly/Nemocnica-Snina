@@ -10,3 +10,7 @@ dist
 .DS_Store
 coverage
 *.tsbuildinfo
+
+# Playwright run artefacts
+test-results
+playwright-report

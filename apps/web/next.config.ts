@@ -3,6 +3,52 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
+/**
+ * CSP connect-src.
+ *
+ * `'self'` alone is correct only when the NestJS API is reverse-proxied onto
+ * the web origin. In local dev (and any deploy where the API keeps its own
+ * hostname) NEXT_PUBLIC_API_URL is cross-origin, and a bare `'self'` silently
+ * blocks every admin/portal fetch in the browser. So the API origin — and the
+ * LiveKit signalling socket — are folded in from config rather than hardcoded.
+ * When the API is same-origin the extra entry collapses to a no-op.
+ */
+function connectSrc(): string {
+  const origins = new Set<string>(["'self'"]);
+
+  const add = (value: string | undefined, wsToo = false) => {
+    if (!value) return;
+    try {
+      const u = new URL(value);
+      origins.add(u.origin);
+      // LiveKit upgrades to wss:; some browsers match the ws(s) scheme, not http(s).
+      if (wsToo) origins.add(u.origin.replace(/^http/, 'ws'));
+    } catch {
+      /* not an absolute URL — nothing to allow */
+    }
+  };
+
+  add(process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000');
+  add(process.env['NEXT_PUBLIC_LIVEKIT_URL'], true);
+
+  // Firebase Analytics (analytics-only integration — no Firestore/Auth/Storage).
+  // Added only when a measurement ID is configured, so deploys without
+  // analytics keep the tighter policy.
+  if (process.env['NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID']) {
+    origins.add('https://*.google-analytics.com');
+    origins.add('https://*.analytics.google.com');
+    origins.add('https://*.googletagmanager.com');
+  }
+
+  return `connect-src ${[...origins].join(' ')}`;
+}
+
+function scriptSrc(): string {
+  const base = ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
+  if (process.env['NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID']) base.push('https://*.googletagmanager.com');
+  return `script-src ${base.join(' ')}`;
+}
+
 const nextConfig: NextConfig = {
   experimental: {
   },
@@ -32,11 +78,11 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              scriptSrc(),
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob:",
-              "connect-src 'self'",
+              "img-src 'self' data: blob: https://*.google-analytics.com",
+              connectSrc(),
             ].join('; '),
           },
         ],

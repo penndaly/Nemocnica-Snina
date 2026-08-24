@@ -13,7 +13,7 @@ import { AdminAuthProvider } from '@/components/admin/AdminAuthContext';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { showToast } from '@/components/admin/AdminToast';
 import { useAdminApi } from '@/components/admin/admin-api';
-import { Badge, Card, btn, cell, th, MUTED, LINE, type Tone } from '@/components/admin/admin-ui';
+import { Badge, Card, ScrollArea, btn, cell, th, MUTED, LINE, type Tone } from '@/components/admin/admin-ui';
 
 type HealthState = 'ok' | 'degraded' | 'down' | 'unknown';
 type RunMode = 'mock' | 'live' | 'disabled';
@@ -184,7 +184,7 @@ function HealthInner() {
               <Clock size={13} aria-hidden />
               Časy sa evidujú v pamäti procesu — po reštarte API sa počítajú odznova.
             </p>
-            <div style={{ overflowX: 'auto' }}>
+            <ScrollArea label="Tabuľka plánovaných úloh">
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
                 <thead>
                   <tr>
@@ -216,7 +216,7 @@ function HealthInner() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollArea>
           </Card>
         </>
       )}

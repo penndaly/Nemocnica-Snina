@@ -87,4 +87,6 @@ test.describe('A4-6 — global threshold update writes a global-scope audit entr
    design_handoff admin.html prototype (Appointments + Devices sections,
    ?section=bookings / ?section=devices, axe-clean patterns). */
 test.fixme('A4-2: clinician sees only their own clinic bookings (production /admin page)', async () => {});
-test.fixme('A4-8: axe zero critical/serious on ?section=bookings and ?section=devices (production /admin page)', async () => {});
+// A4-8 is now covered for real by admin-a11y.spec.ts, which runs axe against
+// /admin/bookings and /admin/wearables — the production React routes that did
+// not exist when this fixme was written.

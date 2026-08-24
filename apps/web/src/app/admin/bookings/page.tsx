@@ -16,7 +16,7 @@ import { AdminAuthProvider, useAdminAuth } from '@/components/admin/AdminAuthCon
 import { AdminShell } from '@/components/admin/AdminShell';
 import { showToast } from '@/components/admin/AdminToast';
 import { useAdminApi, qs, API_BASE } from '@/components/admin/admin-api';
-import { Badge, Card, StatTile, btn, cell, th, field, MUTED, type Tone } from '@/components/admin/admin-ui';
+import { Badge, Card, ScrollArea, StatTile, btn, cell, th, field, MUTED, type Tone } from '@/components/admin/admin-ui';
 
 type BookingStatus = 'pending' | 'booked' | 'cancelled' | 'completed' | 'no_show';
 
@@ -260,7 +260,7 @@ function BookingsInner() {
 
       {loading ? <p style={{ color: MUTED }}>Načítavam…</p> : (
         <Card>
-          <div style={{ overflowX: 'auto' }}>
+          <ScrollArea label="Tabuľka objednaní">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
               <caption style={{ textAlign: 'left', color: MUTED, fontSize: '.8rem', paddingBottom: '.5rem' }}>
                 {total} objednaní celkom — strana {page} z {pages}
@@ -314,7 +314,7 @@ function BookingsInner() {
                 )}
               </tbody>
             </table>
-          </div>
+          </ScrollArea>
 
           <div style={{ display: 'flex', gap: '.5rem', marginTop: '1rem', alignItems: 'center' }}>
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} style={btn('ghost')}>← Predošlá</button>

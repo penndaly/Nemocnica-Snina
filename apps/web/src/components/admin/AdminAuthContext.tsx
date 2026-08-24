@@ -13,6 +13,13 @@ interface AdminAuthContextValue extends AuthState {
   login: (email: string, password: string, totp: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  /**
+   * True until the sessionStorage restore below has run. Consumers MUST wait
+   * for this before acting on `isAuthenticated`: child effects fire before
+   * parent effects, so AdminShell's guard would otherwise run one tick before
+   * the token is restored and bounce every reload/deep-link to the login page.
+   */
+  restoring: boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null);
@@ -35,6 +42,7 @@ function roleFromJwt(token: string): string {
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({ token: null, role: null, email: null });
+  const [restoring, setRestoring] = useState(true);
   const router = useRouter();
 
   // Restore from sessionStorage on mount
@@ -43,6 +51,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const role = sessionStorage.getItem(ROLE_KEY);
     const email = sessionStorage.getItem(EMAIL_KEY);
     if (token) setState({ token, role, email });
+    setRestoring(false);
   }, []);
 
   // Staff login is two-step (A2/A3): password → MFA challenge → TOTP → staff JWT
@@ -101,7 +110,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <AdminAuthContext.Provider value={{ ...state, login, logout, isAuthenticated: !!state.token }}>
+    <AdminAuthContext.Provider value={{ ...state, login, logout, isAuthenticated: !!state.token, restoring }}>
       {children}
     </AdminAuthContext.Provider>
   );

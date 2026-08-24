@@ -21,7 +21,7 @@ import { AdminAuthProvider, useAdminAuth } from '@/components/admin/AdminAuthCon
 import { AdminShell } from '@/components/admin/AdminShell';
 import { showToast } from '@/components/admin/AdminToast';
 import { useAdminApi, qs, AdminApiError } from '@/components/admin/admin-api';
-import { Badge, Card, StatTile, Tabs, TabPanel, btn, cell, th, field, MUTED, type Tone } from '@/components/admin/admin-ui';
+import { Badge, Card, ScrollArea, StatTile, Tabs, TabPanel, btn, cell, th, field, MUTED, type Tone } from '@/components/admin/admin-ui';
 
 interface PlatformStatus {
   id: string; name: string; category: 'medical' | 'consumer';
@@ -105,7 +105,7 @@ function PlatformsTab() {
       </p>
       {groups.map(([cat, label]) => (
         <Card key={cat} title={label}>
-          <div style={{ overflowX: 'auto' }}>
+          <ScrollArea label={`Tabuľka platforiem — ${label}`}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
@@ -172,7 +172,7 @@ function PlatformsTab() {
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollArea>
         </Card>
       ))}
     </>
@@ -238,7 +238,7 @@ function MonitoringTab() {
 
       {summary && Object.keys(summary.byPlatform).length > 0 && (
         <Card title="Podľa platformy">
-          <div style={{ overflowX: 'auto' }}>
+          <ScrollArea label="Prehľad podľa platformy">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th} scope="col">Platforma</th><th style={th} scope="col">Pripojené</th><th style={th} scope="col">Chyby synch.</th></tr></thead>
               <tbody>
@@ -251,7 +251,7 @@ function MonitoringTab() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollArea>
         </Card>
       )}
 
@@ -289,7 +289,7 @@ function MonitoringTab() {
         </div>
 
         {loading ? <p style={{ color: MUTED }}>Načítavam…</p> : (
-          <div style={{ overflowX: 'auto' }}>
+          <ScrollArea label="Záznam alertov">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
@@ -317,7 +317,7 @@ function MonitoringTab() {
                 {alerts.length === 0 && <tr><td style={{ ...cell, color: MUTED }} colSpan={7}>Žiadne alerty.</td></tr>}
               </tbody>
             </table>
-          </div>
+          </ScrollArea>
         )}
 
         {total > LIMIT && (
@@ -396,7 +396,7 @@ function ThresholdsTab() {
         Poradie vyhodnotenia: <strong style={{ color: '#93c5fd' }}>lekár (per pacient)</strong> → <strong>globálne (tu)</strong> → zabudované predvolené.
         Zmena tu neprepíše prah, ktorý lekár nastavil konkrétnemu pacientovi.
       </p>
-      <div style={{ overflowX: 'auto' }}>
+      <ScrollArea label="Tabuľka globálnych prahov">
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
           <thead>
             <tr>
@@ -429,7 +429,7 @@ function ThresholdsTab() {
             {rows.length === 0 && <tr><td style={{ ...cell, color: MUTED }} colSpan={7}>Žiadne prahy.</td></tr>}
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
     </Card>
   );
 }
