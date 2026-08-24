@@ -42,7 +42,7 @@ export function ItemEditor({ collKey, schema, existingItem, isNew }: ItemEditorP
           typeof baseField === 'object' && baseField !== null
             ? (baseField as Record<string, string>)['sk'] ?? ''
             : String(baseField ?? '');
-        let id = slugify(baseSk);
+        const id = slugify(baseSk);
         const existing = ((data[collKey as keyof Seed] as unknown[]) ?? []).map(
           (x) => (x as Record<string, unknown>)['id'],
         );
