@@ -466,7 +466,12 @@ function TelehealthAdmin() {
   const { token, role } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<Tab>('clinics');
 
-  if (role && !['CLINICIAN', 'ADMIN'].includes(role)) {
+  // StaffAccount.role is lowercase snake_case (super_admin|administrator|
+  // clinician|editor — apps/api/prisma/schema.prisma), matching every other
+  // admin page's role check (bookings/gdpr/users/wearables); this one used
+  // uppercase literals that never matched a real role, denying every
+  // clinician and admin access to this page.
+  if (role && !['clinician', 'administrator', 'super_admin'].includes(role)) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', color: 'var(--red)', padding: '2rem' }}>
         <AlertCircle size={20} />

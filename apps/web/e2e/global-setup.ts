@@ -65,21 +65,33 @@ export default async function globalSetup() {
     return dates;
   }
 
+  // The wizard's step-3 time buttons are generated purely client-side
+  // (generateSlots() in objednanie/page.tsx), from clinic.bookingWindow (or
+  // clinic.telehealthWindow in ?mode=telehealth) when set, else every 20
+  // minutes from 08:00 — the "click .first()" tests always get whichever of
+  // those the clinic uses, never whatever time happens to be seeded here
+  // unless it's made to match.
   const clinicSlots = [
-    // Urology: bookable every weekday (seed.ts: [1,2,3,4,5]).
+    // Urology: bookable every weekday (seed.ts: [1,2,3,4,5]), no bookingWindow.
     ...nextBookableDates([1, 2, 3, 4, 5]).flatMap((date) => [
-      { clinicId: 'urologicka', date, time: '09:00' },
-      { clinicId: 'urologicka', date, time: '09:20' },
-      { clinicId: 'urologicka', date, time: '09:40' },
+      { clinicId: 'urologicka', date, time: '08:00' },
+      { clinicId: 'urologicka', date, time: '08:20' },
+      { clinicId: 'urologicka', date, time: '08:40' },
     ]),
-    // Trauma surgery: Tue/Thu.
+    // Trauma surgery: Tue/Thu, no bookingWindow.
     ...nextBookableDates([2, 4]).flatMap((date) => [
-      { clinicId: 'urazova-chirurgia', date, time: '09:00' },
+      { clinicId: 'urazova-chirurgia', date, time: '08:00' },
     ]),
-    // Angiology: Thu 13:00–14:00 window only.
+    // Angiology: Thu, bookingWindow 13:00–14:00.
     ...nextBookableDates([4]).flatMap((date) => [
       { clinicId: 'angiologicka', date, time: '13:00' },
       { clinicId: 'angiologicka', date, time: '13:20' },
+    ]),
+    // FRO video consultation (telehealth.spec.ts's TH_CLINIC): Mon/Wed/Fri,
+    // telehealthWindow 10:00–12:00.
+    ...nextBookableDates([1, 3, 5]).flatMap((date) => [
+      { clinicId: 'fro-konzultacia', date, time: '10:00' },
+      { clinicId: 'fro-konzultacia', date, time: '10:20' },
     ]),
   ];
 

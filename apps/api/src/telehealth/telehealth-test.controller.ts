@@ -34,7 +34,7 @@ export class TelehealthTestController {
     }
 
     const status = (body.status ?? 'scheduled') as TelehealthStatus;
-    const clinicId = body.clinicId ?? 'fro';
+    const clinicId = body.clinicId ?? 'fro-konzultacia';
     const withConsent = body.withConsent !== false;
 
     return this.sessionSvc.seedTestSession(clinicId, status, withConsent);

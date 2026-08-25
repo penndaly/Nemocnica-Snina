@@ -105,14 +105,16 @@ test('R5: trauma surgery on Monday (bookingDays=[2,4]) → 400', async () => {
   expect(body.message).toMatch(/weekday|day/i);
 });
 
-test('R6: trauma surgery on Tuesday → rules pass → slot check (400 slot or 200)', async () => {
+test('R6: trauma surgery on Tuesday → rules pass → slot check (400 slot or 201)', async () => {
   const { status, body } = await postBooking({ ...BASE, clinicId: CLINIC_TRAUMA, date: TUESDAY, time: '09:00' });
-  // Either books (if slot available) or 400 with "slot" message — not a rules error
+  // Either books (if slot available) or 400 with "slot" message — not a rules error.
+  // A successful POST /api/booking is 201 Created (NestJS's @Post() default,
+  // no @HttpCode override) — not 200.
   if (status === 400) {
     expect(body.message).toMatch(/slot|available/i);
     expect(body.message).not.toMatch(/weekday|day|window/i);
   } else {
-    expect(status).toBe(200);
+    expect(status).toBe(201);
     expect(body).toHaveProperty('id');
   }
 });

@@ -9,7 +9,12 @@
 import { Page, APIRequestContext } from '@playwright/test';
 import { setMockPatientSession } from './auth';
 
-export const TH_CLINIC_SLUG = 'fro'; // FRO is the TH-Pilot clinic; telehealth:true
+// 'fro' is the FRO *department* id (apps/web/src/lib/seed.ts's departments
+// list) — the actual bookable, telehealth-enabled *clinic* (ambulancia) is
+// a separate collection entry with its own id. Using the department id here
+// made the wizard's ?mode=telehealth&clinic=fro deep-link match nothing,
+// stranding every TH-1.x test on step 1.
+export const TH_CLINIC_SLUG = 'fro-konzultacia'; // telehealth:true clinic tied to FRO
 
 export interface SeedSessionResult {
   sessionId: string;

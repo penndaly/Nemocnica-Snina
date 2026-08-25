@@ -18,7 +18,7 @@ import { setMockPatientSession, adminLogin } from './helpers/auth';
 import { seedTelehealthSession, goToPatientRoom, goToPhysicianRoom } from './helpers/telehealth';
 
 const API = process.env['API_BASE_URL'] ?? 'http://localhost:4000';
-const TH_CLINIC = 'fro';
+const TH_CLINIC = 'fro-konzultacia'; // the telehealth:true clinic id — 'fro' alone is the department id
 
 // ── SPEC TH-1 — Telehealth booking wizard (patient) ──────────────────────────
 

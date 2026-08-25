@@ -33,10 +33,11 @@ test('ON3: invalid RC is rejected client-side before submit', async ({ page }) =
   await page.click('button[type="submit"], button:has-text("Odoslať")');
   // NOTE: `text=A, [role="alert"]` is NOT a selector union — Playwright's text
   // engine treats an unquoted comma as part of the search string itself, so
-  // this never matched anything. .or() is the correct way to combine engines.
-  await expect(
-    page.getByText('Neplatné rodné číslo').or(page.locator('[role="alert"]')),
-  ).toBeVisible({ timeout: 3_000 });
+  // this never matched anything. getByText() alone is unambiguous (and
+  // sufficient — we know the exact error text); a bare [role="alert"]
+  // fallback would strict-mode-fail here since Next.js always renders its
+  // own empty role="alert" route-announcer div alongside it.
+  await expect(page.getByText('Neplatné rodné číslo')).toBeVisible({ timeout: 3_000 });
 });
 
 test('ON4: valid submission succeeds (API creates application)', async () => {
