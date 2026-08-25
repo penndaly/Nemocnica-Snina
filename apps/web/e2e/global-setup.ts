@@ -171,13 +171,40 @@ export default async function globalSetup() {
   const existingAccount = await prisma.staffAccount.findUnique({
     where: { email: 'test-clinician@nemocnicasnina.sk' },
   });
+  const clinicianAccountId = existingAccount?.id ?? randomUUID();
   if (!existingAccount) {
     await prisma.staffAccount.create({
       data: {
-        id:            randomUUID(),
+        id:            clinicianAccountId,
         email:         'test-clinician@nemocnicasnina.sk',
         name:          'Test Clinician',
         role:          'clinician',
+        passwordHash:  await bcrypt.hash('TestPass123!', 10),
+        totpSecret:    encryptTotpSecret(secret),
+        totpEnabled:   true,
+        recoveryCodes: [],
+        status:        'active',
+      },
+    });
+  }
+
+  // Separate super_admin fixture account for admin-a4.spec.ts's wearables
+  // platform-management tests (WearablesAdminController requires exactly
+  // 'super_admin'; WearablesMonitoringController accepts 'administrator' or
+  // 'super_admin' too). Deliberately its own account/JWT, not an upgrade of
+  // the clinician fixture above — reusing one identity across role tiers
+  // would stop exercising StaffRolesGuard's actual role check.
+  const existingSuperAdmin = await prisma.staffAccount.findUnique({
+    where: { email: 'test-superadmin@nemocnicasnina.sk' },
+  });
+  const superAdminAccountId = existingSuperAdmin?.id ?? randomUUID();
+  if (!existingSuperAdmin) {
+    await prisma.staffAccount.create({
+      data: {
+        id:            superAdminAccountId,
+        email:         'test-superadmin@nemocnicasnina.sk',
+        name:          'Test Super Admin',
+        role:          'super_admin',
         passwordHash:  await bcrypt.hash('TestPass123!', 10),
         totpSecret:    encryptTotpSecret(secret),
         totpEnabled:   true,
@@ -216,6 +243,31 @@ export default async function globalSetup() {
       .setAudience('ns.staff.legacy')
       .setExpirationTime('4h')
       .sign(key);
+  }
+
+  // TEST_SUPERADMIN_JWT — a real StaffJwtGuard-verifiable access token for
+  // the super_admin fixture account above. This is a DIFFERENT auth system
+  // from TEST_STAFF_JWT's (STAFF_JWT_SECRET + aud 'ns.staff' + typ 'access',
+  // verified by apps/api/src/auth/staff-jwt.guard.ts's StaffJwtGuard against
+  // a real staff_accounts row — not JWT_SECRET + aud 'ns.staff.legacy',
+  // verified by the older passport JwtStrategy). Payload shape mirrors
+  // StaffAuthService.issueSession() exactly: { sub, email, role, scopes,
+  // jti, typ }.
+  const staffJwtSecret = process.env['STAFF_JWT_SECRET'];
+  if (staffJwtSecret) {
+    const staffKey = new TextEncoder().encode(staffJwtSecret);
+    process.env['TEST_SUPERADMIN_JWT'] = await new SignJWT({
+      email: 'test-superadmin@nemocnicasnina.sk',
+      role: 'super_admin',
+      scopes: [],
+      jti: randomUUID(),
+      typ: 'access',
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject(superAdminAccountId)
+      .setAudience('ns.staff')
+      .setExpirationTime('4h')
+      .sign(staffKey);
   }
 
   await prisma.$disconnect();
