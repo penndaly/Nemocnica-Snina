@@ -180,11 +180,34 @@ jobs:
   # Runs only on main branch after a successful build.
   # Requires STAGING_* secrets to be set in the repo.
   # All integrations must pass (no mocks) before the E2E suite runs.
-  smoke-staging:
-    name: Integration smoke — staging
+  #
+  # Mirrors deploy-staging.yml's guard/configured pattern: no-op with a clear
+  # message when the staging app URL isn't set, instead of hard-failing on
+  # `npx ts-node` against blank/localhost URLs. Without this, this job could
+  # never pass or skip cleanly before a real staging host exists — it always
+  # ran on every push to main and always failed.
+  smoke-staging-guard:
+    name: Check staging is configured
     runs-on: ubuntu-latest
     needs: [build, test, test-edge]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        run: |
+          if [ -z "${{ secrets.STAGING_APP_URL }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::STAGING_APP_URL is not set — skipping integration smoke tests. See docs/STAGING_DEPLOYMENT.md for the one-time host setup."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  smoke-staging:
+    name: Integration smoke — staging
+    runs-on: ubuntu-latest
+    needs: smoke-staging-guard
+    if: needs.smoke-staging-guard.outputs.configured == 'true'
     environment: staging
     env:
       APP_BASE_URL:      ${{ secrets.STAGING_APP_URL }}
@@ -209,7 +232,7 @@ jobs:
           echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/gcp-sa.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-sa.json" >> $GITHUB_ENV
       - name: Run integration smoke tests
-        run: npx ts-node --project tsconfig.base.json scripts/smoke-test.ts
+        run: npx ts-node --esm --project tsconfig.base.json scripts/smoke-test.mts
 
   # ── E2E tests (Playwright, SPEC 1–9) ──────────────────────
   # Runs after smoke-staging on main; also runs on PRs against a local stack.

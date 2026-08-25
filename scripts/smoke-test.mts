@@ -9,7 +9,14 @@
  *   API_BASE_URL=https://api-staging.nemocnicasnina.sk \
  *   STRAPI_URL=https://cms-staging.nemocnicasnina.sk \
  *   STRAPI_API_TOKEN=<staging-token> \
- *   npx ts-node --project tsconfig.base.json scripts/smoke-test.ts
+ *   npx ts-node --esm --project tsconfig.base.json scripts/smoke-test.mts
+ *
+ * .mts (not .ts) + --esm: this file has no imports/exports and uses
+ * top-level await, which Node only allows in ESM — ts-node needs both the
+ * extension and the flag to load it as ESM rather than erroring with
+ * "await expressions are only allowed... when the file is a module" and
+ * "Cannot find name 'process'"/'fetch' (its default CJS mode never even
+ * loads Node's ambient lib types for a script with no imports).
  *
  * Each test prints PASS / FAIL and a detail line. Exit code 1 if any fail.
  */
