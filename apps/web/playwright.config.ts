@@ -25,12 +25,21 @@ export default defineConfig({
   testDir:  './e2e',
   timeout:  30_000,
   retries:  process.env['CI'] ? 2 : 0,
-  reporter: process.env['CI'] ? 'github' : 'list',
+  // 'github' alone only emits log annotations — it never writes
+  // playwright-report/, so CI's "Upload Playwright report" step had nothing
+  // to upload every single run (it reported success anyway: actions/upload-
+  // artifact doesn't fail on an empty/missing path, it just silently skips
+  // creating the artifact). Screenshots/videos/traces on failure were
+  // captured (use.screenshot/video below) but never retrievable — every
+  // past CI failure investigation had to work from raw text logs alone.
+  // Keep the GitHub annotations AND actually produce the HTML report.
+  reporter: process.env['CI'] ? [['github'], ['html', { open: 'never' }]] : 'list',
 
   use: {
     baseURL:     process.env['APP_BASE_URL'] ?? 'http://localhost:3000',
     screenshot:  'only-on-failure',
     video:       'retain-on-failure',
+    trace:       'retain-on-failure',
     // Only pins the *browser's* timezone — there is no server-clock mocking
     // in this suite (see helpers/booking.ts for the date-fixture approach
     // that works around that).
