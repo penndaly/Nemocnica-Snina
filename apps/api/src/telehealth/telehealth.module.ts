@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
+import { AuthModule } from '../auth/auth.module';
 import { HisModule } from '../his/his.module';
 import { SmsModule } from '../sms/sms.module';
 import { VIDEO_PROVIDER } from './video-provider.interface';
@@ -14,7 +15,7 @@ import { TelehealthTestController } from './telehealth-test.controller';
 import { TelehealthNoShowJob } from './telehealth-no-show.job';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuditModule, HisModule, SmsModule],
+  imports: [ConfigModule, PrismaModule, AuditModule, AuthModule, HisModule, SmsModule],
   controllers: [TelehealthController, TelehealthAdminController, TelehealthTestController],
   providers: [
     {

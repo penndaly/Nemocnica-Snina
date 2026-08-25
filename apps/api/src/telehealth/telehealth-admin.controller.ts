@@ -2,24 +2,35 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   Get,
   Param,
   Patch,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
+import { StaffJwtGuard, StaffRoles, StaffRolesGuard, type StaffContext } from '../auth/staff-jwt.guard';
 
-interface RequestWithUser {
-  user?: { userId: string; email: string; role: string };
+interface RequestWithStaff {
+  staff: StaffContext;
   ip?: string;
 }
 
+// This controller is exclusively for the production React admin UI
+// (apps/web/src/app/admin/telehealth/page.tsx via AdminAuthContext), which
+// authenticates through the newer StaffAccount/StaffJwtGuard stack (aud
+// 'ns.staff', lowercase roles) — unlike telehealth.controller.ts's
+// patient/physician-facing endpoints, which stay on the legacy
+// AuthGuard('jwt') strategy shared with the eID/OIDC patient flow (aud
+// 'ns.patient') and existing physician JWTs (aud 'ns.staff.legacy').
+// This controller had never been migrated: AuthGuard('jwt') rejects a
+// StaffJwtGuard-issued token outright (audience mismatch), so every real
+// admin/clinician session hit a 401 loading Clinics/Physicians here,
+// regardless of role.
 @Controller('api/admin/telehealth')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(StaffJwtGuard, StaffRolesGuard)
+@StaffRoles('clinician', 'administrator', 'super_admin')
 export class TelehealthAdminController {
   private readonly strapiUrl: string;
   private readonly strapiToken: string;
@@ -32,18 +43,10 @@ export class TelehealthAdminController {
     this.strapiToken = cfg.get<string>('STRAPI_API_TOKEN') ?? '';
   }
 
-  private assertAdminOrClinician(role: string | undefined) {
-    if (!role || !['ADMIN', 'CLINICIAN'].includes(role)) {
-      throw new ForbiddenException('Only admins and clinicians can access telehealth config');
-    }
-  }
-
   // ── Clinics ──────────────────────────────────────────────────────────────────
 
   @Get('clinics')
-  async listClinics(@Req() req: RequestWithUser) {
-    this.assertAdminOrClinician(req.user?.role);
-
+  async listClinics() {
     const res = await fetch(
       `${this.strapiUrl}/api/clinics?fields[0]=name&fields[1]=telehealth&fields[2]=telehealthWindow&fields[3]=telehealthRule&pagination[limit]=100`,
       { headers: { Authorization: `Bearer ${this.strapiToken}` } },
@@ -64,10 +67,8 @@ export class TelehealthAdminController {
   async updateClinic(
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
-    @Req() req: RequestWithUser,
+    @Req() req: RequestWithStaff,
   ) {
-    this.assertAdminOrClinician(req.user?.role);
-
     const allowed = ['telehealth', 'telehealthWindow', 'telehealthRule'];
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
@@ -88,12 +89,12 @@ export class TelehealthAdminController {
     if (!res.ok) throw new BadRequestException(`Strapi update failed: ${res.status}`);
 
     await this.audit.log({
-      actorEmail: req.user?.email ?? 'unknown',
-      actorRole:  req.user?.role ?? 'ADMIN',
+      actorEmail: req.staff.email,
+      actorRole:  req.staff.role,
       action:     'admin.telehealth.clinic.updated',
       resource:   'clinic',
       resourceId: id,
-      detail:     updates,
+      detail:     { ...updates, staffAccountId: req.staff.staffId },
       ip:         req.ip,
     });
 
@@ -103,9 +104,7 @@ export class TelehealthAdminController {
   // ── Physicians ───────────────────────────────────────────────────────────────
 
   @Get('physicians')
-  async listPhysicians(@Req() req: RequestWithUser) {
-    this.assertAdminOrClinician(req.user?.role);
-
+  async listPhysicians() {
     const res = await fetch(
       `${this.strapiUrl}/api/physicians?fields[0]=name&fields[1]=specialty&fields[2]=telehealth&pagination[limit]=200`,
       { headers: { Authorization: `Bearer ${this.strapiToken}` } },
@@ -125,10 +124,8 @@ export class TelehealthAdminController {
   async updatePhysician(
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
-    @Req() req: RequestWithUser,
+    @Req() req: RequestWithStaff,
   ) {
-    this.assertAdminOrClinician(req.user?.role);
-
     if (typeof body['telehealth'] !== 'boolean') {
       throw new BadRequestException('telehealth (boolean) is required');
     }
@@ -144,12 +141,12 @@ export class TelehealthAdminController {
     if (!res.ok) throw new BadRequestException(`Strapi update failed: ${res.status}`);
 
     await this.audit.log({
-      actorEmail: req.user?.email ?? 'unknown',
-      actorRole:  req.user?.role ?? 'ADMIN',
+      actorEmail: req.staff.email,
+      actorRole:  req.staff.role,
       action:     'admin.telehealth.physician.updated',
       resource:   'physician',
       resourceId: id,
-      detail:     { telehealth: body['telehealth'] },
+      detail:     { telehealth: body['telehealth'], staffAccountId: req.staff.staffId },
       ip:         req.ip,
     });
 
