@@ -34,8 +34,18 @@ test('HP1: full booking wizard — urology Mon-Fri, confirms with booking ID', a
   // Urology requires a referral (referral: true in seed-clinics.ts) — server rejects without it
   await page.locator('[name="referralConsent"]').check();
 
-  // Step 5: confirm
-  await page.click('button:has-text("Potvrdiť"), button[type="submit"]');
+  // Step 4 -> Step 5: submit details (advances to the review screen, does
+  // not book anything yet).
+  await page.click('button[type="submit"]');
+  await page.waitForSelector('[data-step="5"]', { timeout: 8_000 });
+
+  // Step 5: confirm. This is a second, distinct click — the review screen's
+  // "Potvrdiť objednávku" button (data-action="confirm") is what actually
+  // POSTs /api/booking; the step-4 submit above only gets you to this
+  // screen. Missing this click was the real bug — the test previously
+  // clicked once, so it waited forever on a confirmation that no click had
+  // ever asked for.
+  await page.click('[data-action="confirm"]');
 
   // Confirmation card
   // NOTE: `text=A, text=B` is NOT a selector union — Playwright's text engine treats an

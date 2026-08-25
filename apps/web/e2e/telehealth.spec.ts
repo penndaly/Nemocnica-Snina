@@ -16,6 +16,7 @@
 import { test, expect } from '@playwright/test';
 import { setMockPatientSession, adminLogin } from './helpers/auth';
 import { seedTelehealthSession, goToPatientRoom, goToPhysicianRoom } from './helpers/telehealth';
+import { VALID_RC } from './helpers/booking';
 
 const API = process.env['API_BASE_URL'] ?? 'http://localhost:4000';
 const TH_CLINIC = 'fro-konzultacia'; // the telehealth:true clinic id — 'fro' alone is the department id
@@ -79,8 +80,11 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
 
     await page.click('button[type="submit"], button:has-text("Pokračovať")');
 
-    // Error on the consent checkbox
-    await expect(page.locator('[role="alert"], .field-error')).toBeVisible({ timeout: 5_000 });
+    // Error on the consent checkbox. Filtered to non-empty text: Next.js
+    // always renders its own empty role="alert" route-announcer div for a11y
+    // route changes, so an unfiltered [role="alert"] is a strict-mode
+    // multi-match once the real field error also appears.
+    await expect(page.locator('[role="alert"], .field-error').filter({ hasText: /.+/ })).toBeVisible({ timeout: 5_000 });
     // Page must NOT advance to step 5
     await expect(page.locator('[data-step="5"], :has-text("Objednávka potvrdená")')).not.toBeVisible();
   });
@@ -95,10 +99,23 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
 
     await page.fill('[name="patientName"]', 'Test Pacient');
     await page.fill('[name="patientPhone"], input[type="tel"]', '+421900000002');
+    // patientRc is required (custom validation, the form has noValidate) —
+    // leaving it empty blocked submission with "Neplatné rodné číslo" and
+    // the wizard never advanced past step 4.
+    await page.fill('[name="patientRc"], input[placeholder*="Rodné"]', VALID_RC);
     await page.locator('[name="gdprConsent"]').check();
     await page.locator('[name="telehealthConsent"], [data-consent="telehealth_medical_record"]').first().check();
 
+    // Step 4 -> Step 5: submit details (advances to the review screen, does
+    // not book anything yet).
     await page.click('button[type="submit"], button:has-text("Pokračovať")');
+    await page.waitForSelector('[data-step="5"]', { timeout: 8_000 });
+
+    // Step 5: confirm. Same booking.spec.ts HP1 bug — a second, distinct
+    // click on the review screen's own confirm button is what actually
+    // POSTs /api/booking; the step-4 submit above only gets you to this
+    // screen.
+    await page.click('[data-action="confirm"]');
 
     // Step 5: confirmation
     await expect(page.locator(':has-text("Objednávka potvrdená"), :has-text("Booking confirmed")')).toBeVisible({ timeout: 15_000 });
@@ -116,7 +133,15 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
 // ── SPEC TH-2 — Session join: patient waiting room ────────────────────────────
 
 test.describe('TH-2: Patient waiting room @telehealth @room @patient', () => {
-  test('TH-2.1: waiting room renders for a scheduled session', async ({ page, request }) => {
+  test('TH-2.1: waiting room renders for a scheduled session', async ({ page, request, browserName }) => {
+    // The room's device-check step calls getUserMedia({video:true,audio:true})
+    // before the waiting room ever renders. playwright.config.ts grants a
+    // permission + fake device for Chromium (sk/en projects) to satisfy that,
+    // but WebKit (the mobile project) doesn't recognize 'camera'/'microphone'
+    // as valid permission names at all — context creation itself throws
+    // ("Unknown permission") if you try, so there is no WebKit-side fake
+    // camera to grant here. This is a browser API gap, not an app bug.
+    test.skip(browserName === 'webkit', 'WebKit has no fake-camera / camera-permission API for getUserMedia');
     const { sessionId } = await seedTelehealthSession(request, 'scheduled', true);
     await goToPatientRoom(page, sessionId);
 
@@ -313,9 +338,12 @@ test.describe('TH-5: Security — token and session isolation @telehealth @secur
       },
     });
     expect(res.status()).toBe(403);
-    const body = await res.json() as { message?: unknown };
-    const msg = JSON.stringify(body.message ?? body);
-    expect(msg).toContain('consent_required');
+    // The API returns { reason: 'consent_required', message: '...' } as a
+    // flat object (see telehealth-session.service.ts's joinSession consent
+    // gate) — 'reason' is a sibling of 'message', not nested inside it, so
+    // checking body.message alone (as this previously did) never finds it.
+    const body = await res.json() as { reason?: unknown; message?: unknown };
+    expect(JSON.stringify(body)).toContain('consent_required');
   });
 });
 

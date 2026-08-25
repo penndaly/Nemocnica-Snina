@@ -39,6 +39,13 @@ const EMPTY_STATE: BookingState = {
 const WEEKDAY_SK = ['Ne','Po','Ut','St','Št','Pi','So'];
 const WEEKDAY_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function getNextAllowedDates(clinic: Clinic, count = 8): string[] {
   if (!clinic.bookable || !clinic.bookingDays?.length) return [];
   const dates: string[] = [];
@@ -47,7 +54,17 @@ function getNextAllowedDates(clinic: Clinic, count = 8): string[] {
   cursor.setDate(cursor.getDate() + 1);
   while (dates.length < count) {
     if (clinic.bookingDays.includes(cursor.getDay() as 0|1|2|3|4|5|6)) {
-      dates.push(cursor.toISOString().substring(0, 10));
+      // .toISOString() converts to UTC — for any UTC+ timezone (e.g.
+      // Europe/Bratislava), local midnight is still the previous day in
+      // UTC, so this permanently offset every date shown here one day
+      // earlier than the server's own "next available date" — not a rare
+      // midnight edge case, a full-day, every-request offset for the
+      // entire timezone. This is the exact class of bug CLAUDE.md already
+      // documents as fixed in booking-rules.service.ts's
+      // nextAvailableDates() (the reference implementation) and in the
+      // E2E test date helpers; this one call site was missed. Build the
+      // date string from local components instead.
+      dates.push(toLocalDateString(cursor));
     }
     cursor.setDate(cursor.getDate() + 1);
   }

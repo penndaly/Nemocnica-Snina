@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, PhoneOff,
@@ -24,6 +24,7 @@ function formatElapsed(secs: number): string {
 
 function PatientRoom({ sessionId }: { sessionId: string }) {
   const locale = useLocale();
+  const router = useRouter();
   const t      = useTranslations('room');
   const tError = useTranslations('room.error');
 
@@ -160,21 +161,41 @@ function PatientRoom({ sessionId }: { sessionId: string }) {
   }, [joinSession]);
 
   useEffect(() => {
-    const savedState = sessionStorage.getItem('th_room_state') as RoomState | null;
-    const savedStart = sessionStorage.getItem('th_start');
-    if (savedState === 'active') {
-      setRoomState('active');
-      if (savedStart) {
-        const start = parseInt(savedStart, 10);
-        setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
-        startTimer();
+    let cancelled = false;
+
+    async function start() {
+      // Check the httpOnly session cookie before doing anything else — the
+      // real /join call is skipped entirely in mock mode (IS_MOCK short-
+      // circuits joinSession before it ever fetches), so an unauthenticated
+      // visitor would otherwise sail straight through device-check into a
+      // fake "waiting" state instead of being redirected. /api/portal/me
+      // verifies the same ns_patient_session cookie/secret/audience the
+      // portal itself uses, with no side effects.
+      const authRes = await fetch('/api/portal/me', { credentials: 'include' }).catch(() => null);
+      if (cancelled) return;
+      if (!authRes || !authRes.ok) {
+        router.replace(`/${locale}/portal`);
+        return;
       }
-      void joinSession();
-      return;
+
+      const savedState = sessionStorage.getItem('th_room_state') as RoomState | null;
+      const savedStart = sessionStorage.getItem('th_start');
+      if (savedState === 'active') {
+        setRoomState('active');
+        if (savedStart) {
+          const start = parseInt(savedStart, 10);
+          setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
+          startTimer();
+        }
+        void joinSession();
+        return;
+      }
+      if (savedState === 'postcall') { setRoomState('postcall'); return; }
+      void runDeviceCheck();
     }
-    if (savedState === 'postcall') { setRoomState('postcall'); return; }
-    void runDeviceCheck();
-    return () => { stopTimer(); };
+
+    void start();
+    return () => { cancelled = true; stopTimer(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
