@@ -6,7 +6,7 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID, randomBytes, createCipheriv } from 'crypto';
 import { SignJWT } from 'jose';
-import { nextWeekday } from './helpers/booking';
+import { toLocalDateString } from './helpers/booking';
 
 // Must match apps/api/src/telehealth/telehealth-session.service.ts's
 // E2E_TEST_PHYSICIAN_ID — the fixed physician identity the seed-session
@@ -36,36 +36,51 @@ export default async function globalSetup() {
   await prisma.onboardingApplication.deleteMany({});
   await prisma.smsOtp.deleteMany({});
 
-  // Seed availability slots for happy-path tests. Dates are computed
-  // relative to the real current date (via helpers/booking.ts's
-  // nextWeekday(), the documented reference implementation for this) rather
-  // than hardcoded — there is no server-clock mocking in this suite, so a
-  // fixed past date would drift and trip booking-rules.service.ts's (correct)
-  // past-date guard instead of the rule the test actually targets.
-  const nextTuesday  = nextWeekday(2);
-  const nextThursday = nextWeekday(4);
+  // Seed availability slots for happy-path tests. There is no server-clock
+  // mocking in this suite, so dates are computed relative to the real
+  // current date rather than hardcoded — a fixed past date would drift and
+  // trip booking-rules.service.ts's (correct) past-date guard instead of
+  // the rule the test actually targets.
+  //
+  // This process (global-setup.ts) runs in Node on the CI runner, which is
+  // UTC — but the wizard's own date list (getNextAllowedDates in
+  // objednanie/page.tsx) runs in the browser, which playwright.config.ts
+  // pins to Europe/Bratislava. Near midnight UTC (~1-2am Bratislava) the two
+  // can disagree about what "today" is, which is enough to shift which
+  // weekday's occurrence counts as "next" — seeding just the Nth-next
+  // occurrence of one specific weekday isn't robust to that. Seeding every
+  // matching weekday across a wide multi-day window is: whichever date the
+  // browser's clock actually picks as nearest, a slot exists for it either
+  // way.
+  function nextBookableDates(bookingDays: readonly number[], windowDays = 12): string[] {
+    const dates: string[] = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    for (let i = 1; i <= windowDays; i++) {
+      cursor.setDate(cursor.getDate() + 1);
+      if (bookingDays.includes(cursor.getDay())) {
+        dates.push(toLocalDateString(cursor));
+      }
+    }
+    return dates;
+  }
+
   const clinicSlots = [
-    // Urology: bookingDays is every weekday (seed.ts: [1,2,3,4,5]), and the
-    // wizard offers up to 8 upcoming bookable dates, clicking whichever
-    // renders first (the chronologically nearest one) — seeding only a
-    // single weekday (e.g. "next Tuesday") means the actual nearest date
-    // the wizard offers has no matching slot whenever "today" isn't the
-    // day right before that Tuesday. Seed every weekday Mon-Fri so
-    // whichever date is nearest always has a slot.
-    ...([1, 2, 3, 4, 5] as const).flatMap((day) => {
-      const date = nextWeekday(day);
-      return [
-        { clinicId: 'urologicka', date, time: '09:00' },
-        { clinicId: 'urologicka', date, time: '09:20' },
-        { clinicId: 'urologicka', date, time: '09:40' },
-      ];
-    }),
-    // Trauma surgery: Tue/Thu
-    { clinicId: 'urazova-chirurgia', date: nextTuesday,  time: '09:00' },
-    { clinicId: 'urazova-chirurgia', date: nextThursday, time: '09:00' },
-    // Angiology: Thu 13:00–14:00
-    { clinicId: 'angiologicka', date: nextThursday, time: '13:00' },
-    { clinicId: 'angiologicka', date: nextThursday, time: '13:20' },
+    // Urology: bookable every weekday (seed.ts: [1,2,3,4,5]).
+    ...nextBookableDates([1, 2, 3, 4, 5]).flatMap((date) => [
+      { clinicId: 'urologicka', date, time: '09:00' },
+      { clinicId: 'urologicka', date, time: '09:20' },
+      { clinicId: 'urologicka', date, time: '09:40' },
+    ]),
+    // Trauma surgery: Tue/Thu.
+    ...nextBookableDates([2, 4]).flatMap((date) => [
+      { clinicId: 'urazova-chirurgia', date, time: '09:00' },
+    ]),
+    // Angiology: Thu 13:00–14:00 window only.
+    ...nextBookableDates([4]).flatMap((date) => [
+      { clinicId: 'angiologicka', date, time: '13:00' },
+      { clinicId: 'angiologicka', date, time: '13:20' },
+    ]),
   ];
 
   for (const slot of clinicSlots) {

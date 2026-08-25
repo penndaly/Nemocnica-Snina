@@ -20,7 +20,7 @@ export const VALID_RC  = '9001010007'; // passes modulo-11 (9001014719 did NOT: 
 export const CLINIC_TRAUMA = 'urazova-chirurgia';       // bookingDays=[2,4] (Tue/Thu), referral not required
 export const CLINIC_ANGIOLOGY = 'angiologicka';         // bookingDays=[4,5] (Thu/Fri), window 13:00–14:00, referral required
 
-function toLocalDateString(d: Date): string {
+export function toLocalDateString(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
