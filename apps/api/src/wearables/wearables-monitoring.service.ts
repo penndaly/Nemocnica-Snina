@@ -171,13 +171,15 @@ export class WearablesMonitoringService {
     ].join('\n');
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'wearable_alert_log_exported',
       targetType: 'wearable_alert_log',
       targetId: 'export',
-      meta: { filters: { severity: q.severity ?? null, platformId: q.platformId ?? null, from: q.from ?? null, to: q.to ?? null }, rowCount: items.length },
+      meta: { filters: { severity: q.severity ?? null, platformId: q.platformId ?? null, from: q.from ?? null, to: q.to ?? null }, rowCount: items.length, staffAccountId: actor.staffId },
       ipAddress: ip,
     });
 
@@ -233,7 +235,9 @@ export class WearablesMonitoringService {
     });
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'threshold_updated',
@@ -244,6 +248,7 @@ export class WearablesMonitoringService {
         scope: 'global',
         previous: previous ? { criticalLow: previous.criticalLow, criticalHigh: previous.criticalHigh, highLow: previous.highLow, highHigh: previous.highHigh } : null,
         next,
+        staffAccountId: actor.staffId,
       },
       ipAddress: ip,
     });

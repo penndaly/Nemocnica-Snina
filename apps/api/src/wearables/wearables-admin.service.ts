@@ -159,13 +159,15 @@ export class WearablesAdminService {
     });
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'wearable_platform_toggled',
       targetType: 'wearable_platform',
       targetId: platformId,
-      meta: { platformId, enabled, previousState },
+      meta: { platformId, enabled, previousState, staffAccountId: actor.staffId },
       ipAddress: ip,
     });
 

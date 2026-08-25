@@ -207,13 +207,15 @@ export class BookingAdminService {
     });
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'booking_cancelled',
       targetType: 'booking',
       targetId: booking.id,
-      meta: { bookingId: booking.id, clinicId: booking.clinicId, slotIso, reason: dto.reason, notifyPatient, refundQueued },
+      meta: { bookingId: booking.id, clinicId: booking.clinicId, slotIso, reason: dto.reason, notifyPatient, refundQueued, staffAccountId: actor.staffId },
       ipAddress: ip,
     });
 
@@ -264,13 +266,15 @@ export class BookingAdminService {
     });
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'booking_rescheduled',
       targetType: 'booking',
       targetId: booking.id,
-      meta: { bookingId: booking.id, oldSlot, newSlot: newSlotIso, reason: dto.reason ?? null },
+      meta: { bookingId: booking.id, oldSlot, newSlot: newSlotIso, reason: dto.reason ?? null, staffAccountId: actor.staffId },
       ipAddress: ip,
     });
 
@@ -296,13 +300,15 @@ export class BookingAdminService {
     });
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'booking_no_show',
       targetType: 'booking',
       targetId: booking.id,
-      meta: { bookingId: booking.id, clinicId: booking.clinicId, slotIso },
+      meta: { bookingId: booking.id, clinicId: booking.clinicId, slotIso, staffAccountId: actor.staffId },
       ipAddress: ip,
     });
 
