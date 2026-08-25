@@ -31,19 +31,30 @@ import { CLINICS_SEED } from '../config/seed-clinics';
 
 const VALID_RC = '9001010007';
 
+// `.toISOString()` converts to UTC — in any timezone ahead of UTC (e.g.
+// Europe/Bratislava), local midnight is still the previous day in UTC, so a
+// date string built that way can land on a different weekday than the
+// `getDay()` check that picked it. Build date strings from local components.
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
 // ── Next occurrence of a JS weekday ────────────────────────
 function nextWeekday(target: 0 | 1 | 2 | 3 | 4 | 5 | 6): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + 1);
   while (d.getDay() !== target) d.setDate(d.getDate() + 1);
-  return d.toISOString().substring(0, 10);
+  return toLocalDateStr(d);
 }
 
 function pastDate(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().substring(0, 10);
+  return toLocalDateStr(d);
 }
 
 // ── Real Prisma (for slot-creation in cases 8 + 10) ────────
@@ -74,7 +85,13 @@ async function buildApp(prismaOverride?: Record<string, unknown>): Promise<INest
     providers: [
       BookingService,
       BookingRulesService,
-      { provide: PrismaService,    useValue: prismaOverride ?? { availabilitySlot: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) }, booking: {}, $transaction: jest.fn() } },
+      // $transaction must invoke its callback against a mock `tx`, or
+      // `await this.prisma.$transaction(...)` resolves to `undefined` (a bare
+      // `jest.fn()` returns undefined, not a Promise) and createBooking
+      // crashes with a 500 instead of the intended "slot not available" 400
+      // from `claimed.length === 0` — see booking-api.e2e.test.ts for the
+      // same fix with more detail.
+      { provide: PrismaService,    useValue: prismaOverride ?? { availabilitySlot: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) }, booking: {}, $transaction: jest.fn((cb: (tx: { $queryRaw: jest.Mock }) => unknown) => cb({ $queryRaw: jest.fn().mockResolvedValue([]) })) } },
       { provide: HisQueueService,  useValue: mockHis },
       { provide: SmsService,       useValue: mockSms },
       { provide: AuditService,     useValue: mockAudit },
@@ -121,7 +138,7 @@ describe('Case 9 — past-date booking rejected', () => {
     d.setDate(d.getDate() + 1);
     // Find next Mon–Fri
     while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-    const tomorrowWeekday = d.toISOString().substring(0, 10);
+    const tomorrowWeekday = toLocalDateStr(d);
 
     const res = await request(app.getHttpServer())
       .post('/api/booking')
@@ -184,7 +201,15 @@ describeIfDb('Cases 8 + 10 — real DB (slot-level tests)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test slots + any bookings created
+    // Clean up test slots + any bookings created. booking_consents FKs to
+    // bookings with no cascade, so child rows must go first — Case 8 now
+    // actually succeeds (201) and creates real consent rows, which used to
+    // make this deleteMany throw a foreign key violation and abort cleanup.
+    const created = await realPrisma.booking.findMany({
+      where: { clinicId: { in: [CLINIC_A, CLINIC_B] }, date: SLOT_DATE },
+      select: { id: true },
+    });
+    await realPrisma.bookingConsent.deleteMany({ where: { bookingId: { in: created.map((b) => b.id) } } });
     await realPrisma.booking.deleteMany({ where: { clinicId: { in: [CLINIC_A, CLINIC_B] }, date: SLOT_DATE } });
     await realPrisma.availabilitySlot.deleteMany({ where: { id: { in: [slotId, clinicBSlotId] } } });
     await realPrisma.$disconnect();
@@ -212,12 +237,13 @@ describeIfDb('Cases 8 + 10 — real DB (slot-level tests)', () => {
       request(app.getHttpServer()).post('/api/booking').send({ ...body, patientName: 'Patient B' }),
     ]);
 
-    const statuses = [res1.status, res2.status].sort();
+    const statuses = [res1.status, res2.status].sort((a, b) => a - b);
 
-    // Exactly one 201/200 and one 400
-    expect(statuses).toEqual([200, 400]);
+    // Exactly one 201 (NestJS's default @Post() success status — the
+    // controller has no @HttpCode override) and one 400
+    expect(statuses).toEqual([201, 400]);
 
-    const winner = res1.status === 200 ? res1 : res2;
+    const winner = res1.status === 201 ? res1 : res2;
     expect(winner.body).toHaveProperty('id');
 
     // DB: slot is locked

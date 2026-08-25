@@ -62,7 +62,8 @@ interface PatientRecords {
   appointments: FhirAppointment[];
 }
 
-function loc(obj: Record<string, string>, locale: SupportedLocale): string {
+function loc(obj: Record<string, string> | null | undefined, locale: SupportedLocale): string {
+  if (!obj) return '';
   return obj[locale] ?? obj['sk'] ?? '';
 }
 

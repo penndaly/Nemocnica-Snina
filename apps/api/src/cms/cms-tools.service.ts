@@ -46,9 +46,12 @@ export class CmsToolsService {
       filename: `ns-content-export-${Date.now()}.json`,
       downloadPath: '/api/cms/tools/download',
     });
+    // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+    // StaffAccount (actor's type here) — omit it and keep the id in meta
+    // instead. See staff-auth.service.ts's logEvent() for the original fix.
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId, actorName: actor.email, actorRole: actor.role,
-      action: 'content_export', meta: { collections: CMS_COLLECTION_NAMES.length }, ipAddress: ip,
+      actorName: actor.email, actorRole: actor.role,
+      action: 'content_export', meta: { collections: CMS_COLLECTION_NAMES.length, staffAccountId: actor.staffId }, ipAddress: ip,
     });
     return { downloadUrl: signed.downloadUrl, expiresAt: signed.expiresAt };
   }
@@ -77,9 +80,12 @@ export class CmsToolsService {
         else await this.strapi.create(c, item);
       }
     }
+    // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+    // StaffAccount (actor's type here) — omit it and keep the id in meta
+    // instead. See staff-auth.service.ts's logEvent() for the original fix.
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId, actorName: actor.email, actorRole: actor.role,
-      action: 'content_import', meta: { itemCounts: counts }, ipAddress: ip,
+      actorName: actor.email, actorRole: actor.role,
+      action: 'content_import', meta: { itemCounts: counts, staffAccountId: actor.staffId }, ipAddress: ip,
     });
     return { ok: true, itemCounts: counts };
   }
@@ -97,9 +103,12 @@ export class CmsToolsService {
     // Reseed is delegated to the Strapi seed importer (apps/cms/seed/import-seed.ts),
     // which restores SEED v8 idempotently. Staff accounts, audit log, patient data
     // and media are NOT touched.
+    // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+    // StaffAccount (actor's type here) — omit it and keep the id in meta
+    // instead. See staff-auth.service.ts's logEvent() for the original fix.
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId, actorName: actor.email, actorRole: actor.role,
-      action: 'content_reset', meta: { seedVersion: 8 }, ipAddress: ip,
+      actorName: actor.email, actorRole: actor.role,
+      action: 'content_reset', meta: { seedVersion: 8, staffAccountId: actor.staffId }, ipAddress: ip,
     });
     return { ok: true, note: 'Content reset to SEED v8 (staff/audit/patient/media preserved).' };
   }

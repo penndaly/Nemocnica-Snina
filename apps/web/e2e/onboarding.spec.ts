@@ -25,13 +25,23 @@ test('ON3: invalid RC is rejected client-side before submit', async ({ page }) =
   await page.fill('[name="patientName"]', 'Test Pacient');
   await page.fill('[name="patientRc"]', '1234567890'); // fails modulo-11
   await page.fill('[name="phone"]', '+421900000000');
-  await page.selectOption('[name="insurerCode"]', { index: 0 }).catch(() => null);
+  // index 0 is the empty "— Select insurer —" placeholder; the <select> is
+  // `required`, so leaving it there fails the browser's native constraint
+  // validation and blocks submission before the app's own RC check ever
+  // runs. Pick a real insurer (index 1) so this test isolates the RC check.
+  await page.selectOption('[name="insurerCode"]', { index: 1 }).catch(() => null);
   await page.click('button[type="submit"], button:has-text("Odoslať")');
-  await expect(page.locator('text=Neplatné rodné číslo, [role="alert"]')).toBeVisible({ timeout: 3_000 });
+  // NOTE: `text=A, [role="alert"]` is NOT a selector union — Playwright's text
+  // engine treats an unquoted comma as part of the search string itself, so
+  // this never matched anything. getByText() alone is unambiguous (and
+  // sufficient — we know the exact error text); a bare [role="alert"]
+  // fallback would strict-mode-fail here since Next.js always renders its
+  // own empty role="alert" route-announcer div alongside it.
+  await expect(page.getByText('Neplatné rodné číslo')).toBeVisible({ timeout: 3_000 });
 });
 
 test('ON4: valid submission succeeds (API creates application)', async () => {
-  const r = await fetch(`${API}/api/onboarding`, {
+  const r = await fetch(`${API}/api/onboarding/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

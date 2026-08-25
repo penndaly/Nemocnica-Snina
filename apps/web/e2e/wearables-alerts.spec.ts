@@ -9,9 +9,15 @@ import { test, expect } from '@playwright/test';
 import { setMockPatientSession } from './helpers/auth';
 
 const HAS_SESSION = !!process.env['TEST_PATIENT_JWT'];
+// WEARABLES_ENABLED must stay false in production/CI until the W6 compliance
+// gate passes (CLAUDE.md non-negotiable — DPO sign-off required) — these
+// scenarios need it true to exercise anything real, so they must skip on
+// that specifically, not just on TEST_PATIENT_JWT's presence (which now
+// exists for the telehealth/portal specs regardless of the wearables gate).
+const WEARABLES_ENABLED = process.env['WEARABLES_ENABLED'] === 'true';
 
 test.describe('WR-W5 — alerts, FHIR export, physician view', () => {
-  test.skip(!HAS_SESSION, 'needs TEST_PATIENT_JWT + API/RabbitMQ stack');
+  test.skip(!HAS_SESSION || !WEARABLES_ENABLED, 'needs TEST_PATIENT_JWT + WEARABLES_ENABLED=true + API/RabbitMQ stack');
 
   test('WR-W5-1: a critical glucose reading surfaces an alert badge in the portal', async ({ page }) => {
     // A critical reading is injected via the admin endpoint in CI setup; here we

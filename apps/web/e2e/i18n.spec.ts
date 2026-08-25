@@ -11,7 +11,10 @@ for (const locale of LOCALES) {
   test(`I1 [${locale}]: home page returns 200 and contains brand name`, async ({ page }) => {
     const r = await page.goto(`/${locale}`);
     expect(r?.status()).toBe(200);
-    await expect(page.locator('text=Nemocnica Snina')).toBeVisible({ timeout: 5_000 });
+    // Brand name legitimately appears multiple times (header logo, footer,
+    // copyright, JSON-LD) — assert the first visible occurrence rather than
+    // a unique match.
+    await expect(page.locator('text=Nemocnica Snina').first()).toBeVisible({ timeout: 5_000 });
   });
 }
 
@@ -85,7 +88,10 @@ test('I9: sitemap.xml contains all department slugs × all locales', async ({ pa
 test('I10: robots.txt blocks /admin and /api', async ({ page }) => {
   const r = await page.goto('/robots.txt');
   expect(r?.status()).toBe(200);
-  const text = await page.locator('pre, body').textContent() ?? '';
+  // text/plain responses render inside a <pre> nested in <body>; 'pre, body'
+  // is a CSS selector list so it matches both elements (strict-mode
+  // violation). body's textContent already includes the full response text.
+  const text = (await page.locator('body').textContent()) ?? '';
   expect(text).toContain('Disallow: /admin');
   expect(text).toContain('Disallow: /api');
 });

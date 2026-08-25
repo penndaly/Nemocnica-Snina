@@ -123,13 +123,15 @@ export class TranslationService {
     }
 
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId,
+      // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+      // StaffAccount (actor's type here) — omit it and keep the id in meta
+      // instead. See staff-auth.service.ts's logEvent() for the original fix.
       actorName: actor.email,
       actorRole: actor.role,
       action: 'translation_reviewed',
       targetType: coll,
       targetId: id,
-      meta: { collection: coll, locale, status: body.status },
+      meta: { collection: coll, locale, status: body.status, staffAccountId: actor.staffId },
       ipAddress: ip,
     });
     return { ok: true, status: body.status };

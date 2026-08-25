@@ -91,6 +91,21 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The blanket Permissions-Policy above disables camera/microphone
+        // site-wide, which also blocks getUserMedia on the telehealth video
+        // room itself — patients/physicians could never actually join a
+        // call. Re-allow for same-origin on just the room route. Next.js
+        // applies the LAST matching config's value for a given header key,
+        // so this overrides (not appends to) the block above for this path.
+        source: '/:lang/telehealth/konzultacia/:sessionId*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(self), microphone=(self), geolocation=()',
+          },
+        ],
+      },
     ];
   },
 };

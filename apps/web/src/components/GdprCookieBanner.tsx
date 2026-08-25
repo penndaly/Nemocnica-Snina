@@ -46,15 +46,25 @@ export function GdprCookieBanner() {
       style={{
         position: 'fixed',
         bottom: '1.25rem',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        // left/right insets + margin auto instead of left:50% + width:
+        // calc(100% - 2rem) + transform: translateX(-50%) — confirmed live
+        // that the calc()/% approach rendered at a full 560px on a 390px
+        // viewport (231px overflow) with getComputedStyle reporting the
+        // width as literally unresolved, not just wrong. This is the
+        // standard, well-supported way to center a fixed-position box with
+        // a max-width and no dependency on % containing-block resolution:
+        // below 560+32px viewport width the insets alone size the box
+        // (viewport - 2rem); above it, max-width caps the box and margin
+        // auto centers it between the insets.
+        left: '1rem',
+        right: '1rem',
+        margin: '0 auto',
         zIndex: 200,
         background: 'var(--blue-900)',
         color: '#d6e2f0',
         borderRadius: 12,
         padding: '1rem 1.25rem',
-        maxWidth: 560,
-        width: 'calc(100% - 2rem)',
+        maxWidth: 'min(560px, 90vw)',
         boxShadow: '0 16px 48px rgba(0,0,0,.35)',
         display: 'flex',
         alignItems: 'center',

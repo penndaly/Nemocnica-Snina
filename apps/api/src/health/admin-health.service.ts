@@ -105,7 +105,17 @@ export class AdminHealthService {
   // ── Integrations ────────────────────────────────────────────────────────────
 
   private bool(key: string, dflt = false): boolean {
-    return this.cfg.get<boolean>(key) ?? dflt;
+    // cfg.get<boolean>() returns the raw env *string* (no `validate` is
+    // passed to ConfigModule.forRoot(), so <boolean> is a type-only
+    // assertion, not a runtime cast) — a non-empty string is truthy, so
+    // `?? dflt` only ever applied when the var was entirely unset, never
+    // for an explicit "false". This admin health page exists specifically
+    // to show admins whether mock/compliance-gated flags (OIDC_MOCK_ENABLED,
+    // HIS_MOCK_ENABLED, WEARABLES_ENABLED) are on — reporting them wrong
+    // defeats the page's purpose.
+    const raw = this.cfg.get<string>(key);
+    if (raw === undefined) return dflt;
+    return raw === 'true';
   }
   private str(key: string, dflt = ''): string {
     return this.cfg.get<string>(key) ?? dflt;

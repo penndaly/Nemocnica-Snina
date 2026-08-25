@@ -75,11 +75,14 @@ export class PatientGdprService {
       filename: `gdpr-export-${requestReference}.json`,
       downloadPath: '/api/gdpr/download',
     });
+    // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+    // StaffAccount (actor's type here) — omit it and keep the id in meta
+    // instead. See staff-auth.service.ts's logEvent() for the original fix.
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId, actorName: actor.email, actorRole: actor.role,
+      actorName: actor.email, actorRole: actor.role,
       action: 'gdpr_export_requested',
       targetType: 'patient', targetId: `${patientToken.slice(0, 8)}…`,
-      meta: { requestReference, patient_token: patientToken }, ipAddress: ip,
+      meta: { requestReference, patient_token: patientToken, staffAccountId: actor.staffId }, ipAddress: ip,
     });
     return { downloadUrl: signed.downloadUrl, expiresAt: signed.expiresAt };
   }
@@ -148,11 +151,14 @@ export class PatientGdprService {
       downloadPath: '/api/gdpr/download',
     });
 
+    // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+    // StaffAccount (actor's type here) — omit it and keep the id in meta
+    // instead. See staff-auth.service.ts's logEvent() for the original fix.
     await this.audit.writeAuditEntry({
-      actorId: actor.staffId, actorName: actor.email, actorRole: actor.role,
+      actorName: actor.email, actorRole: actor.role,
       action: 'gdpr_erasure_completed',
       targetType: 'patient', targetId: `${patientToken.slice(0, 8)}…`,
-      meta: { requestReference, preservedCount: preservedFhir.length }, ipAddress: ip,
+      meta: { requestReference, preservedCount: preservedFhir.length, staffAccountId: actor.staffId }, ipAddress: ip,
     });
     return { receipt: { ...receipt }, downloadUrl: signed.downloadUrl, expiresAt: signed.expiresAt };
   }

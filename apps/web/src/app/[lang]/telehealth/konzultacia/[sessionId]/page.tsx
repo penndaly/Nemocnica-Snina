@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, PhoneOff,
@@ -24,6 +24,7 @@ function formatElapsed(secs: number): string {
 
 function PatientRoom({ sessionId }: { sessionId: string }) {
   const locale = useLocale();
+  const router = useRouter();
   const t      = useTranslations('room');
   const tError = useTranslations('room.error');
 
@@ -112,16 +113,16 @@ function PatientRoom({ sessionId }: { sessionId: string }) {
 
   const joinSession = useCallback(async () => {
     setRoomState('joining');
-    if (IS_MOCK) {
-      setTimeout(() => {
-        setRoomState('waiting');
-        sessionStorage.setItem('th_room_state', 'waiting');
-        announce(t('statusWaiting'));
-        setTimeout(() => goToActive(), 4000);
-      }, 600);
-      return;
-    }
     try {
+      // Always call the real /join endpoint, even in mock mode — it's what
+      // validates session status server-side (telehealth-session.service.ts
+      // rejects cancelled/ended/no_show with a 4xx before minting a token),
+      // and TELEHEALTH_PROVIDER=mock already makes it safe to call in CI
+      // (the video provider itself is mocked server-side). Previously
+      // IS_MOCK short-circuited *before* this fetch, so a cancelled/ended
+      // session sailed straight into "waiting" — the app never actually
+      // checked. Only the real LiveKit connection below needs to stay
+      // mock-skipped (no video infra in CI/dev mock mode).
       const res = await fetch(`/api/telehealth/sessions/${sessionId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,6 +134,13 @@ function PatientRoom({ sessionId }: { sessionId: string }) {
         const msg = (err.message ?? '').toLowerCase();
         setErrorKind(msg.includes('cancelled') ? 'cancelled' : msg.includes('ended') ? 'ended' : msg.includes('no_show') ? 'no_show' : 'generic');
         setRoomState('error');
+        return;
+      }
+      if (IS_MOCK) {
+        setRoomState('waiting');
+        sessionStorage.setItem('th_room_state', 'waiting');
+        announce(t('statusWaiting'));
+        setTimeout(() => goToActive(), 4000);
         return;
       }
       const { token, wsUrl } = (await res.json()) as { token: string; wsUrl: string };
@@ -160,21 +168,41 @@ function PatientRoom({ sessionId }: { sessionId: string }) {
   }, [joinSession]);
 
   useEffect(() => {
-    const savedState = sessionStorage.getItem('th_room_state') as RoomState | null;
-    const savedStart = sessionStorage.getItem('th_start');
-    if (savedState === 'active') {
-      setRoomState('active');
-      if (savedStart) {
-        const start = parseInt(savedStart, 10);
-        setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
-        startTimer();
+    let cancelled = false;
+
+    async function start() {
+      // Check the httpOnly session cookie before doing anything else — the
+      // real /join call is skipped entirely in mock mode (IS_MOCK short-
+      // circuits joinSession before it ever fetches), so an unauthenticated
+      // visitor would otherwise sail straight through device-check into a
+      // fake "waiting" state instead of being redirected. /api/portal/me
+      // verifies the same ns_patient_session cookie/secret/audience the
+      // portal itself uses, with no side effects.
+      const authRes = await fetch('/api/portal/me', { credentials: 'include' }).catch(() => null);
+      if (cancelled) return;
+      if (!authRes || !authRes.ok) {
+        router.replace(`/${locale}/portal`);
+        return;
       }
-      void joinSession();
-      return;
+
+      const savedState = sessionStorage.getItem('th_room_state') as RoomState | null;
+      const savedStart = sessionStorage.getItem('th_start');
+      if (savedState === 'active') {
+        setRoomState('active');
+        if (savedStart) {
+          const start = parseInt(savedStart, 10);
+          setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
+          startTimer();
+        }
+        void joinSession();
+        return;
+      }
+      if (savedState === 'postcall') { setRoomState('postcall'); return; }
+      void runDeviceCheck();
     }
-    if (savedState === 'postcall') { setRoomState('postcall'); return; }
-    void runDeviceCheck();
-    return () => { stopTimer(); };
+
+    void start();
+    return () => { cancelled = true; stopTimer(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -236,7 +264,14 @@ function PatientRoom({ sessionId }: { sessionId: string }) {
   if (roomState === 'error') {
     const kind = errorKind ?? 'generic';
     return (
-      <div className="room" role="main">
+      // data-state mirrors the active/waiting/postcall states' own
+      // data-state={roomState} below and the physician room's
+      // data-state={phase} — this early-return branch previously had none,
+      // leaving e2e/telehealth.spec.ts's TH-2.3 with no way to target the
+      // terminal-state card except fragile, unqualified :has-text()
+      // selectors (a strict-mode-violation risk: :has-text() matches every
+      // ancestor of the text, not just the rendering element).
+      <div className="room" data-state={kind} role="main">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem' }}>
           <div className="card card-pad" style={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,.08)', color: '#e8ecf1', maxWidth: 480, width: '100%', textAlign: 'center' }}>
             <AlertCircle size={48} aria-hidden="true" style={{ color: 'var(--red)', margin: '0 auto 1rem', display: 'block' }} />
@@ -817,6 +852,7 @@ function PhysicianRoom({ sessionId }: { sessionId: string }) {
         {/* Intake side panel */}
         {showIntakePanel && (
           <aside
+            data-panel="intake"
             aria-label={tPh('intakePanelTitle')}
             style={{
               width: 280, background: '#141d27', borderLeft: '1px solid rgba(255,255,255,.08)',

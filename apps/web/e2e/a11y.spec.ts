@@ -91,8 +91,12 @@ test('A11Y: booking form validation errors are announced via role=alert', async 
 
 test('A11Y: page renders at 130% text scale without horizontal scroll', async ({ page }) => {
   await page.emulateMedia({ forcedColors: 'active' });
-  await page.evaluate(() => { document.body.style.fontSize = '130%'; });
+  // goto() must come before evaluate(): navigation replaces the document (and its JS
+  // execution context) entirely, so a style mutation applied before goto() lands on the
+  // pre-navigation page (about:blank on a fresh test) and is discarded, not carried over
+  // to /sk. emulateMedia is a page/context-level setting and does persist across goto().
   await page.goto('/sk');
+  await page.evaluate(() => { document.body.style.fontSize = '130%'; });
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
   // Allow 10px tolerance for scroll bar

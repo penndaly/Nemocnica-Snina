@@ -244,14 +244,18 @@ export class AdminUsersService {
 
   private async log(actor: Actor, action: string, targetId: string, detail: Record<string, unknown>, ip?: string) {
     if (!action) throw new BadRequestException('audit action required');
+    // AuditLog.actorId has a hard FK to the legacy StaffUser table, not
+    // StaffAccount (this service's actor type) — passing a StaffAccount id
+    // there throws a foreign-key violation on every write. See
+    // staff-auth.service.ts's logEvent() for the original fix of this same
+    // issue; kept out of the FK-constrained column and preserved in detail.
     await this.audit.log({
-      actorId: actor.staffId,
       actorEmail: actor.email,
       actorRole: actor.role,
       action,
       resource: 'staff_account',
       resourceId: targetId,
-      detail,
+      detail: { ...detail, staffAccountId: actor.staffId },
       ip,
     });
   }

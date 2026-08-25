@@ -9,6 +9,12 @@ import { CronHeartbeatService, CRON_INTERVAL_MS } from '../cron-heartbeat.servic
 
 type Cfg = Record<string, unknown>;
 
+// AdminHealthService.bool() now compares the raw env *string* to 'true'
+// (matching real ConfigService.get() behavior — a plain env value, never a
+// JS boolean; see the fix in admin-health.service.ts). These fixtures must
+// pass boolean-flag keys as 'true'/'false' strings, not JS booleans, or
+// they no longer reflect what the service actually receives at runtime.
+
 function build(cfgValues: Cfg = {}, prismaOverrides: Record<string, unknown> = {}) {
   const heartbeat = new CronHeartbeatService();
   const cfg = { get: <T,>(k: string): T | undefined => cfgValues[k] as T | undefined };
@@ -30,7 +36,7 @@ const call = <T,>(svc: AdminHealthService, name: string): Promise<T> =>
 
 describe('AdminHealthService — integrations', () => {
   it('reports mock mode when the mock flags are on (dev/staging default)', async () => {
-    const { svc } = build({ OIDC_MOCK_ENABLED: true, HIS_MOCK_ENABLED: true });
+    const { svc } = build({ OIDC_MOCK_ENABLED: 'true', HIS_MOCK_ENABLED: 'true' });
     const oidc = await call<IntegrationStatus>(svc, 'oidc');
     const his = await call<IntegrationStatus>(svc, 'his');
 
@@ -41,7 +47,7 @@ describe('AdminHealthService — integrations', () => {
   });
 
   it('flags a live OIDC broker still holding the dev secret as degraded', async () => {
-    const { svc } = build({ OIDC_MOCK_ENABLED: false, OIDC_CLIENT_SECRET: 'dev-secret' });
+    const { svc } = build({ OIDC_MOCK_ENABLED: 'false', OIDC_CLIENT_SECRET: 'dev-secret' });
     const oidc = await call<IntegrationStatus>(svc, 'oidc');
 
     expect(oidc.mode).toBe('live');
@@ -63,7 +69,7 @@ describe('AdminHealthService — integrations', () => {
   });
 
   it('shows wearables as disabled until the L9 gate, not as broken', async () => {
-    const { svc } = build({ WEARABLES_ENABLED: false });
+    const { svc } = build({ WEARABLES_ENABLED: 'false' });
     const w = await call<IntegrationStatus>(svc, 'wearables');
 
     expect(w.mode).toBe('disabled');
@@ -73,7 +79,7 @@ describe('AdminHealthService — integrations', () => {
 
   it('degrades wearables when sync jobs failed in the last hour', async () => {
     const { svc } = build(
-      { WEARABLES_ENABLED: true, WEARABLES_PROVIDER: 'mock' },
+      { WEARABLES_ENABLED: 'true', WEARABLES_PROVIDER: 'mock' },
       { deviceSyncJob: { findFirst: jest.fn().mockResolvedValue(null), count: jest.fn().mockResolvedValue(4) } },
     );
     const w = await call<IntegrationStatus>(svc, 'wearables');
@@ -85,14 +91,14 @@ describe('AdminHealthService — integrations', () => {
   it('surfaces the last successful HIS sync timestamp', async () => {
     const when = new Date('2026-08-24T09:00:00.000Z');
     const { svc } = build(
-      { HIS_MOCK_ENABLED: true },
+      { HIS_MOCK_ENABLED: 'true' },
       { hisSyncLog: { findFirst: jest.fn().mockResolvedValue({ syncedAt: when }) } },
     );
     expect((await call<IntegrationStatus>(svc, 'his')).lastSuccessAt).toBe(when.toISOString());
   });
 
   it('never leaks a secret value into the report', async () => {
-    const { svc } = build({ OIDC_MOCK_ENABLED: false, OIDC_CLIENT_SECRET: 'super-secret-value' });
+    const { svc } = build({ OIDC_MOCK_ENABLED: 'false', OIDC_CLIENT_SECRET: 'super-secret-value' });
     expect(JSON.stringify(await call<IntegrationStatus>(svc, 'oidc'))).not.toContain('super-secret-value');
   });
 });

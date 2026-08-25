@@ -107,8 +107,8 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
                 {/* Retention policy reference */}
                 <p style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>
                   {locale === 'sk'
-                    ? <>Doby uchovávania osobných údajov a právne základy sú zdokumentované v <a href="/RETENTION.md" style={{ color: 'var(--blue-700)' }}>politike uchovávania údajov</a>. Žiadosti o prístup alebo výmaz (čl. 15 / 17 GDPR) zasielajte na vyššie uvedenú e-mailovú adresu.</>
-                    : <>Retention periods and legal bases are documented in our <a href="/RETENTION.md" style={{ color: 'var(--blue-700)' }}>data retention policy</a>. Access and erasure requests (Art. 15 / 17 GDPR) may be submitted to the email address above.</>}
+                    ? <>Doby uchovávania osobných údajov a právne základy sú zdokumentované v <a href="/RETENTION.md" style={{ color: 'var(--blue-700)', textDecoration: 'underline' }}>politike uchovávania údajov</a>. Žiadosti o prístup alebo výmaz (čl. 15 / 17 GDPR) zasielajte na vyššie uvedenú e-mailovú adresu.</>
+                    : <>Retention periods and legal bases are documented in our <a href="/RETENTION.md" style={{ color: 'var(--blue-700)', textDecoration: 'underline' }}>data retention policy</a>. Access and erasure requests (Art. 15 / 17 GDPR) may be submitted to the email address above.</>}
                 </p>
               </section>
 

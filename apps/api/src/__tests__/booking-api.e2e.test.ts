@@ -44,16 +44,23 @@ import { CLINICS_SEED } from '../config/seed-clinics';
 // A valid Slovak RC that passes modulo-11 (used in all tests that aren't testing RC validation)
 const VALID_RC = '9001010007';
 
-// Prisma mock — returns null for availabilitySlot.findFirst (no slots exist)
-// This means: rules-rejected requests never reach this mock; slot-unavailable
-// requests reach it and get 400 "slot not available" — different error message.
+// Prisma mock. BookingService.createBooking() claims a slot via
+// `tx.$queryRaw` inside `prisma.$transaction`, not `availabilitySlot.findFirst`
+// — $transaction must actually invoke its callback against a mock `tx`, or
+// `await this.prisma.$transaction(...)` resolves to `undefined` (a bare
+// `jest.fn()` with no implementation returns undefined, not a Promise, and
+// `await undefined` is `undefined`) and createBooking crashes with a 500
+// (`Cannot read properties of undefined (reading 'id')`) on every request
+// that passes rule validation, instead of getting the intended "slot not
+// available" 400 from `claimed.length === 0`.
+const mockTx = { $queryRaw: jest.fn().mockResolvedValue([]) };
 const mockPrisma = {
   availabilitySlot: {
     findFirst: jest.fn().mockResolvedValue(null),
     findMany: jest.fn().mockResolvedValue([]),
   },
   booking: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-  $transaction: jest.fn(),
+  $transaction: jest.fn((cb: (tx: typeof mockTx) => unknown) => cb(mockTx)),
 };
 
 const mockHis = { publish: jest.fn().mockResolvedValue(undefined) };
@@ -73,13 +80,23 @@ const mockCms = {
 };
 
 // ── Next weekday helper ───────────────────────────────────────
-// Returns "YYYY-MM-DD" for the next occurrence of JS getDay() = target
+// Returns "YYYY-MM-DD" for the next occurrence of JS getDay() = target.
+// `.toISOString()` converts to UTC — in any timezone ahead of UTC (e.g.
+// Europe/Bratislava), local midnight is still the previous day in UTC, so
+// the returned date string's actual weekday didn't match the `getDay()`
+// check that picked it. Build the string from local components instead.
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
 function nextWeekday(target: 0 | 1 | 2 | 3 | 4 | 5 | 6): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + 1);
   while (d.getDay() !== target) d.setDate(d.getDate() + 1);
-  return d.toISOString().substring(0, 10);
+  return toLocalDateStr(d);
 }
 
 // ── Base valid body (all fields present and valid for trauma surgery Mon–Fri) ──
@@ -213,9 +230,12 @@ describe('POST /api/booking — server-side rule enforcement', () => {
         patientName:     'Test Pacient',
         patientPhone:    '+421900000000',
         patientRc:       VALID_RC,
-        hasReferral:     false,
+        hasReferral:     true,
         gdprConsent:     true,
-        referralConsent: false,
+        // diabetologicka requires referral (CLINICS_SEED referral:true) — send
+        // referralConsent:true so the request clears that gate and actually
+        // reaches the bookable/status check this test is meant to exercise.
+        referralConsent: true,
       });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/bookable|closed/i);
@@ -231,9 +251,11 @@ describe('POST /api/booking — server-side rule enforcement', () => {
         patientName:     'Test Pacient',
         patientPhone:    '+421900000000',
         patientRc:       VALID_RC,
-        hasReferral:     false,
+        hasReferral:     true,
         gdprConsent:     true,
-        referralConsent: false,
+        // neurologicka requires referral (CLINICS_SEED referral:true) — same
+        // reasoning as diabetologicka above.
+        referralConsent: true,
       });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/bookable|alert/i);

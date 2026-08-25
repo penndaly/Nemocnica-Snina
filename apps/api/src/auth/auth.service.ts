@@ -35,7 +35,15 @@ export class AuthService {
     // MFA mandatory (Decree 179/2020). When MFA_REQUIRED is on (production), a
     // staff account without MFA configured CANNOT log in — previously a
     // password-only login succeeded whenever mfaEnabled was false (bypass).
-    const mfaRequired = this.cfg.get<boolean>('MFA_REQUIRED') ?? true;
+    // cfg.get<boolean>() returns the raw env *string* (no `validate` is
+    // passed to ConfigModule.forRoot(), so <boolean> is a type-only
+    // assertion, not a runtime cast) — a non-empty string is truthy in JS,
+    // so `?? true` made this permanently true regardless of the env value.
+    // Harmless in the failure direction MFA cares about (MFA_REQUIRED=false
+    // could never actually disable enforcement), but a broken config knob
+    // nonetheless — compare the string explicitly, matching this repo's
+    // established pattern (his/fhir-read.service.ts, his-sync.consumer.ts).
+    const mfaRequired = this.cfg.get<string>('MFA_REQUIRED') !== 'false';
     if (mfaRequired && (!user.mfaEnabled || !user.mfaSecret)) {
       await this.audit.log({
         actorId: user.id, actorEmail: email, actorRole: user.role,

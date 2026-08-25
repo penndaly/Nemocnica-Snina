@@ -138,9 +138,13 @@ export class ApsService implements OnModuleDestroy {
         return FALLBACK;
       }
 
+      const apiKey = this.cfg.get<string>('PSK_APS_API_KEY');
       const res = await fetch(`${apiUrl}?district=${encodeURIComponent(district)}`, {
         signal: AbortSignal.timeout(5000), // 5s timeout
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
       });
 
       if (!res.ok) throw new Error(`PSK APS API returned HTTP ${res.status}`);

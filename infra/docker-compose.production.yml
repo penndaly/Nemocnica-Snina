@@ -19,7 +19,7 @@ services:
       POSTGRES_USER: nsadmin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: nemocnica_snina
-    ports: []             # no external exposure in production
+    ports: !reset []             # no external exposure in production
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -41,7 +41,7 @@ services:
     volumes:
       - redis_data:/data
       - ${TLS_CERT_DIR}:/tls:ro
-    ports: []
+    ports: !reset []
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -52,11 +52,22 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ${RABBITMQ_CONF_DIR}:/etc/rabbitmq:ro   # contains rabbitmq.conf enabling TLS
-    ports: []
+    ports: !reset []
 
   strapi:
     image: ${REGISTRY}/nemocnica-strapi:${IMAGE_TAG}
     restart: always
+    # docker-compose.yml (dev) sets command/working_dir/volumes for this
+    # service to run `npm run develop` against a host bind-mount. Compose
+    # merges files by overlaying keys, not clearing ones absent from the
+    # override — this file changed `image` to the built production image but
+    # never touched those three, so the merged config still ran the built
+    # image with the dev command, against a volume that masks /repo/apps/cms
+    # with the host's source tree. Explicit here to actually run the image's
+    # own Dockerfile.cms CMD (`pnpm start` from /repo/apps/cms) unmasked.
+    working_dir: /repo/apps/cms
+    command: ["pnpm", "start"]
+    volumes: !reset []
     environment:
       NODE_ENV: production
       # apps/cms/config/database.js reads DB_* — NOT the DATABASE_* names this
@@ -74,7 +85,7 @@ services:
       TRANSFER_TOKEN_SALT: ${STRAPI_TRANSFER_TOKEN_SALT}
       JWT_SECRET: ${STRAPI_JWT}
       ALLOWED_ORIGINS: ${APP_BASE_URL}
-    ports: []
+    ports: !reset []
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,6 +96,12 @@ services:
   api:
     image: ${REGISTRY}/nemocnica-api:${IMAGE_TAG}
     restart: always
+    # Same reasoning as strapi above — run the image's own Dockerfile.api CMD
+    # (`node dist/main` from /repo/apps/api) unmasked, instead of the
+    # inherited dev `npm run dev` against a bind-mounted host source tree.
+    working_dir: /repo/apps/api
+    command: ["node", "dist/main"]
+    volumes: !reset []
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://ns_app:${NS_APP_PASSWORD}@postgres:5432/nemocnica_snina
@@ -100,7 +117,7 @@ services:
       STRAPI_URL: http://strapi:1337
       STRAPI_API_TOKEN: ${STRAPI_API_TOKEN}
       ALLOWED_ORIGINS: ${APP_BASE_URL}
-    ports: []
+    ports: !reset []
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,6 +132,13 @@ services:
   web:
     image: ${REGISTRY}/nemocnica-web:${IMAGE_TAG}
     restart: always
+    # Same reasoning as strapi/api above — run the image's own Dockerfile.web
+    # CMD (`node apps/web/server.js` from /repo, the Next.js standalone
+    # output layout) unmasked, instead of the inherited dev `npm run dev`
+    # against a bind-mounted host source tree.
+    working_dir: /repo
+    command: ["node", "apps/web/server.js"]
+    volumes: !reset []
     environment:
       NODE_ENV: production
       API_BASE_URL: http://api:4000

@@ -38,7 +38,14 @@ export class DexcomAdapter implements WearablePlatformAdapter {
   ) {
     this.clientId = cfg.get<string>('DEXCOM_CLIENT_ID') ?? '';
     this.clientSecret = cfg.get<string>('DEXCOM_CLIENT_SECRET') ?? '';
-    this.sandbox = cfg.get<boolean>('DEXCOM_SANDBOX') ?? true;
+    // cfg.get<boolean>() returns the raw env *string* (no `validate` is
+    // passed to ConfigModule.forRoot(), so <boolean> is a type-only
+    // assertion, not a runtime cast) — a non-empty string is truthy, so
+    // `?? true` made this permanently true (sandbox) regardless of the env
+    // value. Fails toward sandbox rather than accidentally hitting real
+    // patient data, but DEXCOM_SANDBOX=false could never actually switch to
+    // production. Compare the string explicitly instead.
+    this.sandbox = cfg.get<string>('DEXCOM_SANDBOX') !== 'false';
     this.key = cfg.get<string>('WEARABLES_TOKEN_KEY') ?? '0'.repeat(64);
     this.redirectBase = cfg.get<string>('WEARABLES_OAUTH_REDIRECT_BASE') ?? 'http://localhost:4000';
   }

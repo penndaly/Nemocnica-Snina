@@ -21,8 +21,19 @@ export async function generateMetadata({
 
   return {
     metadataBase: new URL('https://nemocnicasnina.sk'),
+    // Every route gets a non-empty title (WCAG 2.4.2 / axe document-title) even
+    // if it doesn't define its own; the '%s' template is a no-op passthrough so
+    // pages that already set a full title (e.g. lekari/[slug], telehealth/*)
+    // aren't changed.
+    title: {
+      default: 'Nemocnica Snina',
+      template: '%s',
+    },
     alternates: {
-      languages: Object.fromEntries(locales.map((l) => [l, `/${l}`])),
+      languages: {
+        ...Object.fromEntries(locales.map((l) => [l, `/${l}`])),
+        'x-default': '/sk',
+      },
     },
     openGraph: {
       locale: lang,
@@ -48,10 +59,9 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir="ltr">
       <head>
-        {locales.map((l) => (
-          <link key={l} rel="alternate" hrefLang={l} href={`https://nemocnicasnina.sk/${l}`} />
-        ))}
-        <link rel="alternate" hrefLang="x-default" href="https://nemocnicasnina.sk/sk" />
+        {/* hreflang tags are rendered by Next.js from generateMetadata's
+            alternates.languages above — do not also render them here, it
+            duplicates every entry. */}
         {/* High-contrast CSS injected via class on <html> by AccessibilityControls */}
         <style>{`
           .high-contrast {

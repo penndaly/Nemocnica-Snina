@@ -14,6 +14,12 @@ import { AuditService } from '../audit/audit.service';
 import { HisQueueService } from '../his/his-queue.service';
 import { VIDEO_PROVIDER, VideoProviderService } from './video-provider.interface';
 
+// Fixed physician identity for E2E fixtures — must match the `sub` claim
+// baked into TEST_STAFF_JWT by apps/web/e2e/global-setup.ts, since
+// admitPatient/endSession/cancelSession/submitIntake enforce
+// session.physicianId === caller.userId with no ADMIN bypass for admit.
+export const E2E_TEST_PHYSICIAN_ID = 'e2e-physician-1';
+
 export interface CreateSessionDto {
   bookingId: string;
   clinicId: string;
@@ -128,6 +134,72 @@ export class TelehealthSessionService {
 
     this.logger.log(`Session created: ${sessionId} for booking ${dto.bookingId}`);
     return sessionId;
+  }
+
+  /**
+   * E2E fixture only — creates a Booking + BookingConsent + TelehealthSession
+   * in one shot at an arbitrary starting status, bypassing the normal
+   * booking→confirmed→createSession flow. Never exposed outside the
+   * NODE_ENV!==production, secret-gated test controller.
+   */
+  async seedTestSession(
+    clinicId: string,
+    status: TelehealthStatus,
+    withConsent: boolean,
+  ): Promise<{ sessionId: string; bookingId: string; patientToken: string }> {
+    const bookingId = randomUUID();
+    const now = new Date();
+
+    await this.prisma.booking.create({
+      data: {
+        id:              bookingId,
+        clinicId,
+        patientName:     'E2E Test Patient',
+        patientPhone:    '+421900000000',
+        patientRcHash:   'e2e-fixture-not-a-real-rc-hash',
+        date:            now.toISOString().substring(0, 10),
+        time:            `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+        mode:            'telehealth',
+        status:          'CONFIRMED',
+        gdprConsent:     true,
+        cancelToken:     randomUUID(),
+      },
+    });
+
+    await this.prisma.bookingConsent.create({
+      data: {
+        id:          randomUUID(),
+        bookingId,
+        consentType: 'telehealth_medical_record',
+        granted:     withConsent,
+      },
+    });
+
+    const sessionId  = randomUUID();
+    const roomName   = `ns-th-e2e-${sessionId}`;
+    const providerId = await this.videoProvider.createRoom(roomName);
+    const patientToken = randomUUID();
+
+    const startedAt = ['waiting', 'active', 'ended'].includes(status) ? now : null;
+    const endedAt    = status === 'ended' ? now : null;
+
+    await this.prisma.telehealthSession.create({
+      data: {
+        id:             sessionId,
+        bookingId,
+        clinicId,
+        physicianId:    E2E_TEST_PHYSICIAN_ID,
+        patientToken,
+        scheduledAt:    now,
+        status,
+        startedAt,
+        endedAt,
+        videoProvider:  this.cfg.get<string>('TELEHEALTH_PROVIDER') ?? 'mock',
+        providerRoomId: providerId,
+      },
+    });
+
+    return { sessionId, bookingId, patientToken };
   }
 
   async joinSession(

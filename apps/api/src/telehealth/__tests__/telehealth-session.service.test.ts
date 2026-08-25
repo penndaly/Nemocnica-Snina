@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TelehealthStatus } from '@prisma/client';
-import { TelehealthSessionService } from '../telehealth-session.service';
+import { TelehealthSessionService, E2E_TEST_PHYSICIAN_ID } from '../telehealth-session.service';
 import { MockVideoProvider } from '../mock-video.provider';
 
 // ── Minimal stubs ─────────────────────────────────────────────────────────────
@@ -67,9 +67,13 @@ function buildPrismaMock(session = makeSession()) {
       upsert:    jest.fn().mockResolvedValue({}),
       findUnique: jest.fn().mockResolvedValue(null),
     },
+    booking: {
+      create: jest.fn().mockResolvedValue({}),
+    },
     // Consent gate (S7) + completes the mock so patient-join tests reach the flow.
     bookingConsent: {
       findFirst: jest.fn().mockResolvedValue({ id: 'c1', granted: true }),
+      create:    jest.fn().mockResolvedValue({}),
     },
   };
 }
@@ -317,6 +321,70 @@ describe('TelehealthSessionService', () => {
       expect(prisma.telehealthIntake.upsert).toHaveBeenCalledTimes(1);
       expect(prisma.telehealthSession.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { intakeSubmitted: true } }),
+      );
+    });
+  });
+
+  describe('seedTestSession (E2E fixture)', () => {
+    it('creates a Booking + BookingConsent + TelehealthSession fixed to E2E_TEST_PHYSICIAN_ID', async () => {
+      const prisma  = buildPrismaMock();
+      const service = buildService(prisma);
+
+      const result = await service.seedTestSession('fro', TelehealthStatus.waiting, true);
+
+      expect(result.sessionId).toEqual(expect.any(String));
+      expect(result.bookingId).toEqual(expect.any(String));
+      expect(result.patientToken).toEqual(expect.any(String));
+
+      expect(prisma.booking.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ mode: 'telehealth', clinicId: 'fro' }),
+        }),
+      );
+      expect(prisma.bookingConsent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ consentType: 'telehealth_medical_record', granted: true }),
+        }),
+      );
+      expect(prisma.telehealthSession.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            physicianId: E2E_TEST_PHYSICIAN_ID,
+            status:      TelehealthStatus.waiting,
+          }),
+        }),
+      );
+    });
+
+    it('sets startedAt/endedAt consistent with the requested status', async () => {
+      const prisma  = buildPrismaMock();
+      const service = buildService(prisma);
+
+      await service.seedTestSession('fro', TelehealthStatus.ended, false);
+
+      expect(prisma.telehealthSession.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            startedAt: expect.any(Date),
+            endedAt:   expect.any(Date),
+          }),
+        }),
+      );
+      expect(prisma.bookingConsent.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ granted: false }) }),
+      );
+    });
+
+    it('leaves startedAt/endedAt null for a freshly scheduled session', async () => {
+      const prisma  = buildPrismaMock();
+      const service = buildService(prisma);
+
+      await service.seedTestSession('fro', TelehealthStatus.scheduled, true);
+
+      expect(prisma.telehealthSession.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ startedAt: null, endedAt: null }),
+        }),
       );
     });
   });
