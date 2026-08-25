@@ -30,6 +30,9 @@ importers:
       prettier:
         specifier: ^3.4.2
         version: 3.8.4
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(@types/node@22.20.0)(typescript@5.9.3)
       turbo:
         specifier: ^2.3.3
         version: 2.9.18
