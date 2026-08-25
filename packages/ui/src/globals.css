@@ -45,7 +45,10 @@
   --terra-50:#f8ece3;
   --green:   #2f8a64;
   --green-50:#e6f2ec;
-  --amber:   #c08a2e;
+  /* #c08a2e (the old value) was 2.65:1 on --amber-50 and 3.04:1 on white —
+     both fail WCAG AA's 4.5:1 for normal text (axe: color-contrast, serious).
+     Darkened to keep the same hue while clearing 4.5:1 against both. */
+  --amber:   #8a5a12;
   --amber-50:#f7efdc;
   --red:     #c0392b;
   --red-50:  #f8e9e7;

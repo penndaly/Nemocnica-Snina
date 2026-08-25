@@ -298,7 +298,14 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       {/* ── News + APS ───────────────────────────────────── */}
       <section style={{ padding: '3.5rem 0', background: 'var(--bg-2)' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .9fr', gap: '2.5rem', alignItems: 'start' }}>
+          {/* detail-grid (globals.css) collapses to a single column below
+              940px — without it this 2-column grid doesn't shrink below its
+              content's intrinsic min-content width (the default 'auto'
+              minimum on fr tracks), blowing out the whole page horizontally
+              on mobile. oddelenia/[slug] and lekari/[slug] already use this
+              same class for the identical layout; this section just never
+              got wired to it. */}
+          <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr .9fr', gap: '2.5rem', alignItems: 'start' }}>
             {/* News */}
             <div>
               <p className="eyebrow">{t('nav.news')}</p>

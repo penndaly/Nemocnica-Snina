@@ -16,7 +16,7 @@
 import { test, expect } from '@playwright/test';
 import { setMockPatientSession, adminLogin } from './helpers/auth';
 import { seedTelehealthSession, goToPatientRoom, goToPhysicianRoom } from './helpers/telehealth';
-import { VALID_RC } from './helpers/booking';
+import { VALID_RC, projectSlotIndex } from './helpers/booking';
 
 const API = process.env['API_BASE_URL'] ?? 'http://localhost:4000';
 const TH_CLINIC = 'fro-konzultacia'; // the telehealth:true clinic id — 'fro' alone is the department id
@@ -28,8 +28,15 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
     await setMockPatientSession(page);
     await page.goto('/sk/objednanie?mode=telehealth');
 
-    // All visible clinic cards must be telehealth-enabled
+    // Clinic cards render only after the client-side `fetch('/api/content?
+    // type=clinics...')` in objednanie/page.tsx resolves — `.count()` below
+    // does NOT auto-retry (unlike expect(locator)...), so it can sample the
+    // DOM before that fetch completes and see zero cards on a slower JS
+    // engine/device (this is what made the failure look WebKit/mobile-only
+    // — it's a test race, not a WebKit camera/permission gap: this test
+    // never touches getUserMedia). Wait for the first card before counting.
     const cards = page.locator('[data-clinic-id]');
+    await expect(cards.first()).toBeVisible({ timeout: 8_000 });
     const count = await cards.count();
     expect(count).toBeGreaterThan(0);
 
@@ -89,12 +96,15 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
     await expect(page.locator('[data-step="5"], :has-text("Objednávka potvrdená")')).not.toBeVisible();
   });
 
-  test('TH-1.4: full telehealth booking completes and telehealth_sessions row created', async ({ page, request }) => {
+  test('TH-1.4: full telehealth booking completes and telehealth_sessions row created', async ({ page, request }, testInfo) => {
     await setMockPatientSession(page);
     await page.goto(`/sk/objednanie?mode=telehealth&clinic=${TH_CLINIC}`);
 
     await page.locator('[data-step="2"] button[data-date], .date-button').first().click();
-    await page.locator('[data-step="3"] button[data-time], .time-slot').first().click();
+    // Project-indexed (see projectSlotIndex) so sk/en/mobile each book a
+    // distinct seeded slot instead of racing the same one — this is the
+    // same cross-project collision that hit booking.spec.ts's HP1.
+    await page.locator('[data-step="3"] button[data-time], .time-slot').nth(projectSlotIndex(testInfo)).click();
     await page.waitForSelector('[data-step="4"]', { timeout: 8_000 });
 
     await page.fill('[name="patientName"]', 'Test Pacient');
@@ -118,7 +128,14 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
     await page.click('[data-action="confirm"]');
 
     // Step 5: confirmation
-    await expect(page.locator(':has-text("Objednávka potvrdená"), :has-text("Booking confirmed")')).toBeVisible({ timeout: 15_000 });
+    // NOTE: `:has-text()` matches every ANCESTOR containing the text too
+    // (html/body/main/... all "contain" it), not just the element that
+    // renders it — an un-.first()'d locator here is a strict-mode-violation
+    // waiting to happen (booking.spec.ts's HP1 already hit this and fixed
+    // it with getByText(regex).first(); this assertion just never got the
+    // same treatment, so it "timed out" even when the booking genuinely
+    // succeeded — see the page snapshot in the failure's error-context.md).
+    await expect(page.getByText(/Objednávka potvrdená|Booking confirmed/).first()).toBeVisible({ timeout: 15_000 });
 
     // "Join consultation" button must be present but disabled
     const joinBtn = page.locator('button:has-text("Pripojiť sa"), button:has-text("Join consultation")').first();
@@ -126,7 +143,7 @@ test.describe('TH-1: Telehealth booking wizard @telehealth @booking @patient', (
     await expect(joinBtn).toBeDisabled();
 
     // Helper text
-    await expect(page.locator(':has-text("aktívny 10 minút"), :has-text("Active 10 minutes")')).toBeVisible();
+    await expect(page.getByText(/aktívny 10 minút|Active 10 minutes/).first()).toBeVisible();
   });
 });
 
@@ -160,7 +177,11 @@ test.describe('TH-2: Patient waiting room @telehealth @room @patient', () => {
     await expect(page).toHaveURL(/portal|login/, { timeout: 8_000 });
   });
 
-  test('TH-2.3: cancelled session shows terminal state card — no token issued', async ({ page, request }) => {
+  test('TH-2.3: cancelled session shows terminal state card — no token issued', async ({ page, request, browserName }) => {
+    // Same WebKit camera/permission gap as TH-2.1 — goToPatientRoom() runs
+    // the device-check step (getUserMedia) before the cancelled-state card
+    // can render, and WebKit has no fake-camera API for it in this suite.
+    test.skip(browserName === 'webkit', 'WebKit has no fake-camera / camera-permission API for getUserMedia');
     const { sessionId } = await seedTelehealthSession(request, 'scheduled', true);
 
     // Cancel the session via API
@@ -175,8 +196,12 @@ test.describe('TH-2: Patient waiting room @telehealth @room @patient', () => {
 
     await goToPatientRoom(page, sessionId);
 
-    // Terminal state card
-    await expect(page.locator('[data-state="cancelled"], :has-text("zrušená"), :has-text("cancelled")')).toBeVisible({ timeout: 8_000 });
+    // Terminal state card. data-state="cancelled" (added to the room's
+    // error-branch div — see page.tsx) is the only reliable way to target
+    // this: an unqualified :has-text("zrušená"/"cancelled") matches every
+    // ancestor of that text (html/body/main/...), not just the card, which
+    // is a strict-mode violation the moment the text actually renders.
+    await expect(page.locator('[data-state="cancelled"]')).toBeVisible({ timeout: 8_000 });
 
     // Direct API join returns 403
     const joinRes = await request.post(`${API}/api/telehealth/sessions/${sessionId}/join`, {
@@ -195,11 +220,23 @@ test.describe('TH-3: Physician admits patient — active call @telehealth @room 
     await adminLogin(page);
     await goToPhysicianRoom(page, sessionId);
 
-    // Doctor view: intake side panel
-    await expect(page.locator('[data-panel="intake"], [aria-label*="intake"], :has-text("Dôvod konzultácie")')).toBeVisible({ timeout: 10_000 });
+    // Doctor view: intake side panel. data-panel="intake" (added to the
+    // <aside> in page.tsx) is the only reliable match here — the aside's
+    // real aria-label is the Slovak tPh('intakePanelTitle') string, not
+    // literally "intake", so [aria-label*="intake"] never matched; the
+    // :has-text("Dôvod konzultácie") fallback did match, but — like
+    // TH-1.4/TH-2.3's identical bug — unqualified :has-text() matches every
+    // ancestor of that text, which is a strict-mode violation, not a
+    // legitimate wait.
+    await expect(page.locator('[data-panel="intake"]')).toBeVisible({ timeout: 10_000 });
 
-    // Admit button
-    await expect(page.locator('button:has-text("Pripustiť pacienta"), button:has-text("Admit")')).toBeVisible();
+    // Admit button. Actual copy is sk.json/en.json's room.physician.admitBtn
+    // ("Vpustiť pacienta" / "Admit patient") — the test previously expected
+    // "Pripustiť pacienta", a string that doesn't exist anywhere in the
+    // messages files, so this assertion could never have passed; it was
+    // just masked by the MFA-gate and strict-mode bugs above it failing
+    // first.
+    await expect(page.locator('button:has-text("Vpustiť pacienta"), button:has-text("Admit patient")')).toBeVisible();
   });
 
   test('TH-3.2: admit transitions session to active; both rooms show active state', async ({ page, request }) => {

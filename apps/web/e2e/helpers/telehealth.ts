@@ -46,7 +46,26 @@ export async function goToPatientRoom(page: Page, sessionId: string, lang = 'sk'
   await page.goto(`/${lang}/telehealth/konzultacia/${sessionId}`);
 }
 
-/** Navigate to the physician-side consultation room. */
+/**
+ * Navigate to the physician-side consultation room and clear its step-up MFA
+ * gate.
+ *
+ * The room itself requires a *second*, fresh TOTP entry on top of admin
+ * login's own MFA — "Physician join requires MFA re-verify at the endpoint,
+ * not just an active session" (CLAUDE.md non-negotiable) — so landing on the
+ * URL alone leaves the page stuck on its `phase === 'mfa'` screen, before
+ * any doctor-view UI (intake panel, Admit button) renders. In mock mode
+ * (IS_MOCK in the room component, driven by
+ * NEXT_PUBLIC_TELEHEALTH_PROVIDER=mock in CI) the code itself is never
+ * actually checked server-side — any 6 digits clear the gate — so this
+ * isn't reimplementing real MFA, just satisfying the client-side length
+ * guard the same way a real physician's keystroke would.
+ */
 export async function goToPhysicianRoom(page: Page, sessionId: string, lang = 'sk'): Promise<void> {
   await page.goto(`/${lang}/telehealth/konzultacia/${sessionId}?role=physician`);
+  const totpInput = page.locator('input[inputmode="numeric"]');
+  await totpInput.waitFor({ state: 'visible', timeout: 8_000 });
+  await totpInput.fill('123456');
+  await totpInput.press('Enter');
+  await totpInput.waitFor({ state: 'hidden', timeout: 8_000 }).catch(() => {});
 }

@@ -369,7 +369,10 @@ export default async function TelehealthPage({
           >
             <strong style={{ display: 'block', marginBottom: '.3rem' }}>{th('legalNoteTitle')}</strong>
             {th('legalNote')}{' '}
-            <Link href={`/${locale}/telehealth/sukromie`} style={{ color: 'var(--blue-700)' }}>
+            {/* axe link-in-text-block: a link inline with body text must be
+                distinguishable by more than color alone — underline it
+                (the link/surrounding-text colors alone are only ~1:1). */}
+            <Link href={`/${locale}/telehealth/sukromie`} style={{ color: 'var(--blue-700)', textDecoration: 'underline' }}>
               {th('privacyTitle')} →
             </Link>
           </div>

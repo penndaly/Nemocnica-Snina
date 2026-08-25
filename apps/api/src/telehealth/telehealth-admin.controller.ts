@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
 import { StaffJwtGuard, StaffRoles, StaffRolesGuard, type StaffContext } from '../auth/staff-jwt.guard';
+import { CLINICS_SEED } from '../config/seed-clinics';
 
 interface RequestWithStaff {
   staff: StaffContext;
@@ -34,6 +35,15 @@ interface RequestWithStaff {
 export class TelehealthAdminController {
   private readonly strapiUrl: string;
   private readonly strapiToken: string;
+  // Mirrors apps/web/src/lib/strapi-client.ts's USE_FALLBACK: the literal
+  // 'dev-token' sentinel is what CI's E2E job sets STRAPI_API_TOKEN to
+  // (that job runs no Strapi service at all — see .github/workflows/ci.yml).
+  // Without this, listClinics() had no dev/CI path: it always made a real
+  // Strapi call and threw BadRequestException on the resulting 401/refused
+  // connection, so the admin Clinics tab could never render — not just in
+  // this repo's CI, but in any local dev setup without a live, token-
+  // provisioned Strapi instance.
+  private readonly useFallback: boolean;
 
   constructor(
     private readonly cfg: ConfigService,
@@ -41,12 +51,23 @@ export class TelehealthAdminController {
   ) {
     this.strapiUrl   = cfg.get<string>('STRAPI_URL')       ?? 'http://localhost:1337';
     this.strapiToken = cfg.get<string>('STRAPI_API_TOKEN') ?? '';
+    this.useFallback = !this.strapiToken || this.strapiToken === 'dev-token';
   }
 
   // ── Clinics ──────────────────────────────────────────────────────────────────
 
   @Get('clinics')
   async listClinics() {
+    if (this.useFallback) {
+      return CLINICS_SEED.map((c) => ({
+        id:               c.id,
+        name:             c.name.sk,
+        telehealth:       Boolean(c.telehealth),
+        telehealthWindow: c.telehealthWindow ?? null,
+        telehealthRule:   c.telehealthRule?.sk ?? null,
+      }));
+    }
+
     const res = await fetch(
       `${this.strapiUrl}/api/clinics?fields[0]=name&fields[1]=telehealth&fields[2]=telehealthWindow&fields[3]=telehealthRule&pagination[limit]=100`,
       { headers: { Authorization: `Bearer ${this.strapiToken}` } },

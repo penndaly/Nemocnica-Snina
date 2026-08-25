@@ -8,13 +8,13 @@
  * All rule rejections must come from the SERVER (HTTP 400), not client-side UX.
  */
 import { test, expect } from '@playwright/test';
-import { VALID_RC, CLINIC_TRAUMA, CLINIC_ANGIOLOGY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, pastDate } from './helpers/booking';
+import { VALID_RC, CLINIC_TRAUMA, CLINIC_ANGIOLOGY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, pastDate, projectSlotIndex } from './helpers/booking';
 
 const API = process.env['API_BASE_URL'] ?? 'http://localhost:3001';
 
 // ── Happy path ─────────────────────────────────────────────
 
-test('HP1: full booking wizard — urology Mon-Fri, confirms with booking ID', async ({ page }) => {
+test('HP1: full booking wizard — urology Mon-Fri, confirms with booking ID', async ({ page }, testInfo) => {
   await page.goto('/sk/objednanie');
 
   // Step 1: select clinic
@@ -23,8 +23,9 @@ test('HP1: full booking wizard — urology Mon-Fri, confirms with booking ID', a
   // Step 2: select date (first available)
   await page.locator('[data-step="2"] button[data-date], .date-button').first().click();
 
-  // Step 3: select time
-  await page.locator('[data-step="3"] button[data-time], .time-slot').first().click();
+  // Step 3: select time — project-indexed (see projectSlotIndex) so sk/en/mobile
+  // each book a distinct seeded slot instead of racing the same one.
+  await page.locator('[data-step="3"] button[data-time], .time-slot').nth(projectSlotIndex(testInfo)).click();
 
   // Step 4: fill details
   await page.fill('[name="patientName"], input[placeholder*="Meno"]', 'Test Pacient');

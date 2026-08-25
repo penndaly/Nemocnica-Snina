@@ -14,7 +14,7 @@
  * UTC boundary) — mirrors the working reference implementation in
  * booking-rules.service.ts's nextAvailableDates().
  */
-import { Page } from '@playwright/test';
+import { Page, TestInfo } from '@playwright/test';
 
 export const VALID_RC  = '9001010007'; // passes modulo-11 (9001014719 did NOT: 9001014719 % 11 === 4)
 export const CLINIC_TRAUMA = 'urazova-chirurgia';       // bookingDays=[2,4] (Tue/Thu), referral not required
@@ -77,6 +77,24 @@ export async function fillPatientDetails(page: Page, options?: {
   await page.fill('[name="patientRc"], [placeholder*="Rodné číslo"]', rc);
   if (gdpr) await page.locator('[name="gdprConsent"]').check();
   if (referral != null && referral) await page.locator('[name="referralConsent"]').check();
+}
+
+const PROJECT_ORDER = ['sk', 'en', 'mobile'];
+
+/**
+ * booking.spec.ts's HP1 and telehealth.spec.ts's TH-1.4 each perform a real
+ * POST /api/booking against the wizard's ".first()" time slot. All three
+ * Playwright projects (sk/en/mobile) run the same spec against the same
+ * seeded DB, so three concurrent ".first()" clicks race for the exact same
+ * (clinicId, date, time) row — only the first writer's booking succeeds,
+ * and CI's automatic retries hit the now-permanently-booked slot again
+ * (global-setup seeds once per whole run, not per retry). Index into a
+ * distinct, guaranteed-seeded slot per project instead so the three runs
+ * never collide.
+ */
+export function projectSlotIndex(testInfo: TestInfo): number {
+  const i = PROJECT_ORDER.indexOf(testInfo.project.name);
+  return i === -1 ? 0 : i;
 }
 
 export async function submitAndGetBookingId(page: Page): Promise<string | null> {

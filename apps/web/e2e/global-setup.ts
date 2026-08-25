@@ -88,10 +88,13 @@ export default async function globalSetup() {
       { clinicId: 'angiologicka', date, time: '13:20' },
     ]),
     // FRO video consultation (telehealth.spec.ts's TH_CLINIC): Mon/Wed/Fri,
-    // telehealthWindow 10:00–12:00.
+    // telehealthWindow 10:00–12:00. Three slots (not two) to match
+    // projectSlotIndex() in helpers/booking.ts — TH-1.4 books one per
+    // Playwright project (sk/en/mobile), same reasoning as urologicka below.
     ...nextBookableDates([1, 3, 5]).flatMap((date) => [
       { clinicId: 'fro-konzultacia', date, time: '10:00' },
       { clinicId: 'fro-konzultacia', date, time: '10:20' },
+      { clinicId: 'fro-konzultacia', date, time: '10:40' },
     ]),
   ];
 
