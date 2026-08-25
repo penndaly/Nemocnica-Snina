@@ -50,8 +50,11 @@ describe('W2 medical adapters', () => {
 
   // G4 — Dexcom sandbox URL switch
   it('G4: Dexcom switches base URL on DEXCOM_SANDBOX', () => {
-    const sandbox = new DexcomAdapter(cfg({ DEXCOM_SANDBOX: true }), crypto());
-    const prod = new DexcomAdapter(cfg({ DEXCOM_SANDBOX: false }), crypto());
+    // DexcomAdapter reads this as a raw env string ('false' !== 'false' is
+    // the only way to opt out of the sandbox default) — matches real
+    // ConfigService.get() behavior, not a JS boolean.
+    const sandbox = new DexcomAdapter(cfg({ DEXCOM_SANDBOX: 'true' }), crypto());
+    const prod = new DexcomAdapter(cfg({ DEXCOM_SANDBOX: 'false' }), crypto());
     expect(sandbox.getAuthUrl('tok', 'nonce.sig')).toContain('sandbox-api.dexcom.com');
     expect(prod.getAuthUrl('tok', 'nonce.sig')).toContain('api.dexcom.com');
     expect(prod.getAuthUrl('tok', 'nonce.sig')).not.toContain('sandbox-api');

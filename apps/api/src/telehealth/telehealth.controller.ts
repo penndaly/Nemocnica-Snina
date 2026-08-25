@@ -104,7 +104,15 @@ export class TelehealthController {
   @Post(':id/recording')
   @UseGuards(AuthGuard('jwt'))
   async startRecording(@Param('id') id: string) {
-    const enabled = this.cfg.get<boolean>('TELEHEALTH_RECORDING_ENABLED') ?? false;
+    // ConfigService.get() returns the raw env string here — no `validate`
+    // function is passed to ConfigModule.forRoot(), so `<boolean>` is a
+    // type-only assertion, not a runtime cast. cfg.get<boolean>(...) ?? false
+    // returned the *string* "false" from .env, and a non-empty string is
+    // truthy in JS — !enabled was always false, so recording was silently
+    // always enabled regardless of this flag. Matches the established
+    // pattern elsewhere (his/fhir-read.service.ts, his-sync.consumer.ts):
+    // compare the raw string to 'true' explicitly.
+    const enabled = this.cfg.get<string>('TELEHEALTH_RECORDING_ENABLED') === 'true';
     if (!enabled) {
       throw new ForbiddenException({ reason: 'recording_disabled', message: 'Recording is disabled by configuration (TELEHEALTH_RECORDING_ENABLED=false). DPO approval required.' });
     }
