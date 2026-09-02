@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lekári — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phSub" style="max-width:60ch"></p>
+      <div class="toolbar mt-3">
+        <div class="search-box">
+          <span id="searchIcon"></span>
+          <input type="text" id="search" placeholder="">
+        </div>
+        <label class="toggle-accept">
+          <input type="checkbox" id="onlyAccepting">
+          <span id="acceptLabel"></span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-3" id="grid"></div>
+      <p class="text-center muted mt-3" id="empty" style="display:none"></p>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "doctors" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.doctors");
+document.getElementById("phEyebrow").textContent = L({sk:"Náš tím",en:"Our team"});
+document.getElementById("phTitle").textContent = L({sk:"Adresár lekárov",en:"Physician directory"});
+document.getElementById("phSub").textContent = L({sk:"Vyhľadajte lekára podľa mena alebo odbornosti a zistite, kto prijíma nových pacientov. Jazyky sú dôležité v našom prihraničnom regióne.",en:"Search by name or specialty and see who is accepting new patients. Languages matter in our border region."});
+document.getElementById("searchIcon").innerHTML = icon("search");
+document.getElementById("search").placeholder = L({sk:"Hľadať meno alebo odbornosť…",en:"Search name or specialty…"});
+document.getElementById("acceptLabel").textContent = L({sk:"Len prijímajúci nových pacientov",en:"Only accepting new patients"});
+
+const docs = DB.list("physicians");
+const depName = id => { const d = DB.find("departments", id); return d ? L(d.short) : ""; };
+const clinicName = id => { const c = DB.find("clinics", id); return c ? L(c.specialty) : ""; };
+
+function render() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const onlyAcc = document.getElementById("onlyAccepting").checked;
+  let items = docs.filter(p => {
+    if (onlyAcc && !p.accepting) return false;
+    if (!q) return true;
+    const hay = (p.name + " " + L(p.role) + " " + L(p.bio)).toLowerCase();
+    return hay.includes(q);
+  });
+  const grid = document.getElementById("grid");
+  grid.innerHTML = items.map(p => {
+    const place = p.dept ? depName(p.dept) : (p.clinic ? clinicName(p.clinic) : (p.facility ? (DB.find("facilities",p.facility)?L(DB.find("facilities",p.facility).name):"") : ""));
+    const href = p.dept ? `oddelenie.html?id=${p.dept}` : (p.clinic ? `ambulancie.html#${p.clinic}` : "diagnostika.html");
+    return `
+    <div class="card card-pad doc-card reveal" id="${p.id}">
+      <div class="flex-center gap mb-2">
+        <span class="avatar avatar-lg">${esc(initials(p.name))}</span>
+        <div>
+          <h3 class="mb-0" style="font-size:1.15rem">${esc(p.name)}</h3>
+          <p class="small muted mb-1">${esc(L(p.role))}</p>
+          ${p.accepting
+            ? `<span class="badge badge-green"><span class="dot"></span>${esc(t("accepting"))}</span>`
+            : `<span class="badge badge-gray"><span class="dot"></span>${esc(t("notAccepting"))}</span>`}
+        </div>
+      </div>
+      <p class="small">${esc(L(p.bio))}</p>
+      <div class="divider"></div>
+      <div class="flex-between">
+        <div class="flex gap-sm">${(p.langs||[]).map(l=>`<span class="lang-tag">${esc(l)}</span>`).join("")}</div>
+        ${place ? `<a href="${href}" class="small" style="font-weight:700">${esc(place)}</a>` : ``}
+      </div>
+    </div>`;
+  }).join("");
+  document.getElementById("empty").style.display = items.length ? "none" : "block";
+  document.getElementById("empty").textContent = L({sk:"Žiadny lekár nezodpovedá hľadaniu.",en:"No physician matches your search."});
+  Site.initReveal();
+}
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("onlyAccepting").addEventListener("change", render);
+render();
+if (location.hash) { const el = document.getElementById(location.hash.slice(1)); if (el) el.scrollTo; }
+
+function initials(n){ return n.replace(/MUDr\.|Mgr\.|Bc\.|MBA|,/g,"").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase(); }
+</script>
+
+<style>
+.toolbar { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.search-box { position:relative; flex:1; min-width:260px; max-width:440px; }
+.search-box span { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--ink-3); }
+.search-box span svg { width:20px;height:20px;display:block; }
+.search-box input { padding-left:44px; }
+.toggle-accept { display:flex; align-items:center; gap:9px; font-weight:600; font-size:.92rem; color:var(--ink-2); cursor:pointer; user-select:none; }
+.toggle-accept input { width:18px;height:18px;accent-color:var(--green);cursor:pointer; }
+.lang-tag { font-size:.7rem; font-weight:800; letter-spacing:.05em; background:var(--blue-50); color:var(--blue-700); padding:.25em .55em; border-radius:6px; }
+.doc-card { display:block; }
+</style>
+</body>
+</html>

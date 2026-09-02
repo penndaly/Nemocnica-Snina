@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Správa obsahu — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="admin-body">
+<div id="app"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+const app = document.getElementById("app");
+let current = { type: "collection", key: "departments" }; // or {type:'singleton'} / {type:'editor', ...}
+let toast = null;
+
+function showToast(msg) {
+  clearTimeout(toast);
+  let el = document.getElementById("toast");
+  if (!el) { el = document.createElement("div"); el.id = "toast"; el.className = "toast"; document.body.appendChild(el); }
+  el.innerHTML = icon("check") + " " + esc(msg);
+  el.classList.add("show");
+  toast = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function render() {
+  if (!ADMIN.isAuthed()) { renderLogin(); return; }
+  renderShell();
+}
+
+/* ---------------- LOGIN ---------------- */
+function renderLogin() {
+  document.body.classList.add("admin-login-bg");
+  app.innerHTML = `
+    <div class="admin-login">
+      <div class="card login-card">
+        <div class="login-head">
+          <span class="login-ic">${icon("lock")}</span>
+          <h2>${esc(L({sk:"Správa obsahu",en:"Content administration"}))}</h2>
+          <p class="small" style="color:#cfe">${esc(L({sk:"Nemocnica Snina — redakčný systém",en:"Nemocnica Snina — content system"}))}</p>
+        </div>
+        <form id="loginForm" class="card-pad">
+          <label class="field"><span>${esc(L({sk:"Heslo administrátora",en:"Admin password"}))}</span>
+            <input type="password" id="pw" placeholder="${esc(L({sk:"nápoveda: admin",en:"hint: admin"}))}" required autofocus></label>
+          <div id="loginErr" class="login-err" style="display:none"></div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block">${icon("lock")} ${esc(L({sk:"Prihlásiť sa do administrácie",en:"Log in to admin"}))}</button>
+          <a href="index.html" class="btn btn-ghost btn-block mt-2">${icon("arrowLeft")} ${esc(L({sk:"Späť na web",en:"Back to website"}))}</a>
+        </form>
+      </div>
+    </div>`;
+  document.getElementById("loginForm").onsubmit = (e) => {
+    e.preventDefault();
+    if (ADMIN.login(document.getElementById("pw").value)) { document.body.classList.remove("admin-login-bg"); render(); }
+    else { const err = document.getElementById("loginErr"); err.style.display = "block"; err.textContent = L({sk:"Nesprávne heslo.",en:"Incorrect password."}); }
+  };
+}
+
+/* ---------------- SHELL ---------------- */
+function renderShell() {
+  const colKeys = Object.keys(ADMIN.SCHEMAS);
+  const singKeys = Object.keys(ADMIN.SINGLETONS);
+  const navItem = (key, schema, type) => {
+    const count = type === "collection" ? DB.list(key).length : null;
+    const isActive = current.key === key && (current.type === type || (current.type === "editor" && current.col === key));
+    return `<button class="anav ${isActive?'active':''}" data-key="${key}" data-type="${type}">
+      ${icon(schema.icon)} <span>${esc(L(schema.label))}</span>
+      ${count!==null?`<span class="anav-count">${count}</span>`:``}
+    </button>`;
+  };
+
+  app.innerHTML = `
+  <div class="admin-layout">
+    <aside class="admin-side">
+      <a href="index.html" class="admin-brand">
+        <span class="brand-mark">${icon("cross")}</span>
+        <span><strong>Nemocnica Snina</strong><span class="small muted">${esc(L({sk:"Správa obsahu",en:"Content admin"}))}</span></span>
+      </a>
+      <div class="anav-group">
+        <p class="anav-label">${esc(L({sk:"Obsah",en:"Content"}))}</p>
+        ${colKeys.map(k => navItem(k, ADMIN.SCHEMAS[k], "collection")).join("")}
+      </div>
+      <div class="anav-group">
+        <p class="anav-label">${esc(L({sk:"Nastavenia",en:"Settings"}))}</p>
+        ${singKeys.map(k => navItem(k, ADMIN.SINGLETONS[k], "singleton")).join("")}
+      </div>
+      <div class="anav-group">
+        <p class="anav-label">Telehealth</p>
+        <button class="anav ${current.type==='telehealth'?'active':''}" data-key="telehealth" data-type="telehealth">${icon("video")} <span>${esc(L({sk:"Plán konzultácií",en:"Session Schedule"}))}</span></button>
+      </div>
+      <div class="anav-group">
+        <p class="anav-label">${esc(L({sk:"Nástroje",en:"Tools"}))}</p>
+        <button class="anav" id="btnExport">${icon("download")} <span>${esc(L({sk:"Export údajov",en:"Export data"}))}</span></button>
+        <button class="anav" id="btnImport">${icon("doc")} <span>${esc(L({sk:"Import údajov",en:"Import data"}))}</span></button>
+        <button class="anav anav-danger" id="btnReset">${icon("trash")} <span>${esc(L({sk:"Obnoviť predvolené",en:"Reset to defaults"}))}</span></button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-top">
+        <div class="lang-switch lang-dark" role="group">
+          <button class="${getLang()==='sk'?'active':''}" onclick="setLang('sk')">SK</button>
+          <button class="${getLang()==='en'?'active':''}" onclick="setLang('en')">EN</button>
+        </div>
+        <div class="flex gap-sm">
+          <a href="index.html" target="_blank" class="btn btn-ghost btn-sm">${icon("globe")} ${esc(L({sk:"Zobraziť web",en:"View website"}))}</a>
+          <button class="btn btn-ghost btn-sm" id="btnLogout">${icon("lock")} ${esc(L({sk:"Odhlásiť",en:"Sign out"}))}</button>
+        </div>
+      </header>
+      <div class="admin-content" id="content"></div>
+    </div>
+  </div>`;
+
+  app.querySelectorAll(".anav[data-key]").forEach(b => b.onclick = () => {
+    current = { type: b.dataset.type, key: b.dataset.key };
+    renderShell();
+  });
+  document.getElementById("btnLogout").onclick = () => { ADMIN.logout(); render(); };
+  document.getElementById("btnReset").onclick = () => {
+    if (confirm(L({sk:"Naozaj obnoviť všetok obsah na predvolené hodnoty? Vaše zmeny sa stratia.",en:"Reset all content to defaults? Your changes will be lost."}))) {
+      DB.reset(); showToast(L({sk:"Obsah obnovený.",en:"Content reset."})); renderShell();
+    }
+  };
+  document.getElementById("btnExport").onclick = exportData;
+  document.getElementById("btnImport").onclick = importData;
+
+  renderContent();
+}
+
+function renderContent() {
+  const c = document.getElementById("content");
+  if (current.type === "editor") { renderEditor(c); return; }
+  if (current.type === "singleton") { renderSingleton(c); return; }
+  if (current.type === "telehealth") { renderTelehealth(c); return; }
+  renderList(c);
+}
+
+/* ---------------- LIST ---------------- */
+function renderList(c) {
+  const key = current.key;
+  const schema = ADMIN.SCHEMAS[key];
+  const items = DB.list(key);
+  c.innerHTML = `
+    <div class="content-head">
+      <div>
+        <h1>${esc(L(schema.label))}</h1>
+        <p class="muted mb-0">${items.length} ${esc(L({sk:"položiek · zmeny sa prejavia na webe okamžite",en:"items · changes appear on the site instantly"}))}</p>
+      </div>
+      <button class="btn btn-primary" id="btnAdd">${icon("plus")} ${esc(L({sk:"Pridať",en:"Add new"}))}</button>
+    </div>
+    <div class="list-rows">
+      ${items.map((it, i) => {
+        const titleVal = schema.titlePlain ? it[schema.title] : L(it[schema.title]);
+        const sub = subtitleFor(key, it);
+        return `<div class="list-row">
+          <div class="lr-main">
+            <span class="lr-icon">${icon(schema.icon)}</span>
+            <div>
+              <h4 class="mb-0">${esc(titleVal||"—")}</h4>
+              <span class="small muted">${esc(sub)}</span>
+            </div>
+          </div>
+          <div class="lr-actions">
+            ${badgeFor(key, it)}
+            <button class="icon-btn" data-edit="${i}" title="${esc(L({sk:'Upraviť',en:'Edit'}))}">${icon("edit")}</button>
+            <button class="icon-btn icon-danger" data-del="${i}" title="${esc(L({sk:'Vymazať',en:'Delete'}))}">${icon("trash")}</button>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  document.getElementById("btnAdd").onclick = () => { current = { type: "editor", col: key, key, idx: -1 }; renderShell(); };
+  c.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { current = { type: "editor", col: key, key, idx: +b.dataset.edit }; renderShell(); });
+  c.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    const it = items[+b.dataset.del];
+    const titleVal = schema.titlePlain ? it[schema.title] : L(it[schema.title]);
+    if (confirm(L({sk:"Vymazať „",en:'Delete "'}) + titleVal + '"?')) { DB.remove(key, it.id); showToast(L({sk:"Vymazané.",en:"Deleted."})); renderShell(); }
+  });
+}
+
+function subtitleFor(key, it) {
+  if (key === "departments") return (it.lead||"") + (it.beds?` · ${it.beds} ${L({sk:"lôžok",en:"beds"})}`:"");
+  if (key === "clinics") return (it.doctor||"") + " · " + L(it.location);
+  if (key === "physicians") return L(it.role);
+  if (key === "services") return L(it.desc).slice(0,70);
+  if (key === "facilities") return (it.lead?it.lead+" · ":"") + L(it.kind);
+  if (key === "news") return fmtDate(it.date);
+  if (key === "disclosures") return it.id + " · " + fmtDate(it.date);
+  return "";
+}
+function badgeFor(key, it) {
+  if (key === "clinics") return statusBadge(it.status);
+  if (key === "physicians") return it.accepting ? `<span class="badge badge-green"><span class="dot"></span>${esc(t("accepting"))}</span>` : "";
+  if (key === "departments") return it.featured ? `<span class="badge badge-blue">${esc(L({sk:"Úvod",en:"Home"}))}</span>` : "";
+  if (key === "news") { const m={good:"badge-green",info:"badge-blue",alert:"badge-amber"}; return `<span class="badge ${m[it.type]||'badge-gray'}">${esc(L(it.tag))}</span>`; }
+  if (key === "disclosures") return `<span class="badge ${it.type&&it.type.sk==='Zmluva'?'badge-blue':'badge-terra'}">${esc(L(it.type))}</span>`;
+  return "";
+}
+
+/* ---------------- EDITOR ---------------- */
+function renderEditor(c) {
+  const key = current.col;
+  const schema = ADMIN.SCHEMAS[key];
+  const isNew = current.idx < 0;
+  const item = isNew ? ADMIN.blank(schema) : JSON.parse(JSON.stringify(DB.list(key)[current.idx]));
+
+  c.innerHTML = `
+    <button class="link-back" id="back">${icon("arrowLeft")} ${esc(L(schema.label))}</button>
+    <div class="content-head">
+      <h1>${esc(isNew ? L({sk:"Nová položka",en:"New item"}) : L({sk:"Upraviť",en:"Edit"}))}</h1>
+    </div>
+    <form id="editForm" class="editor card card-pad">
+      ${schema.fields.map(f => fieldHtml(f, item[f.k])).join("")}
+      <div class="editor-actions">
+        <button type="submit" class="btn btn-primary btn-lg">${icon("check")} ${esc(L({sk:"Uložiť",en:"Save"}))}</button>
+        <button type="button" class="btn btn-ghost btn-lg" id="cancel">${esc(L({sk:"Zrušiť",en:"Cancel"}))}</button>
+      </div>
+    </form>`;
+
+  document.getElementById("back").onclick = () => { current = { type: "collection", key }; renderShell(); };
+  document.getElementById("cancel").onclick = () => { current = { type: "collection", key }; renderShell(); };
+  document.getElementById("editForm").onsubmit = (e) => {
+    e.preventDefault();
+    const obj = readForm(schema, e.target, item);
+    if (!schema.idEditable) {
+      if (isNew || !obj.id) {
+        const base = schema.titlePlain ? obj[schema.idFrom] : L(obj[schema.idFrom]);
+        let id = ADMIN.slugify(base);
+        const existing = DB.list(key).map(x => x.id);
+        if (isNew) { let u = id, n = 2; while (existing.includes(u)) u = id + "-" + (n++); id = u; }
+        obj.id = isNew ? id : item.id;
+      } else obj.id = item.id;
+    }
+    DB.upsert(key, obj);
+    showToast(L({sk:"Uložené.",en:"Saved."}));
+    current = { type: "collection", key };
+    renderShell();
+  };
+}
+
+function fieldHtml(f, val) {
+  const lbl = esc(L(f.label));
+  if (f.t === "biltext" || f.t === "biltextarea") {
+    val = val || { sk: "", en: "" };
+    const tag = (l) => f.t === "biltextarea"
+      ? `<textarea data-k="${f.k}" data-l="${l}" rows="3">${esc(val[l]||"")}</textarea>`
+      : `<input type="text" data-k="${f.k}" data-l="${l}" value="${esc(val[l]||"")}">`;
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label>
+      <div class="bil"><div class="bil-col"><span class="bil-tag">SK</span>${tag("sk")}</div><div class="bil-col"><span class="bil-tag">EN</span>${tag("en")}</div></div></div>`;
+  }
+  if (f.t === "billist") {
+    val = val || { sk: [], en: [] };
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label>
+      <div class="bil"><div class="bil-col"><span class="bil-tag">SK</span><textarea data-k="${f.k}" data-l="sk" data-list="1" rows="4">${esc((val.sk||[]).join("\n"))}</textarea></div>
+      <div class="bil-col"><span class="bil-tag">EN</span><textarea data-k="${f.k}" data-l="en" data-list="1" rows="4">${esc((val.en||[]).join("\n"))}</textarea></div></div></div>`;
+  }
+  if (f.t === "bool") {
+    return `<div class="efield"><label class="switch-row"><input type="checkbox" data-k="${f.k}" data-bool="1" ${val?"checked":""}><span>${lbl}</span></label></div>`;
+  }
+  if (f.t === "select") {
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label>
+      <select data-k="${f.k}">${f.opts.map(o => `<option value="${esc(o.v)}" ${val===o.v?"selected":""}>${esc(L(o.l))}</option>`).join("")}</select></div>`;
+  }
+  if (f.t === "ref") {
+    const opts = DB.list(f.ref);
+    const sch = ADMIN.SCHEMAS[f.ref];
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label>
+      <select data-k="${f.k}"><option value="">${esc(L({sk:"— žiadne —",en:"— none —"}))}</option>
+      ${opts.map(o => { const ttl = sch.titlePlain ? o[sch.title] : L(o[sch.title]); return `<option value="${esc(o.id)}" ${val===o.id?"selected":""}>${esc(ttl)}</option>`; }).join("")}</select></div>`;
+  }
+  if (f.t === "tags") {
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label><input type="text" data-k="${f.k}" data-tags="1" value="${esc((val||[]).join(", "))}"></div>`;
+  }
+  if (f.t === "number") {
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label><input type="number" data-k="${f.k}" data-num="1" value="${esc(val!=null?val:"")}"></div>`;
+  }
+  if (f.t === "date") {
+    return `<div class="efield"><label class="efield-lbl">${lbl}</label><input type="date" data-k="${f.k}" value="${esc(val||"")}"></div>`;
+  }
+  return `<div class="efield"><label class="efield-lbl">${lbl}</label><input type="text" data-k="${f.k}" value="${esc(val!=null?val:"")}"></div>`;
+}
+
+function readForm(schema, form, original) {
+  const obj = JSON.parse(JSON.stringify(original || {}));
+  schema.fields.forEach(f => {
+    if (f.t === "biltext" || f.t === "biltextarea") {
+      obj[f.k] = {
+        sk: form.querySelector(`[data-k="${f.k}"][data-l="sk"]`).value,
+        en: form.querySelector(`[data-k="${f.k}"][data-l="en"]`).value
+      };
+    } else if (f.t === "billist") {
+      const toArr = (l) => form.querySelector(`[data-k="${f.k}"][data-l="${l}"]`).value.split("\n").map(s => s.trim()).filter(Boolean);
+      obj[f.k] = { sk: toArr("sk"), en: toArr("en") };
+    } else if (f.t === "bool") {
+      obj[f.k] = form.querySelector(`[data-k="${f.k}"]`).checked;
+    } else if (f.t === "tags") {
+      obj[f.k] = form.querySelector(`[data-k="${f.k}"]`).value.split(",").map(s => s.trim()).filter(Boolean);
+    } else if (f.t === "number") {
+      const v = form.querySelector(`[data-k="${f.k}"]`).value;
+      obj[f.k] = v === "" ? 0 : Number(v);
+    } else if (f.t === "ref") {
+      const v = form.querySelector(`[data-k="${f.k}"]`).value;
+      if (v) obj[f.k] = v; else delete obj[f.k];
+    } else {
+      obj[f.k] = form.querySelector(`[data-k="${f.k}"]`).value;
+    }
+  });
+  // bookingDays text -> array of numbers
+  if (schema === ADMIN.SCHEMAS.clinics) {
+    if (typeof obj.bookingDays === "string") {
+      const arr = obj.bookingDays.split(",").map(s => parseInt(s.trim(),10)).filter(n => !isNaN(n));
+      obj.bookingDays = arr.length ? arr : undefined;
+    }
+  }
+  return obj;
+}
+
+/* ---------------- SINGLETON ---------------- */
+function renderSingleton(c) {
+  const key = current.key;
+  const def = ADMIN.SINGLETONS[key];
+  const data = JSON.parse(JSON.stringify(DB.get(key)));
+
+  if (key === "hospital") {
+    c.innerHTML = `
+      <div class="content-head"><h1>${esc(L(def.label))}</h1></div>
+      <form id="sform" class="editor card card-pad">
+        ${def.fields.map(f => fieldHtml(f, data[f.k])).join("")}
+        <div class="editor-actions"><button type="submit" class="btn btn-primary btn-lg">${icon("check")} ${esc(L({sk:"Uložiť",en:"Save"}))}</button></div>
+      </form>`;
+    document.getElementById("sform").onsubmit = (e) => {
+      e.preventDefault();
+      const obj = readForm({ fields: def.fields }, e.target, data);
+      DB.save("hospital", obj);
+      showToast(L({sk:"Uložené.",en:"Saved."})); renderShell();
+    };
+    return;
+  }
+
+  // pages: grouped editor
+  c.innerHTML = `
+    <div class="content-head"><h1>${esc(L(def.label))}</h1></div>
+    <form id="sform" class="editor">
+      ${def.groups.map(g => `
+        <div class="card card-pad mb-3">
+          <h3 class="mb-2">${esc(L(g.title))}</h3>
+          ${g.fields.map(f => fieldHtml({ ...f, k: g.path + "." + f.k }, data[g.path][f.k])).join("")}
+        </div>`).join("")}
+      <button type="submit" class="btn btn-primary btn-lg">${icon("check")} ${esc(L({sk:"Uložiť obsah stránok",en:"Save page content"}))}</button>
+    </form>`;
+  document.getElementById("sform").onsubmit = (e) => {
+    e.preventDefault();
+    def.groups.forEach(g => {
+      g.fields.forEach(f => {
+        const k = g.path + "." + f.k;
+        if (f.t === "biltext" || f.t === "biltextarea") {
+          data[g.path][f.k] = {
+            sk: e.target.querySelector(`[data-k="${k}"][data-l="sk"]`).value,
+            en: e.target.querySelector(`[data-k="${k}"][data-l="en"]`).value
+          };
+        } else {
+          data[g.path][f.k] = e.target.querySelector(`[data-k="${k}"]`).value;
+        }
+      });
+    });
+    DB.save("pages", data);
+    showToast(L({sk:"Uložené.",en:"Saved."})); renderShell();
+  };
+}
+
+/* ---------------- TELEHEALTH ---------------- */
+function mkThDate(daysAhead, hour, min) {
+  const d = new Date(); d.setDate(d.getDate()+daysAhead); d.setHours(hour,min,0,0); return d.toISOString();
+}
+const ADMIN_TH_SESSIONS = [
+  { id:"th-001", scheduledAt:mkThDate(0,10,30), clinic:{sk:"Interná ambulancia",en:"Internal Medicine"}, physician:"MUDr. Jana Borščová", patientToken:"PT-84A2", status:"scheduled" },
+  { id:"th-002", scheduledAt:mkThDate(0,13, 0), clinic:{sk:"FRO — Rehabilitácia",en:"Physiatry Clinic"}, physician:"MUDr. Natália Kyjovská", patientToken:"PT-22B9", status:"scheduled" },
+  { id:"th-003", scheduledAt:mkThDate(0, 9,15), clinic:{sk:"Interná ambulancia",en:"Internal Medicine"}, physician:"MUDr. Jana Borščová", patientToken:"PT-91C4", status:"ended" },
+  { id:"th-004", scheduledAt:mkThDate(1, 9,30), clinic:{sk:"Interná ambulancia",en:"Internal Medicine"}, physician:"MUDr. Jana Borščová", patientToken:"PT-33F1", status:"scheduled" },
+  { id:"th-005", scheduledAt:mkThDate(2,11, 0), clinic:{sk:"FRO — Rehabilitácia",en:"Physiatry Clinic"}, physician:"MUDr. Natália Kyjovská", patientToken:"PT-77D5", status:"scheduled" },
+  { id:"th-006", scheduledAt:mkThDate(3,14,30), clinic:{sk:"Angiologická ambulancia",en:"Angiology Clinic"}, physician:"MUDr. Peter Žemberi", patientToken:"PT-4A8B", status:"scheduled" },
+  { id:"th-007", scheduledAt:mkThDate(5,10, 0), clinic:{sk:"Interná ambulancia",en:"Internal Medicine"}, physician:"MUDr. Jana Borščová", patientToken:"PT-5F2D", status:"scheduled" }
+];
+
+function renderTelehealth(c) {
+  const thTab = sessionStorage.getItem("ns_admin_th_tab") || "today";
+  function isToday(iso) {
+    const d=new Date(iso),n=new Date();
+    return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
+  }
+  function isNextWeek(iso) {
+    const d=new Date(iso),n=new Date();
+    const t=new Date(n); t.setDate(t.getDate()+1); t.setHours(0,0,0,0);
+    const w=new Date(n); w.setDate(w.getDate()+7); w.setHours(23,59,59,999);
+    return d>=t && d<=w;
+  }
+  const sessions = ADMIN_TH_SESSIONS
+    .filter(s => thTab==="today" ? isToday(s.scheduledAt) : isNextWeek(s.scheduledAt))
+    .sort((a,b)=>new Date(a.scheduledAt)-new Date(b.scheduledAt));
+
+  const thBadge = (st) => {
+    const m={scheduled:"badge-blue",waiting:"badge-amber",active:"badge-green",ended:"badge-gray",cancelled:"badge-gray",no_show:"badge-amber"};
+    const lbl={scheduled:{sk:"Naplánovaná",en:"Scheduled"},waiting:{sk:"Čaká",en:"Waiting"},active:{sk:"Probiehá",en:"Active"},ended:{sk:"Ukončená",en:"Ended"},cancelled:{sk:"Zrušená",en:"Cancelled"},no_show:{sk:"Nedostavil sa",en:"No-show"}};
+    const dot = ["scheduled","waiting","active"].includes(st)?"<span class=\"dot\"></span>":"";
+    return `<span class="badge ${m[st]||"badge-gray"}">${dot}${esc(L(lbl[st]||{sk:st,en:st}))}</span>`;
+  };
+  const fmtT = (iso) => { const d=new Date(iso); return isNaN(d)?"":d.toLocaleTimeString(getLang()==="sk"?"sk-SK":"en-GB",{hour:"2-digit",minute:"2-digit"}); };
+  const fmtD = (iso) => { const d=new Date(iso); return isNaN(d)?"":d.toLocaleDateString(getLang()==="sk"?"sk-SK":"en-GB",{weekday:"short",day:"numeric",month:"short"}); };
+  const tabBtn = (key,lbl) => `<button class="th-tab ${thTab===key?"active":""}" onclick="sessionStorage.setItem('ns_admin_th_tab','${key}');renderContent()">${esc(L(lbl))}</button>`;
+  const isLive = (st) => ["scheduled","waiting","active"].includes(st);
+
+  const rows = sessions.map(s => `
+    <div class="th-row">
+      <div class="th-col th-col-time"><strong>${esc(fmtT(s.scheduledAt))}</strong>${thTab==="week"?`<br><span class="small muted">${esc(fmtD(s.scheduledAt))}</span>`:""}</div>
+      <div class="th-col th-col-clinic small muted">${esc(L(s.clinic))}</div>
+      <div class="th-col">${esc(s.physician)}</div>
+      <div class="th-col"><code class="th-token">${esc(s.patientToken)}</code></div>
+      <div class="th-col">${thBadge(s.status)}</div>
+      <div class="th-col th-col-actions">
+        ${isLive(s.status)?`<a href="teleconsult.html" class="btn btn-primary btn-sm">${icon("video")} ${esc(L({sk:"Pripojiť sa",en:"Join"}))}</a>`:""}
+        <button class="icon-btn" title="${esc(L({sk:"Vstupný dotazník",en:"Intake form"}))}" onclick="alert(L({sk:'Vstupný dotazník pacienta ${esc(s.patientToken)}',en:'Patient intake ${esc(s.patientToken)}'}))"
+        >${icon("doc")}</button>
+        ${isLive(s.status)?`<button class="icon-btn icon-danger" title="${esc(L({sk:"Zrušiť",en:"Cancel"}))}" onclick="cancelSession('${s.id}')">${icon("x")}</button>`:""}
+      </div>
+    </div>`).join("");
+
+  c.innerHTML = `
+    <div class="content-head">
+      <div>
+        <h1>${esc(L({sk:"Telehealth — Plán konzultácií",en:"Telehealth — Session Schedule"}))}</h1>
+        <p class="muted mb-0">${sessions.length} ${esc(L({sk:"konzultácií · anonymizovaný prehľad (patient_token)",en:"sessions · anonymised view (patient_token)"}))}${thTab==="today"?" · <strong>"+esc(new Date().toLocaleDateString(getLang()==="sk"?"sk-SK":"en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+"</strong>":""}</p>
+      </div>
+      <div class="th-admin-tabs">${tabBtn("today",{sk:"Dnes",en:"Today"})}${tabBtn("week",{sk:"7 dní",en:"7 days"})}</div>
+    </div>
+    ${sessions.length>0?`
+    <div class="card">
+      <div class="th-header-row">
+        <span>${esc(L({sk:"Čas",en:"Time"}))}</span>
+        <span>${esc(L({sk:"Ambulancia",en:"Clinic"}))}</span>
+        <span>${esc(L({sk:"Lekár",en:"Physician"}))}</span>
+        <span>${esc(L({sk:"Pacient (token)",en:"Patient (token)"}))}</span>
+        <span>${esc(L({sk:"Stav",en:"Status"}))}</span>
+        <span>${esc(L({sk:"Akcie",en:"Actions"}))}</span>
+      </div>${rows}</div>`
+    :`<div class="card card-pad th-empty"><span class="lr-icon">${icon("video")}</span><div><strong>${esc(L({sk:"Žiadne konzultácie",en:"No sessions"}))}</strong><p class="small muted mb-0">${esc(L({sk:"Na toto obdobie nie sú naplánované telekozultácie.",en:"No teleconsultations scheduled for this period."}))}</p></div></div>`}
+  `;
+}
+function cancelSession(id) {
+  const reason = prompt(L({sk:"Dôvod zrušenia (bude odoslaný pacientovi SMS):",en:"Cancellation reason (sent to patient via SMS):"}));
+  if (reason && reason.trim()) { showToast(L({sk:"Konzultácia zrušená. SMS odoslaná.",en:"Session cancelled. SMS sent."})); renderContent(); }
+}
+
+/* ---------------- TOOLS ---------------- */
+function exportData() {
+  const blob = new Blob([DB.export()], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "nemocnica-snina-obsah.json"; a.click();
+  URL.revokeObjectURL(url);
+  showToast(L({sk:"Údaje exportované.",en:"Data exported."}));
+}
+function importData() {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "application/json";
+  inp.onchange = () => {
+    const file = inp.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (DB.import(reader.result)) { showToast(L({sk:"Údaje importované.",en:"Data imported."})); renderShell(); }
+      else alert(L({sk:"Neplatný súbor.",en:"Invalid file."}));
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+// S9: video icon
+ICON.video = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+
+render();
+</script>
+
+<style>
+.admin-body { background: var(--bg-2); }
+.admin-login-bg { background: radial-gradient(900px 500px at 50% -10%, var(--blue-100), var(--bg-2)); }
+.admin-login { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+.admin-login .login-card { width:100%; max-width:420px; overflow:hidden; box-shadow:var(--shadow-lg); }
+.login-head { background:var(--blue-900); color:#fff; padding:30px; text-align:center; }
+.login-head h2 { color:#fff; margin-bottom:4px; }
+.login-ic { display:inline-flex;width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,.12);color:#bcd6f0;align-items:center;justify-content:center;margin-bottom:8px; }
+.login-ic svg{width:30px;height:30px;}
+.login-err { background:var(--red-50); color:var(--red); border:1px solid #f0c9c4; border-radius:9px; padding:10px 14px; font-size:.9rem; font-weight:600; margin-bottom:14px; }
+
+.admin-layout { display:grid; grid-template-columns: 270px 1fr; min-height:100vh; }
+.admin-side { background:var(--blue-900); color:#c2d2e4; padding:20px 16px; position:sticky; top:0; height:100vh; overflow-y:auto; }
+.admin-brand { display:flex; align-items:center; gap:11px; padding:6px 8px 18px; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:14px; }
+.admin-brand strong { display:block; color:#fff; font-family:'Newsreader',serif; font-size:1.1rem; line-height:1.1; }
+.admin-brand .muted { color:#8fa6bf !important; }
+.anav-group { margin-bottom:18px; }
+.anav-label { font-size:.7rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#6f88a6; margin:0 8px 8px; }
+.anav { display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:none; border:none; color:#c2d2e4; padding:10px 12px; border-radius:9px; font-family:'Mulish',sans-serif; font-weight:600; font-size:.92rem; cursor:pointer; transition:all .14s; margin-bottom:2px; }
+.anav svg { width:18px;height:18px;flex:0 0 auto; }
+.anav span { flex:1; }
+.anav:hover { background:rgba(255,255,255,.08); color:#fff; }
+.anav.active { background:var(--blue-600); color:#fff; }
+.anav-count { flex:0 0 auto !important; background:rgba(255,255,255,.14); border-radius:999px; padding:1px 9px; font-size:.75rem; font-weight:800; }
+.anav.active .anav-count { background:rgba(255,255,255,.25); }
+.anav-danger:hover { background:rgba(192,57,43,.25); color:#ffb3aa; }
+
+.admin-main { display:flex; flex-direction:column; min-width:0; }
+.admin-top { display:flex; justify-content:space-between; align-items:center; padding:14px 32px; background:var(--surface); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20; }
+.lang-dark { background:var(--warm-100); }
+.lang-dark button { color:var(--ink-3); }
+.lang-dark button.active { background:var(--blue-700); color:#fff; }
+.admin-content { padding:32px; max-width:1000px; width:100%; }
+.content-head { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+.content-head h1 { font-size:2rem; margin:0; }
+
+.list-rows { display:flex; flex-direction:column; gap:10px; }
+.list-row { display:flex; justify-content:space-between; align-items:center; gap:16px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px; transition:border-color .14s, box-shadow .14s; }
+.list-row:hover { border-color:var(--blue-200); box-shadow:var(--shadow-sm); }
+.lr-main { display:flex; align-items:center; gap:14px; min-width:0; }
+.lr-icon { display:inline-flex;width:42px;height:42px;border-radius:11px;background:var(--blue-50);color:var(--blue-700);align-items:center;justify-content:center;flex:0 0 auto; }
+.lr-icon svg{width:22px;height:22px;}
+.lr-main h4 { font-size:1.02rem; }
+.lr-main .small { display:block; max-width:46ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lr-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.icon-btn { width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s; }
+.icon-btn svg{width:18px;height:18px;}
+.icon-btn:hover { background:var(--blue-50); border-color:var(--blue-200); color:var(--blue-700); }
+.icon-danger:hover { background:var(--red-50); border-color:#f0c9c4; color:var(--red); }
+
+.editor { }
+.efield { margin-bottom:18px; }
+.efield-lbl { display:block; font-weight:700; font-size:.9rem; margin-bottom:7px; color:var(--ink); }
+.bil { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.bil-col { position:relative; }
+.bil-tag { position:absolute; top:9px; right:10px; font-size:.62rem; font-weight:800; letter-spacing:.05em; color:var(--ink-3); background:var(--warm-100); padding:1px 6px; border-radius:5px; pointer-events:none; }
+.bil-col input, .bil-col textarea { padding-right:38px; }
+.switch-row { display:flex; align-items:center; gap:11px; cursor:pointer; font-weight:600; color:var(--ink); padding:8px 0; }
+.switch-row input { width:20px;height:20px;accent-color:var(--blue-600);cursor:pointer; }
+.editor-actions { display:flex; gap:12px; margin-top:24px; padding-top:20px; border-top:1px solid var(--line); }
+.link-back { background:none; border:none; color:var(--blue-700); font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; margin-bottom:14px; font-family:inherit; font-size:.92rem; padding:0; }
+.link-back svg{width:18px;height:18px;}
+
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:13px 22px; border-radius:11px; font-weight:700; font-size:.95rem; box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:9px; opacity:0; pointer-events:none; transition:all .25s; z-index:200; }
+.toast svg{width:20px;height:20px;color:#7fe0b0;}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ---- Telehealth schedule ---- */
+.th-admin-tabs { display:flex; gap:4px; }
+.th-tab { font-family:'Mulish',sans-serif; font-size:.82rem; font-weight:700; padding:6px 14px; border-radius:99px; border:1px solid var(--line); background:none; color:var(--ink-2); cursor:pointer; transition:all .14s; }
+.th-tab.active { background:var(--blue-600); color:#fff; border-color:var(--blue-600); }
+.th-header-row { display:grid; grid-template-columns:72px 1fr 1.3fr 96px 110px 160px; gap:12px; padding:10px 18px; background:var(--bg-2); border-bottom:1px solid var(--line); font-family:'Mulish',sans-serif; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); }
+.th-row { display:grid; grid-template-columns:72px 1fr 1.3fr 96px 110px 160px; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); align-items:center; transition:background .1s; }
+.th-row:last-child { border-bottom:none; }
+.th-row:hover { background:var(--bg-2); }
+.th-col { font-size:.9rem; }
+.th-col-time { font-weight:700; }
+.th-col-clinic { }
+.th-token { font-size:.75rem; background:var(--warm-100); padding:2px 7px; border-radius:5px; letter-spacing:.04em; color:var(--ink-2); font-family:'Mulish',monospace; }
+.th-col-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.th-empty { display:flex; align-items:center; gap:16px; }
+
+@media (max-width:860px){
+  .admin-layout { grid-template-columns:1fr; }
+  .admin-side { position:static; height:auto; }
+  .anav-group { display:flex; flex-wrap:wrap; gap:6px; }
+  .anav-label { width:100%; }
+  .anav { width:auto; }
+  .anav-count{display:none;}
+  .bil { grid-template-columns:1fr; }
+  .admin-content { padding:20px; }
+}
+</style>
+</body>
+</html>

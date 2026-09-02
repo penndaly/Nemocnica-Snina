@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacientsky portál — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main id="main"></main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/wearables-demo-data.js"></script>
+<script>
+Site.mount({ active: "" });
+const pat = DB.get("patient");
+const main = document.getElementById("main");
+let loggedIn = sessionStorage.getItem("ns_portal") === "1";
+let view = "overview";
+
+function render() {
+  if (!loggedIn) { renderLogin(); return; }
+  renderDashboard();
+}
+
+function renderLogin() {
+  main.innerHTML = `
+  <section class="section">
+    <div class="container" style="max-width:460px">
+      <div class="card login-card">
+        <div class="login-head">
+          <span class="login-ic">${icon("shield")}</span>
+          <h2>${esc(L({sk:"Zabezpečený vstup",en:"Secure login"}))}</h2>
+          <p class="small" style="color:#cfe">${esc(L({sk:"Prihlásenie cez rodné číslo a SMS kód (eZdravie).",en:"Sign in with your National ID and SMS code (eHealth)."}))}</p>
+        </div>
+        <form id="loginForm" class="card-pad">
+          <label class="field"><span>${esc(L({sk:"Rodné číslo",en:"National ID"}))}</span>
+            <input type="text" placeholder="850315/1234" required></label>
+          <label class="field"><span>${esc(L({sk:"Bezpečnostný PIN / SMS kód",en:"Security PIN / SMS code"}))}</span>
+            <input type="password" placeholder="••••••" required></label>
+          <button type="submit" class="btn btn-primary btn-lg btn-block mt-1">${icon("lock")} ${esc(L({sk:"Autorizovať a vstúpiť",en:"Authenticate & enter"}))}</button>
+          <p class="small muted text-center mt-2 mb-0">${esc(L({sk:"Overené cez Identitu · údaje šifrované (CMEK).",en:"Verified via Identity · data encrypted (CMEK)."}))}</p>
+        </form>
+      </div>
+      <p class="small muted text-center mt-2">${esc(L({sk:"Ukážkový portál — zadajte čokoľvek pre vstup.",en:"Demo portal — enter anything to continue."}))}</p>
+    </div>
+  </section>`;
+  document.getElementById("loginForm").onsubmit = (e) => { e.preventDefault(); loggedIn = true; sessionStorage.setItem("ns_portal","1"); render(); };
+}
+
+function navBtn(key, label, ic) {
+  return `<button class="pnav-btn ${view===key?'active':''}" data-v="${key}">${icon(ic)} ${esc(L(label))}</button>`;
+}
+
+function renderDashboard() {
+  main.innerHTML = `
+  <section class="section">
+    <div class="container">
+      <div class="card card-pad portal-header">
+        <div class="flex-center gap">
+          <span class="avatar avatar-lg">${esc(initials(pat.name))}</span>
+          <div>
+            <h2 class="mb-0" style="font-size:1.5rem">${esc(L({sk:"Vitajte",en:"Welcome"}))}, ${esc(pat.name)}</h2>
+            <div class="flex gap wrap small muted mt-1">
+              <span>${esc(L({sk:"RČ",en:"ID"}))}: ${esc(pat.id)}</span>
+              <span>${esc(L({sk:"Krvná skupina",en:"Blood"}))}: <b style="color:var(--red)">${esc(pat.blood)}</b></span>
+              <span>${esc(pat.insurance)}</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logout">${icon("lock")} ${esc(L({sk:"Odhlásiť",en:"Sign out"}))}</button>
+      </div>
+
+      <div class="portal-grid mt-3">
+        <aside class="pnav">
+          ${navBtn("overview",{sk:"Prehľad",en:"Overview"},"activity")}
+          ${navBtn("teleconsult",{sk:"Telekonzultácie",en:"Teleconsultations"},"video")}
+          ${navBtn("records",{sk:"Zdravotné záznamy",en:"Health records"},"doc")}
+          ${navBtn("meds",{sk:"e-Recepty",en:"e-Prescriptions"},"pill")}
+          ${navBtn("labs",{sk:"Výsledky",en:"Lab results"},"flask")}
+          ${navBtn("wearables",{sk:"Wearables",en:"Wearables"},"watch")}
+        </aside>
+        <div id="pview"></div>
+      </div>
+    </div>
+  </section>`;
+  document.getElementById("logout").onclick = () => { loggedIn = false; sessionStorage.removeItem("ns_portal"); render(); };
+  main.querySelectorAll(".pnav-btn").forEach(b => b.onclick = () => { view = b.dataset.v; renderDashboard(); });
+  renderView();
+}
+
+function renderView() {
+  const v = document.getElementById("pview");
+  if (view === "overview") {
+    const ap = pat.appointments[0];
+    v.innerHTML = `
+      <div class="grid grid-2">
+        <div class="card card-pad" style="border-top:4px solid var(--green)">
+          <h4 class="flex-center gap-sm">${icon("calendar")} ${esc(L({sk:"Najbližší termín",en:"Upcoming appointment"}))}</h4>
+          ${ap?`<p class="mb-0" style="font-size:1.15rem;font-weight:700">${esc(L(ap.clinic))}</p>
+            <p class="muted mb-1">${esc(fmtDate(ap.date))} · ${esc(ap.time)}</p>
+            <p class="small muted mb-2">${esc(ap.doctor)}</p>
+            <a href="objednanie.html" class="small" style="font-weight:700">${esc(L({sk:"Preobjednať",en:"Reschedule"}))}</a>`
+            :`<p class="muted">${esc(L({sk:"Žiadne plánované termíny.",en:"No upcoming appointments."}))}</p>`}
+        </div>
+        <div class="card card-pad" style="border-top:4px solid var(--blue-600)">
+          <h4 class="flex-center gap-sm">${icon("activity")} ${esc(L({sk:"Posledná aktivita",en:"Recent activity"}))}</h4>
+          <ul class="activity-list">
+            <li><span>${esc(L({sk:"Lipidový profil — výsledok",en:"Lipid panel — result"}))}</span><a href="#" onclick="view='labs';renderDashboard();return false">${esc(L({sk:"Zobraziť",en:"View"}))}</a></li>
+            <li><span>${esc(L({sk:"e-Recept: Nebivolol",en:"e-Prescription: Nebivolol"}))}</span><span class="muted">${esc(L({sk:"Spracované",en:"Processed"}))}</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card card-pad mt-3 quick-req">
+        <div><h4 class="mb-0">${esc(L({sk:"Digitálne žiadosti",en:"Digital requests"}))}</h4>
+        <p class="small muted mb-0">${esc(L({sk:"Požiadajte o e-Recept alebo administratívny dokument bez návštevy.",en:"Request an e-prescription or document without a visit."}))}</p></div>
+        <div class="flex gap-sm wrap">
+          <button class="btn btn-ghost btn-sm" onclick="view='meds';renderDashboard()">${icon("pill")} e-Recept</button>
+          <a href="objednanie.html" class="btn btn-primary btn-sm">${icon("calendar")} ${esc(t("book"))}</a>
+        </div>
+      </div>`;
+  }
+  else if (view === "records") {
+    v.innerHTML = sectionCard(L({sk:"Aktívne diagnózy (FHIR: Condition)",en:"Active conditions (FHIR: Condition)"}),
+      pat.conditions.map(c => `
+        <div class="rec-row">
+          <div>
+            <h4 class="mb-0">${esc(L(c.dx))}</h4>
+            <p class="small muted mb-0">ICD-10: ${esc(c.code)} · ${esc(L({sk:"diagnostikované",en:"diagnosed"}))} ${esc(fmtDate(c.date))} · ${esc(c.doctor)}</p>
+          </div>
+          <span class="badge badge-green"><span class="dot"></span>${esc(L({sk:"Aktívna",en:"Active"}))}</span>
+        </div>`).join(""));
+  }
+  else if (view === "meds") {
+    v.innerHTML = sectionCard(L({sk:"Aktívne e-Recepty (FHIR: MedicationRequest)",en:"Active e-Prescriptions (FHIR: MedicationRequest)"}),
+      pat.meds.map(m => `
+        <div class="rec-row">
+          <div>
+            <h4 class="mb-0" style="color:var(--blue-800)">${esc(m.name)}</h4>
+            <p class="small muted mb-0">${esc(L(m.dose))} · ${esc(L({sk:"predpísané",en:"prescribed"}))} ${esc(fmtDate(m.date))}</p>
+          </div>
+          <div class="flex-center gap-sm">
+            <span class="small muted">${esc(L({sk:"Opakovania",en:"Refills"}))}: ${m.refills}</span>
+            <button class="btn btn-ghost btn-sm" onclick="alert('${esc(L({sk:"Žiadosť o opakovanie odoslaná lekárovi.",en:"Refill request sent to your physician."}))}')">${esc(L({sk:"Požiadať",en:"Request"}))}</button>
+          </div>
+        </div>`).join(""));
+  }
+  else if (view === "labs") {
+    v.innerHTML = sectionCard(L({sk:"Laboratórne výsledky (FHIR: Observation)",en:"Lab results (FHIR: Observation)"}),
+      pat.labs.map(l => `
+        <div class="rec-row">
+          <div>
+            <h4 class="mb-0">${esc(L(l.test))}</h4>
+            <p class="small muted mb-0">${esc(fmtDate(l.date))} · ${esc(L(l.dept))}</p>
+          </div>
+          <div class="text-right flex-center gap-sm">
+            <div>
+              <div style="font-weight:700;font-size:1.05rem;color:${l.flag==='high'?'var(--red)':'var(--ink)'}">${esc(L(l.result))}</div>
+              <div class="small" style="font-weight:700;color:${l.flag==='high'?'var(--red)':'var(--green)'}">${esc(l.flag==='high'?L({sk:"Zvýšené",en:"High"}):L({sk:"V norme",en:"Normal"}))}</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="return false">${icon("download")} PDF</button>
+          </div>
+        </div>`).join(""));
+  }
+  else if (view === "teleconsult") {
+    const tcTab = sessionStorage.getItem("ns_tc_tab") || "upcoming";
+    const tcSessions = TELECONSULTS[tcTab] || [];
+    const isUp = tcTab === "upcoming";
+    const tabBtnTc = (key, lbl) =>
+      `<button class="tc-tab${tcTab===key?" active":""}" onclick="sessionStorage.setItem('ns_tc_tab','${key}');renderView()">${esc(L(lbl))}</button>`;
+    const joinable = (at) => { const d = new Date(at)-Date.now(); return d<=600000 && d>-3600000; };
+    const cdLbl = (at) => {
+      const ms = new Date(at)-Date.now(); if (ms<=0) return "";
+      const dy=Math.floor(ms/86400000), hr=Math.floor(ms%86400000/3600000), mn=Math.floor(ms%3600000/60000);
+      return L(dy>0?{sk:`Za ${dy}d ${hr}h`,en:`In ${dy}d ${hr}h`}:hr>0?{sk:`Za ${hr}h ${mn}min`,en:`In ${hr}h ${mn}m`}:{sk:`Za ${mn} min`,en:`In ${mn}m`});
+    };
+    const tcCards = tcSessions.length===0
+      ? `<div class="tc-empty"><span class="tc-empty-ic">${icon("video")}</span>
+          <strong>${esc(L(isUp?{sk:"Žiadne naplánované konzultácie",en:"No upcoming consultations"}:{sk:"Zatiaľ žiadne záznamy",en:"No past sessions yet"}))}</strong>
+          <p class="small muted">${esc(L(isUp?{sk:"Objednajte sa na videokonzultáciu cez online systém.",en:"Book a video consultation through the online booking system."}:{sk:"Tu sa zobrazia záznamy po absolvovaní konzultácie.",en:"Records will appear here after your first consultation."}))}</p>
+          <a href="objednanie.html?mode=telehealth" class="btn btn-primary btn-sm">${icon("calendar")} ${esc(L({sk:"Objednať konzultáciu",en:"Book consultation"}))}</a></div>`
+      : tcSessions.map(s => isUp
+        ? `<div class="tc-card">
+            <div class="tc-card-head"><span class="tc-icon">${icon("video")}</span>
+              <div class="tc-info"><strong>${esc(s.physician)}</strong><span class="small muted">${esc(L(s.specialty))} · ${esc(fmtDateTime(s.scheduledAt))}</span></div>
+              <span class="badge badge-blue"><span class="dot"></span>${esc(L({sk:"Naplánovaná",en:"Scheduled"}))}</span></div>
+            <div class="tc-actions">
+              ${cdLbl(s.scheduledAt)&&!joinable(s.scheduledAt)?`<span class="tc-countdown">${icon("clock")} ${esc(cdLbl(s.scheduledAt))}</span>`:""}
+              <a href="teleconsult.html" class="btn btn-primary btn-sm${joinable(s.scheduledAt)?"":" tc-disabled"}"${joinable(s.scheduledAt)?"":" aria-disabled='true' tabindex='-1'"} title="${esc(!joinable(s.scheduledAt)?L({sk:"Aktívne 10 min pred termínom",en:"Activates 10 min before appointment"}):"")}"
+              >${icon("video")} ${esc(L({sk:"Pripojiť sa",en:"Join"}))}</a>
+              <a href="objednanie.html" class="btn btn-ghost btn-sm">${esc(L({sk:"Zrušiť",en:"Cancel"}))}</a>
+            </div></div>`
+        : `<div class="tc-card">
+            <div class="tc-card-head"><span class="tc-icon tc-icon-past">${icon("video")}</span>
+              <div class="tc-info"><strong>${esc(s.physician)}</strong><span class="small muted">${esc(L(s.specialty))} · ${esc(fmtDateTime(s.scheduledAt))}</span></div>
+              <span class="badge badge-gray">${esc(L({sk:"Ukončená",en:"Ended"}))} · ${s.duration||0} min</span></div>
+            <div class="tc-actions">
+              <button class="btn btn-ghost btn-sm" data-toggleid="${esc(s.id)}" onclick="toggleSummary('${esc(s.id)}')">${icon("doc")} ${esc(L({sk:"Zobraziť záver",en:"View summary"}))}</button>
+              <button class="btn btn-ghost btn-sm" onclick="downloadPdf('${esc(s.id)}')">${icon("download")} PDF</button>
+            </div>
+            <div class="tc-summary" id="sum-${esc(s.id)}" style="display:none">
+              <div class="tc-summary-body">
+                <p class="small mb-1"><strong>${esc(L({sk:"Záver konzultácie",en:"Consultation summary"}))}</strong></p>
+                <p class="small muted mb-0">${esc(L(s.summary||{sk:"—",en:"—"}))}</p>
+                ${s.prescription?`<p class="small mt-1 mb-0">${icon("pill")} ${esc(L({sk:"e-Recept",en:"e-Prescription"}))}: <strong style="color:var(--blue-700)">${esc(s.prescription)}</strong></p>`:""}
+              </div></div></div>`
+      ).join("");
+    v.innerHTML = `
+      <div class="card">
+        <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span>${esc(L({sk:"Telekonzultácie",en:"Teleconsultations"}))}</span>
+          <div class="tc-tabs">${tabBtnTc("upcoming",{sk:"Nadchádzajúce",en:"Upcoming"})}<span class="tc-tab-count">${TELECONSULTS.upcoming.length}</span>${tabBtnTc("past",{sk:"Absolvované",en:"Past"})}</div>
+        </div>
+        <div class="tc-list">${tcCards}</div>
+      </div>
+      <div class="card card-pad mt-3 tc-cta">
+        <div class="flex-center gap">${icon("video")}<div><strong>${esc(L({sk:"Objednať ďalšiu konzultáciu",en:"Book another consultation"}))}</strong><p class="small muted mb-0">${esc(L({sk:"Videohovor s lekárom — z pohodlia domova.",en:"Video call with your doctor from home."}))}</p></div></div>
+        <a href="objednanie.html?mode=telehealth" class="btn btn-primary btn-sm">${icon("calendar")} ${esc(L({sk:"Objednať",en:"Book"}))}</a>
+      </div>`;
+  }
+  else if (view === "wearables") {
+    const wShowAdd = sessionStorage.getItem("ns_wr_add") === "1";
+    const wCatTab  = sessionStorage.getItem("ns_wr_cat") || "medical";
+    const allReadings = WEARABLES.devices
+      .flatMap(d => d.readings.map(r => ({...r, dBrand:d.brand})))
+      .sort((a,b) => new Date(b.time) - new Date(a.time));
+    const deviceCards = WEARABLES.devices.map(d => `
+      <div class="wr-device-card">
+        <div class="wr-device-head">
+          <div class="wr-device-icon wr-icon-${esc(d.category)}">${icon(d.icon)}</div>
+          <div class="wr-device-meta">
+            <strong>${esc(d.brand)}</strong>
+            <span class="small muted">${esc(d.model)}</span>
+          </div>
+          <span class="badge badge-green"><span class="dot"></span>${esc(L({sk:"Aktívne",en:"Active"}))}</span>
+        </div>
+        <div class="wr-readings-mini">
+          ${d.readings.slice(0,2).map(r =>
+            `<div class="wr-mini-row"><span class="small muted">${esc(L(r.metric))}</span><span class="wr-mini-val${r.flag==="high"?" wr-val-high":""}">${esc(r.value)}${r.unit?` <span class="wr-unit">${esc(r.unit)}</span>`:""}</span></div>`
+          ).join("")}
+        </div>
+        <div class="wr-device-foot">
+          <span class="small muted" style="display:flex;align-items:center;gap:5px">${icon("sync")} ${esc(fmtAgo(d.lastSync))}</span>
+          <label class="wr-share-lbl"><input type="checkbox" checked onchange="return false"><span class="small">${esc(L({sk:"Zdieľať s lekárom",en:"Share with physician"}))}</span></label>
+        </div>
+      </div>`).join("");
+    const readingRows = allReadings.map(r => `
+      <div class="wr-tl-row">
+        <div class="wr-tl-time">${esc(fmtAgo(r.time))}</div>
+        <div class="wr-tl-dot${r.flag==="high"?" wr-tl-dot-hi":""}"></div>
+        <div class="wr-tl-body">
+          <span class="wr-tl-metric">${esc(L(r.metric))}</span>
+          <span class="wr-tl-val${r.flag==="high"?" wr-val-high":""}">${esc(r.value)}${r.unit?" "+esc(r.unit):""}</span>
+          <span class="chip">${esc(r.dBrand)}</span>
+          ${r.flag==="high"?`<span class="badge badge-amber">${esc(L({sk:"Zvýšené",en:"High"}))}</span>`:`<span class="badge badge-green">${esc(L({sk:"V norme",en:"Normal"}))}</span>`}
+        </div>
+      </div>`).join("");
+    const availCards = WEARABLES.available.filter(x => x.category === wCatTab).map(d => `
+      <button class="wr-avail-btn" onclick="alert('${esc(L({sk:"Demo: Prepojenie "+d.brand+" bude dostupné v produkcii.",en:"Demo: "+d.brand+" integration will be available in production."}))}')"> 
+        <div class="wr-avail-ic">${esc(d.brand.slice(0,2).toUpperCase())}</div>
+        <div>
+          <div class="wr-avail-brand">${esc(d.brand)}</div>
+          <div class="small muted">${esc(d.model)}</div>
+        </div>
+      </button>`).join("");
+    v.innerHTML = `
+      <div class="card">
+        <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div class="flex-center gap-sm">${icon("watch")} <span>${esc(L({sk:"Nositeľné zariadenia",en:"Wearables & Devices"}))}</span> <span class="badge badge-gray">${esc(L({sk:"Voliteľné",en:"Optional"}))}</span></div>
+          <button class="btn btn-primary btn-sm" onclick="sessionStorage.setItem('ns_wr_add',sessionStorage.getItem('ns_wr_add')==='1'?'0':'1');renderView()">${icon("bluetooth")} ${esc(L({sk:"Pripojiť zariadenie",en:"Connect device"}))}</button>
+        </div>
+        <div class="wr-devices-grid">${deviceCards}</div>
+      </div>
+      <div class="card mt-3">
+        <div class="sec-head flex-center gap-sm" style="font-weight:700">${icon("activity")} <span>${esc(L({sk:"Posledné merania",en:"Recent readings"}))}</span></div>
+        <div class="wr-timeline">${readingRows}</div>
+      </div>
+      ${wShowAdd ? `
+      <div class="card mt-3">
+        <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span>${esc(L({sk:"Pripojiť zariadenie",en:"Connect a device"}))}</span>
+          <div class="tc-tabs">
+            <button class="tc-tab${wCatTab==="medical"?" active":""}" onclick="sessionStorage.setItem('ns_wr_cat','medical');renderView()">${icon("heart")} ${esc(L({sk:"Medicínske",en:"Medical"}))}</button>
+            <button class="tc-tab${wCatTab==="consumer"?" active":""}" onclick="sessionStorage.setItem('ns_wr_cat','consumer');renderView()">${icon("watch")} Fitness &amp; Wellness</button>
+          </div>
+        </div>
+        <div class="wr-avail-grid">${availCards}</div>
+      </div>` : ""}
+      <div class="wr-privacy mt-3">
+        ${icon("shield")}
+        <p class="small mb-0">${esc(L({sk:"Prepojenie nositeľných zariadení je plne voliteľné. Dáta sú zdieľané výlučne s vaším ošetrujúcim lekárom — nikdy tretím stranám. Súhlas môžete kedykoľvek odvolať.",en:"Wearable integration is fully optional. Data is shared exclusively with your treating physician — never to third parties. You may withdraw consent at any time."}))}</p>
+      </div>
+    `;
+  }
+}
+function sectionCard(title, inner) {
+  return `<div class="card"><div class="sec-head">${esc(title)}</div><div class="sec-body">${inner}</div></div>`;
+}
+function initials(n){ return n.replace(/MUDr\.|Mgr\.|Bc\.|MBA|,/g,"").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase(); }
+
+// ---- S9: Teleconsultations ----
+ICON.video = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+
+// Prototype data — production: GET /telehealth/sessions?patient=me
+const TELECONSULTS = {
+  upcoming: [
+    { id:"th-001", scheduledAt:new Date(Date.now()+2*86400000+8*3600000).toISOString(), physician:"MUDr. Jana Borščová", specialty:{sk:"Interná ambulancia",en:"Internal Medicine Clinic"}, status:"scheduled" },
+    { id:"th-002", scheduledAt:new Date(Date.now()+7*86400000+9*3600000).toISOString(), physician:"MUDr. Natália Kyjovská", specialty:{sk:"FRO — Rehabilitácia",en:"Physiatry & Rehabilitation"}, status:"scheduled" }
+  ],
+  past: [
+    { id:"th-003", scheduledAt:"2024-10-05T10:30:00", physician:"MUDr. Jana Borščová", specialty:{sk:"Interná ambulancia",en:"Internal Medicine Clinic"}, status:"ended", duration:18, summary:{sk:"Stabilizovaný stav, pokračovanie v liečbe. Odporúčaná kontrola za 3 mesiace.",en:"Stable condition, continue current treatment. Follow-up recommended in 3 months."}, prescription:"Amlodipín 10 mg" },
+    { id:"th-004", scheduledAt:"2024-09-12T09:00:00", physician:"MUDr. Natália Kyjovská", specialty:{sk:"FRO — Rehabilitácia",en:"Physiatry & Rehabilitation"}, status:"ended", duration:24, summary:{sk:"Rehabilitačný program aktualizovaný. Nové cvičenia pridané do individuálneho plánu.",en:"Rehabilitation programme updated. New exercises added to individual plan."} }
+  ]
+};
+
+// ---- Wearables & Remote Monitoring ----
+ICON.watch     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="3"/><path d="M9 5V3h6v2M9 19v2h6v-2"/><line x1="12" y1="9" x2="12" y2="12"/><line x1="12" y1="12" x2="14" y2="14"/></svg>`;
+ICON.glucose   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+ICON.bluetooth = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>`;
+ICON.heart     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+ICON.sync      = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
+
+function fmtAgo(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60000) return L({sk:"práve teraz",en:"just now"});
+  if (ms < 3600000) { const m=Math.floor(ms/60000); return L({sk:"pred "+m+" min",en:m+" min ago"}); }
+  if (ms < 86400000) { const h=Math.floor(ms/3600000); return L({sk:"pred "+h+" h",en:h+" h ago"}); }
+  const d=Math.floor(ms/86400000); return L({sk:"pred "+d+" dňami",en:d+" days ago"});
+}
+
+function fmtDateTime(iso) {
+  const d = new Date(iso); if (isNaN(d)) return iso;
+  const lang = getLang();
+  return d.toLocaleDateString(lang==="sk"?"sk-SK":"en-GB",{day:"numeric",month:"short",year:"numeric"}) + " · " + d.toLocaleTimeString(lang==="sk"?"sk-SK":"en-GB",{hour:"2-digit",minute:"2-digit"});
+}
+function toggleSummary(id) {
+  const el = document.getElementById("sum-"+id); if (!el) return;
+  const open = el.style.display !== "none";
+  el.style.display = open ? "none" : "block";
+  const btn = document.querySelector('[data-toggleid="'+id+'"]');
+  if (btn) btn.innerHTML = icon("doc") + " " + esc(open ? L({sk:"Zobraziť záver",en:"View summary"}) : L({sk:"Skryť záver",en:"Hide summary"}));
+}
+function downloadPdf(id) {
+  const code = prompt(L({sk:"Overenie totožnosti — zadajte SMS kód (demo: 1234):",en:"Identity check — enter SMS code (demo: 1234):"}));
+  if (code === null) return;
+  code === "1234" ? alert(L({sk:"Súhrn konzultácie sa sťahuje (PDF).",en:"Downloading consultation summary (PDF)."})) : alert(L({sk:"Nesprávny kód. Prístup zamietnutý.",en:"Invalid code. Access denied."}));
+}
+
+render();
+</script>
+
+<style>
+.login-card { overflow:hidden; box-shadow:var(--shadow-lg); }
+.login-head { background:var(--blue-900); color:#fff; padding:30px; text-align:center; }
+.login-head h2 { color:#fff; margin-bottom:4px; }
+.login-ic { display:inline-flex;width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,.12);color:#bcd6f0;align-items:center;justify-content:center;margin-bottom:8px; }
+.login-ic svg{width:30px;height:30px;}
+.portal-header { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+.portal-grid { display:grid; grid-template-columns:230px 1fr; gap:24px; align-items:start; }
+.pnav { display:flex; flex-direction:column; gap:4px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:8px; position:sticky; top:96px; }
+.pnav-btn { display:flex; align-items:center; gap:11px; text-align:left; padding:12px 14px; border:none; background:none; border-radius:9px; font-family:'Mulish',sans-serif; font-weight:600; font-size:.95rem; color:var(--ink-2); cursor:pointer; transition:all .14s; }
+.pnav-btn svg{width:19px;height:19px;flex:0 0 auto;}
+.pnav-btn:hover { background:var(--warm-100); color:var(--ink); }
+.pnav-btn.active { background:var(--blue-50); color:var(--blue-700); }
+.activity-list { list-style:none; margin:0; padding:0; }
+.activity-list li { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-size:.92rem; }
+.activity-list li:last-child{border-bottom:none;}
+.activity-list a { font-weight:700; }
+.quick-req { display:flex; justify-content:space-between; align-items:center; gap:18px; flex-wrap:wrap; }
+.sec-head { padding:16px 22px; background:var(--bg-2); border-bottom:1px solid var(--line); font-weight:700; font-family:'Mulish',sans-serif; }
+.rec-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 22px; border-bottom:1px solid var(--line); }
+.rec-row:last-child{border-bottom:none;}
+@media (max-width:780px){ .portal-grid{grid-template-columns:1fr;} .pnav{flex-direction:row;flex-wrap:wrap;position:static;} .pnav-btn{flex:1;justify-content:center;} }
+/* ---- Teleconsultations ---- */
+.tc-tabs { display:flex; align-items:center; gap:4px; }
+.tc-tab { font-family:'Mulish',sans-serif; font-size:.82rem; font-weight:700; padding:5px 13px; border-radius:99px; border:1px solid var(--line); background:none; color:var(--ink-2); cursor:pointer; transition:all .14s; }
+.tc-tab.active { background:var(--blue-50); color:var(--blue-700); border-color:var(--blue-200); }
+.tc-tab-count { font-family:'Mulish',sans-serif; font-size:.72rem; font-weight:800; background:var(--blue-50); color:var(--blue-700); border-radius:99px; padding:1px 8px; margin:0 2px; }
+.tc-list { display:flex; flex-direction:column; }
+.tc-card { padding:16px 22px; border-bottom:1px solid var(--line); }
+.tc-card:last-child { border-bottom:none; }
+.tc-card-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.tc-icon { display:inline-flex; width:38px; height:38px; border-radius:10px; background:var(--blue-50); color:var(--blue-700); align-items:center; justify-content:center; flex:0 0 auto; }
+.tc-icon svg { width:19px; height:19px; }
+.tc-icon-past { background:var(--warm-100); color:var(--ink-3); }
+.tc-info { flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.tc-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; padding-left:50px; }
+.tc-countdown { display:inline-flex; align-items:center; gap:4px; font-size:.82rem; color:var(--ink-3); font-family:'Mulish',sans-serif; }
+.tc-countdown svg { width:14px; height:14px; }
+.tc-disabled { opacity:.45; pointer-events:none; }
+.tc-summary { padding-left:50px; margin-top:10px; }
+.tc-summary-body { background:var(--bg-2); border-radius:8px; padding:12px 14px; border-left:3px solid var(--blue-200); }
+.tc-empty { display:flex; flex-direction:column; align-items:center; gap:6px; padding:36px 20px; text-align:center; }
+.tc-empty-ic { display:inline-flex; width:52px; height:52px; border-radius:13px; background:var(--blue-50); color:var(--blue-300,#93c5fd); align-items:center; justify-content:center; margin-bottom:4px; }
+.tc-empty-ic svg { width:26px; height:26px; }
+.tc-cta { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; background:var(--blue-50); border-color:var(--blue-100); }
+.tc-cta svg { width:22px; height:22px; color:var(--blue-600); flex:0 0 auto; }
+@media (max-width:520px){ .tc-actions{padding-left:0;} .tc-summary{padding-left:0;} }
+
+/* ---- Wearables & Remote Monitoring ---- */
+.wr-devices-grid { display:grid; grid-template-columns:repeat(3,1fr); }
+.wr-device-card { padding:20px 22px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:14px; }
+.wr-device-card:last-child { border-right:none; }
+.wr-device-head { display:flex; align-items:center; gap:12px; }
+.wr-device-icon { width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.wr-device-icon svg { width:20px !important; height:20px !important; }
+.wr-icon-medical { background:var(--blue-50); color:var(--blue-700); }
+.wr-icon-consumer { background:var(--warm-100); color:var(--ink-2); }
+.wr-device-meta { flex:1; display:flex; flex-direction:column; gap:1px; min-width:0; }
+.wr-device-meta strong { font-family:'Mulish',sans-serif; font-size:.95rem; }
+.wr-readings-mini { display:flex; flex-direction:column; gap:8px; }
+.wr-mini-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.wr-mini-val { font-weight:700; font-size:1rem; color:var(--ink); }
+.wr-unit { font-size:.78rem; font-weight:400; color:var(--ink-3); }
+.wr-val-high { color:var(--amber); }
+.wr-device-foot { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:12px; border-top:1px solid var(--line); margin-top:auto; }
+.wr-device-foot svg { width:13px !important; height:13px !important; }
+.wr-share-lbl { display:flex; align-items:center; gap:5px; cursor:pointer; }
+.wr-share-lbl input { cursor:pointer; accent-color:var(--blue-600); width:14px; height:14px; }
+.wr-timeline { display:flex; flex-direction:column; }
+.wr-tl-row { display:flex; align-items:center; gap:12px; padding:12px 22px; border-bottom:1px solid var(--line); }
+.wr-tl-row:last-child { border-bottom:none; }
+.wr-tl-time { min-width:72px; text-align:right; color:var(--ink-3); font-size:.8rem; font-family:'Mulish',sans-serif; flex:0 0 auto; }
+.wr-tl-dot { width:8px; height:8px; border-radius:50%; background:var(--green); flex:0 0 auto; box-shadow:0 0 0 3px var(--green-50); }
+.wr-tl-dot-hi { background:var(--amber); box-shadow:0 0 0 3px var(--amber-50); }
+.wr-tl-body { display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1; min-width:0; }
+.wr-tl-metric { font-weight:600; font-size:.92rem; color:var(--ink); }
+.wr-tl-val { font-weight:700; font-size:.92rem; }
+.wr-avail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:10px; padding:18px 22px; }
+.wr-avail-btn { display:flex; align-items:center; gap:11px; padding:11px 13px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface); cursor:pointer; text-align:left; transition:all .14s; width:100%; }
+.wr-avail-btn:hover { border-color:var(--blue-200); background:var(--blue-50); }
+.wr-avail-ic { width:34px; height:34px; border-radius:9px; background:var(--warm-100); color:var(--ink-2); display:flex; align-items:center; justify-content:center; font-family:'Mulish',sans-serif; font-weight:800; font-size:.8rem; flex:0 0 auto; letter-spacing:0; }
+.wr-avail-brand { font-family:'Mulish',sans-serif; font-weight:700; font-size:.88rem; color:var(--ink); line-height:1.2; }
+.wr-privacy { display:flex; align-items:flex-start; gap:10px; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px; }
+.wr-privacy svg { color:var(--blue-600) !important; flex:0 0 auto; width:16px !important; height:16px !important; margin-top:2px; }
+@media (max-width:780px) { .wr-devices-grid{grid-template-columns:1fr;} .wr-device-card{border-right:none;border-bottom:1px solid var(--line);} .wr-device-card:last-child{border-bottom:none;} }
+@media (max-width:480px) { .wr-tl-time{display:none;} .wr-avail-grid{grid-template-columns:1fr 1fr;} }
+</style>
+</body>
+</html>

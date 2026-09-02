@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O nemocnici — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phBody" style="max-width:70ch"></p>
+      <div class="flex gap-sm wrap mt-2" id="phJump"></div>
+    </div>
+  </section>
+
+  <section class="section" id="vedenie" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="leadTitle"></h2>
+      <p id="leadBody" style="max-width:72ch"></p>
+      <p class="small muted" id="ownerNote"></p>
+      <div class="grid grid-2 mt-2" id="leadTeam"></div>
+      <div class="card card-pad mt-3" id="boardCard"></div>
+    </div>
+  </section>
+
+  <section class="section band-warm" id="historia" style="scroll-margin-top:90px">
+    <div class="container container-narrow">
+      <h2 id="histTitle"></h2>
+      <div class="hist-timeline mt-3" id="histList"></div>
+    </div>
+  </section>
+
+  <section class="section" id="investicie" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="invTitle"></h2>
+      <div class="grid grid-3 mt-2" id="invGrid"></div>
+      <div class="grid grid-3 mt-2" id="finGrid"></div>
+    </div>
+  </section>
+
+  <section class="section band-warm" id="ocenenia" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="certTitle"></h2>
+      <div class="grid grid-2 mt-2">
+        <div class="card card-pad" id="certCard"></div>
+        <div class="card card-pad" id="rankCard"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="eticka-komisia" style="scroll-margin-top:90px">
+    <div class="container">
+      <div class="grid grid-2">
+        <div class="card card-pad" id="ethicsCard"></div>
+        <div class="card card-pad" id="adverseCard"></div>
+      </div>
+      <div class="grid grid-2 mt-2">
+        <div class="card card-pad" id="corruptionCard"></div>
+        <div class="card card-pad" id="transfusionCard"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-blue">
+    <div class="container container-narrow text-center">
+      <h2 id="careerCta"></h2>
+      <p id="careerBody" style="max-width:60ch;margin-left:auto;margin-right:auto"></p>
+      <a href="kariera.html" class="btn btn-terra mt-2" id="careerBtn"></a>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "about" });
+const AI = DB.get("aboutInfo");
+
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.about");
+document.getElementById("phEyebrow").textContent = L({sk:"O nemocnici",en:"About the hospital"});
+document.getElementById("phTitle").textContent = L({sk:"Osemdesiat rokov starostlivosti o región Snina",en:"Eight decades of care for the Snina region"});
+document.getElementById("phBody").textContent = L({sk:"História, vedenie, kvalita a hospodárenie nemocnice — v úplnej transparentnosti.",en:"The hospital's history, leadership, quality certifications and finances — in full transparency."});
+document.getElementById("phJump").innerHTML = [
+  ["#vedenie",{sk:"Vedenie",en:"Leadership"}],["#historia",{sk:"História",en:"History"}],
+  ["#investicie",{sk:"Investície a hospodárenie",en:"Investments & finances"}],["#ocenenia",{sk:"Certifikácie",en:"Certifications"}],
+  ["#eticka-komisia",{sk:"Etická komisia",en:"Ethics committee"}]
+].map(([href,lbl]) => `<a href="${href}" class="chip">${esc(L(lbl))}</a>`).join("");
+
+document.getElementById("leadTitle").textContent = L({sk:"Vedenie nemocnice",en:"Hospital leadership"});
+document.getElementById("leadBody").textContent = L(AI.leadership);
+document.getElementById("ownerNote").textContent = L(AI.owner);
+document.getElementById("leadTeam").innerHTML = AI.leadershipTeam.map(p => `
+  <div class="card card-pad"><h4 style="margin:0">${esc(p.name)}</h4><p class="small muted mb-0">${esc(L(p.role))}<br>${esc(p.phone)} · <a href="mailto:${esc(p.email)}">${esc(p.email)}</a></p></div>`).join("");
+document.getElementById("boardCard").innerHTML = `<h4 style="margin:0 0 8px">${esc(L({sk:"Dozorná rada",en:"Supervisory board"}))}</h4><p class="small muted mb-0">${AI.board.map(esc).join(" · ")}</p>`;
+
+document.getElementById("histTitle").textContent = L({sk:"História",en:"History"});
+document.getElementById("histList").innerHTML = AI.history.map(h => `
+  <div class="hist-item"><div class="hist-year">${esc(h.year)}</div><div class="hist-text">${esc(L(h.text))}</div></div>`).join("");
+
+document.getElementById("invTitle").textContent = L({sk:"Kapitálové investície a hospodárenie",en:"Capital investment & finances"});
+document.getElementById("invGrid").innerHTML = AI.investments.map(i => `
+  <div class="card card-pad"><div class="eyebrow terra">${esc(L({sk:"Investícia",en:"Investment"}))}</div><h3 style="margin:.1em 0">${esc(i.amount)}</h3><p class="small muted mb-0">${esc(L(i.desc))}</p></div>`).join("");
+document.getElementById("finGrid").innerHTML = [
+  [AI.financials.revenue,{sk:"Ročné tržby",en:"Annual revenue"}],
+  [AI.financials.assets,{sk:"Celkové aktíva",en:"Total assets"}],
+  [AI.financials.profit,{sk:"Čistý zisk",en:"Net profit"}]
+].map(([val,lbl]) => `<div class="card card-pad text-center"><h3 style="margin:.1em 0;color:var(--blue-700)">${esc(val)}</h3><p class="small muted mb-0">${esc(L(lbl))} (${esc(AI.financials.year)})</p></div>`).join("") +
+  `<p class="small muted mt-2" style="grid-column:1/-1"><a href="zverejnovanie.html">${esc(L({sk:"Úplný register zmlúv a faktúr →",en:"Full contracts & invoices register →"}))}</a></p>`;
+
+document.getElementById("certTitle").textContent = L({sk:"Kvalita a hodnotenie",en:"Quality & ranking"});
+document.getElementById("certCard").innerHTML = `<h3>${esc(L({sk:"Certifikácie",en:"Certifications"}))}</h3>` + AI.certifications.map(c => `<p><span class="badge badge-blue">${esc(c.name)}</span><br><span class="small muted">${esc(L(c.desc))}</span></p>`).join("");
+document.getElementById("rankCard").innerHTML = `<h3>${esc(L({sk:"Nezávislé hodnotenie",en:"Independent ranking"}))}</h3><p class="mb-0">${esc(L(AI.rankings))}</p>`;
+
+document.getElementById("ethicsCard").innerHTML = `<h3>${esc(L({sk:"Etická komisia",en:"Ethics committee"}))}</h3><p class="mb-0">${esc(L(AI.ethics))}</p>`;
+document.getElementById("adverseCard").innerHTML = `<h3>${esc(L({sk:"Nežiaduce udalosti",en:"Adverse events"}))}</h3><p class="mb-0">${esc(L(AI.adverseEvents))}</p>`;
+document.getElementById("corruptionCard").innerHTML = `<h3>${esc(L({sk:"Antikorupčná linka",en:"Anti-corruption line"}))}</h3><p class="mb-0">${esc(L(AI.antiCorruption))}</p>`;
+document.getElementById("transfusionCard").innerHTML = `<h3>${esc(L({sk:"Transfúzna komisia",en:"Transfusion committee"}))}</h3><p class="mb-0">${esc(L(AI.transfusionCommittee))}</p>`;
+
+document.getElementById("careerCta").textContent = L({sk:"Pridajte sa k nášmu tímu",en:"Join our team"});
+document.getElementById("careerBody").textContent = L({sk:"Hľadáme lekárov naprieč odbormi — s podporou ďalšieho vzdelávania a motivačnými zložkami mzdy.",en:"We're hiring physicians across specialties — with support for further training and a motivational wage component."});
+document.getElementById("careerBtn").innerHTML = `${icon("user")} ${esc(L({sk:"Zobraziť voľné miesta",en:"View openings"}))}`;
+</script>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
+</body>
+</html>

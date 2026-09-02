@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voľné pracovné miesta — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phBody" style="max-width:70ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-2" id="jobsGrid"></div>
+    </div>
+  </section>
+
+  <section class="section band-warm">
+    <div class="container container-narrow">
+      <div class="card card-pad" id="wageCard"></div>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "" });
+const jobs = DB.list("jobs");
+const depts = DB.list("departments");
+const clinics = DB.list("clinics");
+const H = DB.get("hospital");
+
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("footer.careers");
+document.getElementById("phEyebrow").textContent = L({sk:"Kariéra",en:"Careers"});
+document.getElementById("phTitle").textContent = L({sk:"Voľné pracovné miesta",en:"Open positions"});
+document.getElementById("phBody").textContent = L({sk:"Hľadáme lekárov, ktorí chcú budovať dlhodobú kariéru v regióne. Ponúkame podporu ďalšej špecializácie a motivačné zložky mzdy podľa zákona č. 578/2004 Z. z.",en:"We're looking for physicians who want to build a long-term career in the region. We support further specialisation and offer motivational wage components under Act No. 578/2004."});
+
+function placeOf(j) {
+  if (j.dept) { const d = depts.find(x => x.id === j.dept); return d ? L(d.name) : ""; }
+  if (j.clinic) { const c = clinics.find(x => x.id === j.clinic); return c ? L(c.name) : ""; }
+  return "";
+}
+
+document.getElementById("jobsGrid").innerHTML = jobs.map(j => `
+  <div class="card card-pad job-card">
+    <div class="job-meta"><span class="badge badge-blue">${esc(placeOf(j))}</span></div>
+    <h3>${esc(L(j.title))}</h3>
+    <p class="small muted mb-0">${esc(L(j.desc))}</p>
+    <a href="mailto:${esc(H.email)}?subject=${encodeURIComponent(L(j.title))}" class="btn btn-primary btn-sm mt-1" style="align-self:flex-start">${icon("doc")} ${esc(L({sk:"Odpovedať na ponuku",en:"Apply for this role"}))}</a>
+  </div>`).join("");
+
+document.getElementById("wageCard").innerHTML = `
+  <h3>${esc(L({sk:"Prečo pracovať v Nemocnici Snina",en:"Why work at Nemocnica Snina"}))}</h3>
+  <ul>${DB.get("careersInfo").benefits.map(b => `<li>${esc(L(b))}</li>`).join("")}</ul>
+  <p class="small muted mb-0">${esc(L({sk:"Kontaktná osoba pre žiadosti",en:"Contact for applications"}))}: <b>${esc(L(DB.get("careersInfo").contact))}</b> · ${esc(DB.get("careersInfo").phone)} · <a href="mailto:${esc(H.email)}">${esc(H.email)}</a></p>`;
+</script>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
+</body>
+</html>

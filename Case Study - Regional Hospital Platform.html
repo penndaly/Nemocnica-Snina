@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case Study — Regional hospital platform | Pixel Perfekt Media</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Public Sans',system-ui,sans-serif;color:#26334d;background:#fff;-webkit-font-smoothing:antialiased}
+a{color:#1f6f8f}a:hover{color:#16294d}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.topbar{max-width:1080px;margin:0 auto;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.topbar img{height:44px;width:auto;display:block}
+.lang{display:flex;gap:6px}
+.lang button{font:600 12.5px/1 'Sora',sans-serif;letter-spacing:.08em;padding:9px 14px;border-radius:8px;border:1px solid #d8e0ea;background:#fff;color:#5b6982;cursor:pointer}
+.lang button.on{background:#16294d;border-color:#16294d;color:#fff}
+header.hero{background:#16294d;background-image:radial-gradient(120% 140% at 12% -10%,#1e3a63 0%,#16294d 46%,#0f1d38 100%);color:#fff}
+header.hero .wrap{padding-top:74px;padding-bottom:66px}
+.eyebrow{display:inline-block;font:600 12px/1 'Sora',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#2b7fa3;margin-bottom:14px}
+header.hero .eyebrow{color:#3fd0a8;margin-bottom:20px}
+h1{font:700 clamp(30px,4.2vw,50px)/1.14 'Sora',sans-serif;letter-spacing:-.02em;margin:0 0 22px;max-width:21ch;text-wrap:pretty}
+.lede{font:400 clamp(16px,1.5vw,19px)/1.62 'Public Sans',sans-serif;color:#c8d5e6;max-width:68ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:26px;margin-top:46px;padding-top:34px;border-top:1px solid rgba(255,255,255,.16)}
+.stats b{display:block;font:700 38px/1 'Sora',sans-serif;background:linear-gradient(120deg,#3fd0a8,#5fb6d8);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+.stats span{font:400 14.5px/1.5 'Public Sans',sans-serif;color:#adbdd2}
+.shelf{background:linear-gradient(180deg,#16294d 0%,#16294d 46%,#fff 46%,#fff 100%)}
+.shelf figure{margin:0}
+.shelf .shot{border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 34px 70px -34px rgba(8,18,38,.72);border:1px solid rgba(255,255,255,.14)}
+figure img{display:block;width:100%;height:auto}
+figcaption{font:400 14px/1.6 'Public Sans',sans-serif;color:#5b6982;margin-top:10px;text-wrap:pretty}
+.shelf figcaption{font-size:14.5px;margin-top:14px;max-width:84ch}
+section{padding:76px 0}
+section.tint{padding:72px 0;background:#f6f9fb;border-top:1px solid #e3e9ef;border-bottom:1px solid #e3e9ef}
+section.navy{background:#16294d;color:#fff}
+section.navy .eyebrow{color:#3fd0a8}
+section.navy h2,section.navy h4{color:#fff}
+section.navy .lead{color:#c8d5e6}
+section.navy figcaption{color:#a9bcd4}
+section.navy .shot{border:1px solid rgba(255,255,255,.18);box-shadow:0 16px 34px -26px rgba(0,0,0,.55)}
+h2{font:600 clamp(24px,2.8vw,34px)/1.22 'Sora',sans-serif;color:#16294d;letter-spacing:-.015em;margin:0 0 16px;text-wrap:pretty}
+.lead{font:400 16.5px/1.68 'Public Sans',sans-serif;max-width:68ch;margin:0 0 34px}
+p.body{font:400 16.5px/1.68 'Public Sans',sans-serif;margin:0 0 14px}
+.shot{border:1px solid #dfe6ee;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 16px 34px -26px rgba(0,0,0,.55)}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:26px;margin:0 0 40px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.cards .c{background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:24px}
+.cards h4{font:600 16.5px/1.3 'Sora',sans-serif;color:#16294d;margin:0 0 10px}
+.cards p{font:400 15px/1.62 'Public Sans',sans-serif;margin:0;color:#4a5a75}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.rules .r{border-left:3px solid #3fd0a8;padding:4px 0 4px 18px}
+.rules h4{font:600 16px/1.3 'Sora',sans-serif;color:#16294d;margin:0 0 8px}
+.rules p{font:400 15px/1.6 'Public Sans',sans-serif;margin:0;color:#4a5a75}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:40px}
+.cols .ct{font:600 13px/1 'Sora',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#2b7fa3;margin:0 0 20px}
+section.navy .cols .ct{color:#3fd0a8}
+.cols ul{list-style:none;display:grid;gap:14px}
+.cols li{display:flex;gap:12px;font:400 15.5px/1.6 'Public Sans',sans-serif}
+.cols li i{flex:none;width:6px;height:6px;margin-top:9px;border-radius:50%;background:#2b7fa3}
+section.navy .cols li{color:#d6e0ee}
+section.navy .cols li i{background:#3fd0a8}
+.cols li b{font-weight:600;color:#16294d}
+section.navy .cols li b{color:#fff}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:46px}
+.aside{background:#f2f8f6;border:1px solid #dbe9e4;border-radius:14px;padding:30px}
+.aside .ct{font:600 13px/1 'Sora',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#2b7fa3;margin:0 0 18px}
+.aside .g{display:grid;gap:16px}
+.aside p{font:400 15.5px/1.6 'Public Sans',sans-serif;margin:0}
+.aside b{font-weight:600;color:#16294d}
+footer.cta{background:#16294d;background-image:linear-gradient(120deg,#16294d 0%,#17415c 100%);color:#fff;padding:72px 0}
+footer.cta h2{color:#fff;font:700 clamp(26px,3.2vw,40px)/1.16 'Sora',sans-serif;letter-spacing:-.02em;margin:0 0 18px}
+footer.cta p{font:400 17px/1.66 'Public Sans',sans-serif;color:#c8d5e6;max-width:62ch;margin:0 0 30px}
+footer.cta .fine{font:400 14px/1.6 'Public Sans',sans-serif;color:#8fa3bd;margin:0}
+@media print{.lang{display:none}section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg"><rect width="1200" height="800" fill="#16294d"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3fd0a8"/><stop offset="1" stop-color="#2b7fa3"/></linearGradient></defs><rect x="520" y="300" width="160" height="46" rx="10" fill="url(#g)"/><rect x="576" y="244" width="48" height="158" rx="10" fill="url(#g)"/><rect x="360" y="470" width="480" height="20" rx="10" fill="#5b6982"/><rect x="440" y="522" width="320" height="20" rx="10" fill="#3c4a63"/></svg></template>
+<div class="topbar"><img src="assets/pixel-perfekt-logo.png" alt="Pixel Perfekt Media"><div class="lang"><button id="bSk">SK</button><button id="bEn" class="on">EN</button></div></div>
+<div id="doc"></div>
+<script>
+const T = {
+eyebrow:{sk:"Prípadová štúdia · Zdravotníctvo",en:"Case study · Healthcare"},
+h1:{sk:"Nemocnica, ktorú pacient vybaví z telefónu — a personál spravuje bez IT oddelenia",en:"A hospital patients can handle from a phone — run by staff with no IT department"},
+lede:{sk:"Pre regionálnu nemocnicu s lôžkovou aj ambulantnou časťou sme postavili jednu platformu: verejný web, online objednávanie, pacientsky portál, telemedicínu a diaľkové sledovanie zo zariadení — a k tomu administráciu, v ktorej sekretariát zmení obsah ktorejkoľvek stránky bez vývojára. Pravidlá objednávania, ochrana údajov aj prístupnosť sú vynútené na serveri, nie v prehliadači.",en:"For a regional hospital with inpatient and outpatient care we built one platform: a public website, online booking, a patient portal, telemedicine and remote device monitoring — plus an admin console where the front office changes any page on the site without a developer. Booking rules, data protection and accessibility are enforced on the server, not in the browser."},
+stats:[
+ {n:"17",sk:"verejných stránok v šiestich jazykoch",en:"public pages across six languages"},
+ {n:"5",sk:"produktov na jednom backende: web, objednávanie, portál, telemedicína, monitoring",en:"products on one backend: site, booking, portal, telemedicine, monitoring"},
+ {n:"0",sk:"kritických a vážnych nálezov prístupnosti na každej trase",en:"critical or serious accessibility findings on any route"},
+ {n:"726",sk:"automatických testov, ktoré bežia pred každým nasadením",en:"automated tests running before every deployment"}
+],
+sections:[
+{tone:"shelf",fig:{src:"casestudy/img/01-home.png",sk:"Domovská stránka presne tak, ako ju vidí pacient: núdzové kontakty hneď pod hero blokom, objednanie a vyhľadanie lekára ako dve hlavné akcie. Celý obsah tejto stránky — vrátane nadpisu a štítku — sa edituje v administrácii v oboch jazykoch vedľa seba.",en:"The homepage as a patient sees it: emergency contacts directly under the hero, booking and physician search as the two primary actions. Every word on this page — headline and badge included — is edited in the admin console, both languages side by side."}},
+
+{tone:"light",type:"split",eyebrow:{sk:"Východisko",en:"The brief"},h2:{sk:"Nemocnica má dve publiká a jednu kanceláriu",en:"Two audiences, one back office"},
+ body:[
+ {sk:"Regionálna nemocnica obsluhuje okres, ktorý má do nej ďaleko. Pacient potrebuje vedieť, či ambulancia berie nových pacientov, kedy sú návštevné hodiny a či sa dá vyšetrenie vybaviť bez cesty. Kontrolór a novinár hľadajú zmluvy, faktúry a povinne zverejňované dokumenty. Personál, ktorý to má obslúžiť, je sekretariát — nie redakcia a nie IT oddelenie.",en:"A regional hospital serves a district that is a long way from it. Patients need to know whether a clinic is accepting new patients, when visiting hours are, and whether a consultation can be handled without the trip. Auditors and journalists are looking for contracts, invoices and mandatory disclosures. The staff who serve all of them are the front office — not an editorial team, and not an IT department."},
+ {sk:"Zdravotnícky obsah má navyše vlastnosť, ktorú bežný web nemá: chybný údaj je klinické riziko. Nesprávny čas ambulancie znamená márnu cestu chorého človeka, zle preložená inštrukcia pred výkonom znamená zrušený zákrok.",en:"Clinical content also has a property ordinary web content does not: a wrong value is a clinical risk. A wrong clinic time means a sick person travels for nothing; a mistranslated pre-procedure instruction means a cancelled operation."},
+ {sk:"Otázku sme preto postavili takto: <b>čo keby nemocnica nedostala web a k nemu štyri systémy, ale jeden systém, ktorý web aj služby generuje z tých istých dát?</b>",en:"So we framed the question this way: <b>what if the hospital didn't get a website plus four systems, but one system that generates the website and the services from the same data?</b>"}],
+ aside:{title:{sk:"Čo to znamená v praxi",en:"What that means in practice"},items:[
+ {sk:"<b>Jeden zdroj pravdy.</b> Ambulancia, jej lekár, ordinačné hodiny a jej dostupné termíny sú jeden záznam. Web, objednávanie aj portál ho čítajú.",en:"<b>One source of truth.</b> A clinic, its physician, its hours and its bookable slots are one record. The site, the booking engine and the portal all read it."},
+ {sk:"<b>Nie je to page builder.</b> Personál vypĺňa polia, neskladá mriežky — neprístupnú stránku nie je ako vyrobiť.",en:"<b>Not a page builder.</b> Staff fill in fields, they don't assemble grids — there is no way to produce an inaccessible page."},
+ {sk:"<b>Pravidlá sú na serveri.</b> Rozhranie je pohodlie; o tom, čo sa smie objednať, uložiť a zverejniť, rozhoduje API a databáza.",en:"<b>Rules live on the server.</b> The interface is convenience; what may be booked, stored and published is decided by the API and the database."}]}},
+
+{tone:"tint",eyebrow:{sk:"Platforma",en:"The platform"},h2:{sk:"Jeden backend, päť povrchov",en:"One backend, five surfaces"},
+ lead:{sk:"Obsah aj klinické dáta sa zapisujú raz a objavia sa tam, kde ich publikum hľadá. Každý povrch má vlastné publikum a vlastný register — nie vlastnú databázu.",en:"Content and clinical data are written once and surface wherever the audience looks for them. Each surface has its own audience and its own register — not its own database."},
+ cards:[
+ {h:{sk:"Verejný web",en:"Public website"},p:{sk:"Sedemnásť stránok: oddelenia, ambulancie, adresár lekárov, diagnostika, služby, pre pacientov, o nemocnici, kariéra, edukácia, aktuality, povinné zverejňovanie, kontakt.",en:"Seventeen pages: departments, clinics, physician directory, diagnostics, services, patient information, about, careers, education, news, mandatory disclosures, contact."}},
+ {h:{sk:"Online objednávanie",en:"Online booking"},p:{sk:"Päťkrokový sprievodca od ambulancie po potvrdenie. Pravidlá — kapacita, odporúčanie, predstih, sviatky — kontroluje server.",en:"A five-step wizard from clinic to confirmation. The rules — capacity, referral, lead time, holidays — are checked by the server."}},
+ {h:{sk:"Pacientsky portál",en:"Patient portal"},p:{sk:"Prihlásenie cez eID a SMS kód. Termíny, zdravotné záznamy, e-recepty, výsledky, súhlasy — na jednom mieste.",en:"eID plus SMS-code sign-in. Appointments, health records, e-prescriptions, results and consents in one place."}},
+ {h:{sk:"Telemedicína",en:"Telemedicine"},p:{sk:"Videokonzultácia s overením totožnosti, dotazníkom pred vyšetrením a e-receptom vystaveným do národného systému.",en:"Video consultation with identity verification, a pre-visit questionnaire and an e-prescription issued into the national system."}},
+ {h:{sk:"Diaľkový monitoring",en:"Remote monitoring"},p:{sk:"Glukomery, hodinky a tlakomery s prahovými upozorneniami a exportom do zdravotného záznamu — vždy so súhlasom pacienta.",en:"Glucose monitors, watches and blood-pressure cuffs with threshold alerts and export into the health record — always under patient consent."}},
+ {h:{sk:"Administrácia",en:"Admin console"},p:{sk:"Obsah, objednávky, používatelia, preklady, auditný záznam, GDPR nástroje a živý stav služieb.",en:"Content, bookings, users, translations, the audit log, GDPR tooling and live service status."}}]},
+
+{tone:"light",eyebrow:{sk:"Verejný web · pre pacienta",en:"Public website · for the patient"},h2:{sk:"Web, ktorý obstojí pred kontrolou aj v čakárni na telefóne",en:"A site that stands up to an audit and to a phone in a waiting room"},
+ lead:{sk:"Register je utilitárny: vysoký kontrast, veľké cieľové plochy, žiadny efekt závislý od myši, žiadny horizontálny posun ani pri 320 px. Fotografie sú obsah spravovaný v administrácii — s povinným alternatívnym textom v oboch jazykoch.",en:"The register is utilitarian: high contrast, large targets, no mouse-dependent behaviour, no horizontal scrolling even at 320px. Photography is content managed in the console — with alt text required in both languages."},
+ figs:[{src:"casestudy/img/02-departments.png",sk:"Lôžkové oddelenia s počtom lôžok, primárom a stavom. Každá karta je záznam v administrácii; poradie, ikona aj to, či sa oddelenie zobrazí na domovskej stránke, sú polia.",en:"Inpatient departments with bed counts, head physician and status. Every card is a record in the console; ordering, icon and whether it appears on the homepage are all fields."},
+ {src:"casestudy/img/04-physicians.png",sk:"Adresár lekárov s vyhľadávaním, filtrom „berie nových pacientov\" a jazykmi, ktorými lekár hovorí — podstatné v pohraničnom regióne.",en:"The physician directory with search, an \"accepting new patients\" filter and the languages each physician speaks — decisive in a border region."}],
+ cols:[
+ {title:{sk:"Informácie a starostlivosť",en:"Information & care"},items:[
+ {sk:"<b>Oddelenia a ambulancie</b> s detailom: primár, zástupca, počet lôžok, ordinačné hodiny, telefón, poschodie a budova, návštevné hodiny",en:"<b>Departments and clinics</b> in detail: head physician, deputy, bed count, opening hours, phone, floor and building, visiting hours"},
+ {sk:"<b>Adresár lekárov</b> s vyhľadávaním podľa mena aj špecializácie, filtrom dostupnosti a jazykovými značkami",en:"<b>Physician directory</b> searchable by name and specialty, with an availability filter and language tags"},
+ {sk:"<b>Diagnostika a služby</b> — CT, RTG, ultrazvuk, laboratóriá — s prípravou pred vyšetrením a spôsobom objednania",en:"<b>Diagnostics and services</b> — CT, X-ray, ultrasound, laboratory — with preparation instructions and how to book"},
+ {sk:"<b>Pre pacientov:</b> cenník samoplatcov, čakacie lehoty, príjem a prepustenie, dotazník spokojnosti, postup pri sťažnosti, poďakovania",en:"<b>For patients:</b> self-pay price list, waiting times, admission and discharge, satisfaction survey, complaints procedure, letters of thanks"},
+ {sk:"<b>Edukačná knižnica</b> — materiály pred výkonom a po ňom, vždy dvojjazyčne",en:"<b>Education library</b> — pre- and post-procedure material, always bilingual"},
+ {sk:"<b>O nemocnici:</b> história, vedenie, investície a rekonštrukcie",en:"<b>About:</b> history, leadership, investment and renovation"},
+ {sk:"<b>Kariéra</b> s voľnými miestami a transparentným mzdovým rozpätím",en:"<b>Careers</b> with open roles and transparent salary bands"},
+ {sk:"<b>Aktuality</b> s naplánovaným zverejnením a odberom",en:"<b>News</b> with scheduled publishing and subscription"}]},
+ {title:{sk:"Úradná časť a prístupnosť",en:"Official duties & accessibility"},items:[
+ {sk:"<b>Povinné zverejňovanie:</b> zmluvy, faktúry a objednávky vo filtrovateľnej tabuľke s hodnotou, dátumom a PDF na stiahnutie",en:"<b>Mandatory disclosure:</b> contracts, invoices and orders in a filterable table with value, date and a downloadable PDF"},
+ {sk:"<b>Úradné údaje na jednom mieste:</b> zriaďovateľ, štatutár, IČO, kontakt, úradné hodiny, postup pri sťažnosti",en:"<b>Official data in one place:</b> founder, statutory body, registration number, contact, office hours, complaints route"},
+ {sk:"<b>Núdzový blok</b> na každej stránke — tiesňová linka, centrálny príjem a lekáreň sú vždy na dosah",en:"<b>Emergency block</b> on every page — emergency line, central reception and pharmacy always within reach"},
+ {sk:"<b>Šesť jazykov:</b> slovenčina a angličtina redakčne, čeština, poľština, maďarčina a ukrajinčina strojovo — klinický obsah zostáva konceptom, kým ho človek neschváli",en:"<b>Six languages:</b> Slovak and English editorially, Czech, Polish, Hungarian and Ukrainian machine-translated — clinical content stays a draft until a human approves it"},
+ {sk:"<b>WCAG 2.1 AA</b> ako podmienka nasadenia, nie ako sľub: automatický audit beží na každej trase v oboch jazykoch a v mobilnom zobrazení pri každej zmene",en:"<b>WCAG 2.1 AA</b> as a deployment condition, not a promise: an automated audit runs on every route, in both languages and on mobile, on every change"},
+ {sk:"<b>Mobil ako prvé zariadenie:</b> cieľové plochy minimálne 44 px, funkčné pri 130 % priblížení, čitateľné pri 320 px",en:"<b>Mobile as the primary device:</b> 44px minimum targets, usable at 130% zoom, readable at 320px"}]}]},
+
+{tone:"navy",eyebrow:{sk:"Objednávanie a portál · pre pacienta",en:"Booking & portal · for the patient"},h2:{sk:"Od termínu po e-recept bez jedinej cesty do nemocnice",en:"From appointment to e-prescription without a single trip"},
+ lead:{sk:"Objednávanie je jediné miesto, kde sa laik dotýka prevádzky nemocnice. Preto je krátke, hovorí, čo sa stane ďalej — a nedovolí objednať niečo, čo ambulancia nevie prijať.",en:"Booking is the one place where a layperson touches hospital operations. So it is short, it says what happens next — and it will not let anyone book something the clinic cannot take."},
+ figs:[{src:"casestudy/img/03-booking.png",sk:"Krok jeden z piatich: zobrazia sa len ambulancie s online objednávaním, so stavom a s upozornením, kde je potrebné odporúčanie.",en:"Step one of five: only clinics with online booking appear, each with its status and a flag where a referral is required."},
+ {src:"casestudy/img/07-portal.png",sk:"Portál po prihlásení cez eID: najbližší termín s možnosťou presunutia, posledná aktivita, digitálne žiadosti. Vľavo je celý rozsah — telekonzultácie, záznamy, e-recepty, výsledky, zariadenia.",en:"The portal after eID sign-in: next appointment with rescheduling, recent activity, digital requests. The left rail carries the full scope — teleconsults, records, e-prescriptions, results, devices."}],
+ cols:[
+ {title:{sk:"Objednávanie",en:"Booking"},items:[
+ {sk:"<b>Päť krokov:</b> ambulancia, dátum, čas, údaje, potvrdenie — s viditeľným priebehom a možnosťou vrátiť sa",en:"<b>Five steps:</b> clinic, date, time, details, confirmation — with visible progress and a way back"},
+ {sk:"<b>Pravidlá vynútené na serveri:</b> kapacita, predstih, sviatky, povinné odporúčanie. Podvrhnutá požiadavka je zamietnutá",en:"<b>Rules enforced server-side:</b> capacity, lead time, holidays, referral requirement. A forged request is rejected"},
+ {sk:"<b>Potvrdenie e-mailom a SMS</b> s kódom rezervácie",en:"<b>E-mail and SMS confirmation</b> with a booking code"},
+ {sk:"<b>Presun a zrušenie</b> pacientom do stanovenej lehoty",en:"<b>Reschedule and cancel</b> by the patient inside a defined window"},
+ {sk:"<b>Objednanie bez registrácie</b> — portál je výhoda, nie podmienka",en:"<b>Booking without an account</b> — the portal is a benefit, not a prerequisite"}]},
+ {title:{sk:"Portál pacienta",en:"Patient portal"},items:[
+ {sk:"<b>Prihlásenie cez národný eID a SMS kód</b>, napojené na eHealth",en:"<b>National eID plus SMS-code sign-in</b>, wired to the national eHealth service"},
+ {sk:"<b>Termíny</b> — nadchádzajúce aj minulé, s presunom a zrušením",en:"<b>Appointments</b> — upcoming and past, with reschedule and cancel"},
+ {sk:"<b>Zdravotné záznamy</b> v štandarde FHIR R4: diagnózy, merania, prepúšťacie správy",en:"<b>Health records</b> in FHIR R4: conditions, observations, discharge reports"},
+ {sk:"<b>e-Recepty</b> vrátane žiadosti o opakovaný predpis bez návštevy",en:"<b>e-Prescriptions</b> including repeat-prescription requests without a visit"},
+ {sk:"<b>Laboratórne výsledky</b> s vysvetlením referenčných hodnôt",en:"<b>Laboratory results</b> with reference ranges explained"},
+ {sk:"<b>Správa súhlasov</b> podľa čl. 7, 17 a 21 GDPR — každý súhlas odvolateľný jedným klikom",en:"<b>Consent management</b> under GDPR art. 7, 17 and 21 — every consent revocable in one click"},
+ {sk:"<b>Export a výmaz údajov</b> na žiadosť, spracovaný v administrácii so záznamom v audite",en:"<b>Data export and erasure</b> on request, processed in the console and written to the audit log"}]}]},
+
+{tone:"light",eyebrow:{sk:"Telemedicína a monitoring",en:"Telemedicine & monitoring"},h2:{sk:"Konzultácia a sledovanie pre okres, ktorý má do nemocnice hodinu cesty",en:"Consultation and monitoring for a district an hour from the hospital"},
+ lead:{sk:"Videokonzultácia nie je videohovor s logom. Je to klinický úkon so zákonnou stopou: overená totožnosť, dotazník pred vyšetrením, záznam do dokumentácie a recept vystavený do národného systému.",en:"A video consultation is not a video call with a logo on it. It is a clinical act with a legal trail: verified identity, a pre-visit questionnaire, a note in the record and a prescription issued into the national system."},
+ figs:[{src:"casestudy/img/08-consult-room.png",sk:"Čakáreň pred konzultáciou: kontrola kamery a mikrofónu, termín na očiach, tmavé prostredie pre videohovor. Lekár sa pripája až po opätovnom overení druhým faktorom.",en:"The pre-consultation waiting room: camera and microphone check, the appointment in view, a dark surface for video. The physician joins only after re-verifying the second factor."},
+ {src:"casestudy/img/09-wearables.png",sk:"Pripojené zariadenia v portáli s kritickým upozornením a prepínačom zdieľania pri každom zariadení — pacient vidí presne to, čo vidí jeho lekár.",en:"Connected devices in the portal with a critical alert and a per-device sharing switch — the patient sees exactly what the physician sees."}],
+ cols:[
+ {title:{sk:"Videokonzultácia",en:"Video consultation"},items:[
+ {sk:"<b>Objednanie telekonzultácie</b> ako typu vyšetrenia — rovnaký sprievodca, iná ambulancia",en:"<b>Booking a teleconsult</b> as a visit type — same wizard, different clinic"},
+ {sk:"<b>Dotazník pred vyšetrením</b>, ktorý má lekár otvorený pri vstupe pacienta",en:"<b>A pre-visit questionnaire</b> open in front of the physician as the patient enters"},
+ {sk:"<b>Čakáreň s kontrolou kamery a mikrofónu</b> a s terminálnym stavom, ak bolo stretnutie zrušené",en:"<b>Waiting room with camera and microphone check</b>, and a terminal state if the session was cancelled"},
+ {sk:"<b>Video v európskom regióne</b> vrátane prenosových serverov — podmienka, ktorú overuje konfigurácia pri štarte",en:"<b>Video inside the EU</b>, relay servers included — a condition the configuration validates at boot"},
+ {sk:"<b>Nahrávanie je vypnuté</b> a bez doloženého súhlasu poverenca ho nemožno zapnúť",en:"<b>Recording is off</b> and cannot be switched on without documented DPO approval"},
+ {sk:"<b>V zázname o stretnutí nie je totožnosť pacienta</b> — len nepriraditeľný token",en:"<b>No patient identity in the session record</b> — an opaque token only"},
+ {sk:"<b>e-Recept po konzultácii</b> vystavený do národného systému, kópia do dokumentácie",en:"<b>e-Prescription after the consult</b>, issued into the national system with a copy to the record"}]},
+ {title:{sk:"Diaľkové sledovanie",en:"Remote monitoring"},items:[
+ {sk:"<b>Pripojenie zariadení:</b> kontinuálny glukomer, hodinky, tlakomer — cez oficiálne rozhrania výrobcov",en:"<b>Device connection:</b> continuous glucose monitor, watch, blood-pressure cuff — through the manufacturers' official interfaces"},
+ {sk:"<b>Prahové upozornenia</b> s kritickou hladinou, ktorú vidí ošetrujúci lekár",en:"<b>Threshold alerts</b> with a critical level visible to the treating physician"},
+ {sk:"<b>Zdieľanie po zariadeniach</b> — pacient vypne jedno bez toho, aby zrušil ostatné",en:"<b>Per-device sharing</b> — a patient can switch one off without cancelling the others"},
+ {sk:"<b>Export meraní do zdravotného záznamu</b> ako FHIR Observation, nie ako obrázok",en:"<b>Export into the health record</b> as FHIR Observation, not as a picture"},
+ {sk:"<b>Odvolanie súhlasu zastaví synchronizáciu okamžite</b> a znáša merania, ktoré ešte neboli exportované",en:"<b>Revoking consent stops synchronisation immediately</b> and discards measurements not yet exported"}]}]},
+
+{tone:"tint",eyebrow:{sk:"Administrácia · pre nemocnicu",en:"Admin console · for the hospital"},h2:{sk:"Celý web sa edituje bez vývojára — a každý krok má meno a čas",en:"The whole site is editable without a developer — and every step has a name and a timestamp"},
+ lead:{sk:"Administrácia je tiché pracovné prostredie oddelené od webu, ktorý spravuje. Sekretariát v nej strávi desať minút týždenne, riaditeľ hodinu pred zverejnením výročnej správy.",en:"The console is a quiet working environment, deliberately unlike the site it manages. The front office spends ten minutes a week in it; the director spends an hour before the annual report goes out."},
+ figs:[{src:"casestudy/img/11-admin-content.png",sk:"Kolekcie v ľavom stĺpci s počtom záznamov. Každý riadok sa edituje alebo maže na mieste a zmena je na webe okamžite — bez nasadenia.",en:"Collections in the left rail with record counts. Each row is edited or deleted in place and the change is live immediately — with no deployment."},
+ {src:"casestudy/img/12-admin-page-content.png",sk:"Statické texty stránok ako polia, slovenčina a angličtina vedľa seba. Nadpis domovskej stránky nie je v kóde — je to záznam.",en:"Static page copy as fields, Slovak and English side by side. The homepage headline is not in the code — it is a record."}],
+ cols:[
+ {title:{sk:"Obsah a štruktúra",en:"Content & structure"},items:[
+ {sk:"<b>Pridanie, úprava a mazanie</b> oddelení, ambulancií, lekárov, služieb, zariadení, aktualít a zverejňovaných dokumentov",en:"<b>Create, edit and delete</b> departments, clinics, physicians, services, facilities, news items and disclosure documents"},
+ {sk:"<b>Dvojjazyčné polia vedľa seba</b> pri každom zázname, s viditeľným príznakom nepreloženého poľa",en:"<b>Bilingual fields side by side</b> on every record, with an explicit flag on anything untranslated"},
+ {sk:"<b>Texty stránok ako záznamy:</b> hero, sekcie, popisy, štítky — nič podstatné nezostáva v kóde",en:"<b>Page copy as records:</b> hero, sections, descriptions, badges — nothing meaningful stays in the code"},
+ {sk:"<b>Údaje o nemocnici</b> na jednom mieste: názov, adresa, telefóny, úradné hodiny, štatutár, identifikátory",en:"<b>Hospital information</b> in one place: name, address, phone numbers, office hours, statutory body, identifiers"},
+ {sk:"<b>Rozvrh ambulancií</b> vrátane výnimiek, sviatkov a dovoleniek — priamo riadi dostupné termíny",en:"<b>Clinic schedules</b> including exceptions, holidays and leave — these directly drive bookable slots"},
+ {sk:"<b>Knižnica fotografií</b> s povinným alternatívnym textom v oboch jazykoch a so zoznamom miest použitia pred zmazaním",en:"<b>Photo library</b> with alt text required in both languages and a list of usages shown before deletion"},
+ {sk:"<b>Zvýraznenie na domovskej stránke</b> ako prepínač pri zázname, nie ako samostatná stránka",en:"<b>Homepage promotion</b> as a switch on the record, not as a separate page"},
+ {sk:"<b>Export a import obsahu</b> a návrat k východiskovému stavu pri príprave nového prostredia",en:"<b>Content export and import</b>, plus reset to defaults when preparing a new environment"}]},
+ {title:{sk:"Prevádzka a zodpovednosť",en:"Operations & accountability"},items:[
+ {sk:"<b>Správa objednávok:</b> potvrdenie, presun, zrušenie a označenie nedostavenia sa — každý úkon so záznamom v audite",en:"<b>Booking administration:</b> confirm, reschedule, cancel and mark no-show — every action written to the audit log"},
+ {sk:"<b>Správa zariadení:</b> zapnutie platformy, prahy upozornení a export protokolu upozornení",en:"<b>Device administration:</b> enable a platform, set alert thresholds, export the alert log"},
+ {sk:"<b>Auditný záznam</b> — kto, čo, kedy — filtrovateľný a exportovateľný; na úrovni databázy je nemenný",en:"<b>Audit log</b> — who, what, when — filterable and exportable, and immutable at the database level"},
+ {sk:"<b>Nástroje GDPR:</b> export údajov dotknutej osoby a výmaz na žiadosť, obidve ako sledované úkony",en:"<b>GDPR tooling:</b> subject data export and erasure on request, both as tracked operations"},
+ {sk:"<b>Preklady</b> po menných priestoroch, so zoznamom chýbajúcich reťazcov a strojovým návrhom ako konceptom",en:"<b>Translations</b> by namespace, with a list of missing strings and machine suggestions as drafts"},
+ {sk:"<b>Používatelia a roly</b> s povinným druhým faktorom pre každý personálny účet",en:"<b>Users and roles</b> with a mandatory second factor on every staff account"},
+ {sk:"<b>Prehľad stavu služieb</b> — databáza, fronta, úložisko, video, prepojenie na nemocničný systém — v reálnom čase",en:"<b>Live service status</b> — database, queue, storage, video, hospital-system link — in real time"}]}]},
+
+{tone:"light",type:"split",eyebrow:{sk:"Súlad a bezpečnosť",en:"Compliance & security"},h2:{sk:"Zákon ako podmienka nasadenia",en:"The law as a deployment condition"},
+ body:[
+ {sk:"Vo verejnom zdravotníctve sú prístupnosť a ochrana údajov zákonné povinnosti, nie funkcie. Preto nie sú v zozname úloh — sú v testoch, ktoré musia prejsť, aby sa vôbec dalo nasadiť.",en:"In public healthcare, accessibility and data protection are legal duties, not features. So they are not on a task list — they are in the tests that must pass before anything can be deployed at all."},
+ {sk:"Rodné číslo pacienta neexistuje v databáze v čitateľnej podobe. Auditný záznam sa nedá prepísať ani zmazať, a to ani účtom aplikácie — právomoc je odobratá na úrovni databázy a strážená spúšťačom. Do nemocničného informačného systému nezapisuje web, ale samostatný agent cez frontu správ.",en:"A patient's national ID does not exist in readable form in the database. The audit log cannot be rewritten or deleted, not even by the application account — the privilege is revoked at the database level and guarded by a trigger. Nothing writes to the hospital information system from the web; a separate agent does it over a message queue."}],
+ aside:{title:{sk:"Vynútené, nie sľúbené",en:"Enforced, not promised"},items:[
+ {sk:"<b>Prístupnosť.</b> Automatický audit na každej trase v oboch jazykoch a v mobile; nález je zlyhaný build, nie úloha na neskôr.",en:"<b>Accessibility.</b> An automated audit on every route, in both languages and on mobile; a finding is a failed build, not a backlog item."},
+ {sk:"<b>Údaje v Európe.</b> Databáza, súbory aj video v európskom regióne; TLS 1.3 na linke, AES-256 na disku.",en:"<b>Data in Europe.</b> Database, files and video in an EU region; TLS 1.3 in transit, AES-256 at rest."},
+ {sk:"<b>Druhý faktor povinne</b> pre celý personál, bez obchádzky v produkcii.",en:"<b>Second factor mandatory</b> for all staff, with no production bypass."},
+ {sk:"<b>Strojový preklad klinického obsahu</b> sa nedá automaticky zverejniť — zostáva konceptom, kým ho človek neschváli.",en:"<b>Machine-translated clinical content</b> cannot auto-publish — it stays a draft until a human approves it."},
+ {sk:"<b>Testovacie režimy</b> integrácií sú v produkcii odmietnuté konfiguračným validátorom pri štarte.",en:"<b>Mock modes</b> for integrations are rejected in production by a configuration validator at boot."}]}},
+
+{tone:"tint",eyebrow:{sk:"Opakovateľnosť",en:"Repeatability"},h2:{sk:"Jedna platforma, ďalšie mesto",en:"One platform, the next town"},
+ lead:{sk:"To, čo sme postavili, nie je zákazka na jednu nemocnicu. Obsahový model, pravidlá objednávania aj administrácia sú rovnaké pre polikliniku s tromi ambulanciami aj pre okresnú nemocnicu so siedmimi oddeleniami — mení sa počet záznamov, nie produkt.",en:"What we built is not a one-hospital commission. The content model, the booking rules and the console are the same for a three-clinic polyclinic and for a district hospital with seven departments — the number of records changes, the product does not."},
+ rules:[
+ {h:{sk:"Obsah je dátový model",en:"Content is a data model"},p:{sk:"Oddelenia, ambulancie, lekári, služby, dokumenty. Nová nemocnica napĺňa tie isté kolekcie — nezačína prázdnou stránkou.",en:"Departments, clinics, physicians, services, documents. A new hospital fills the same collections — it does not start from a blank page."}},
+ {h:{sk:"Jazyky podľa regiónu",en:"Languages by region"},p:{sk:"Pohraničný okres zapne maďarčinu alebo poľštinu; jazyk je konfigurácia, nie ďalší web.",en:"A border district switches on Hungarian or Polish; a language is configuration, not another website."}},
+ {h:{sk:"Moduly sa zapínajú",en:"Modules switch on"},p:{sk:"Telemedicína a diaľkové sledovanie sú voliteľné. Menšie zariadenie začne webom a objednávaním a doplní ich neskôr.",en:"Telemedicine and remote monitoring are optional. A smaller provider starts with the site and booking and adds them later."}},
+ {h:{sk:"Zástupné fotografie",en:"Placeholder photography"},p:{sk:"Nikdy nie pacienti. Fotografie sa dostanú na web len z archívu zariadenia a len cez register súhlasov.",en:"Never patients. Photographs reach the site only from the provider's own archive and only through the consent register."}}]}
+],
+ctaH:{sk:"Jedna nemocnica. Celý okres. Alebo celý kraj.",en:"One hospital. A whole district. Or a whole region."},
+ctaP:{sk:"Platforma je rovnaká pre mestskú polikliniku aj pre okresnú nemocnicu s telemedicínou. Rozdiel je v počte záznamov a v tom, ktoré moduly sú zapnuté — nie v produkte, ktorý treba postaviť odznova.",en:"The platform is the same for a municipal polyclinic and for a district hospital running telemedicine. The difference is the number of records and which modules are on — not a product that has to be built again."},
+ctaFine:{sk:"Identifikačné údaje objednávateľa, mená zdravotníckych pracovníkov aj kontaktné údaje sú v tejto štúdii zámerne nahradené. Zobrazené obrazovky pochádzajú z funkčného systému.",en:"The client's identifying details, clinician names and contact data have been deliberately replaced in this study. The screens shown are from the working system."}
+};
+let lang="en";
+const t=v=>typeof v==="string"?v:v[lang];
+const fig=f=>`<figure><div class="shot"><img src="${f.src}" alt=""></div><figcaption>${t(f)}</figcaption></figure>`;
+function render(){
+ document.documentElement.lang=lang;
+ let h=`<header class="hero"><div class="wrap"><span class="eyebrow">${t(T.eyebrow)}</span><h1>${t(T.h1)}</h1><p class="lede">${t(T.lede)}</p><div class="stats">${T.stats.map(s=>`<div><b>${s.n}</b><span>${t(s)}</span></div>`).join("")}</div></div></header>`;
+ for(const s of T.sections){
+  if(s.tone==="shelf"){h+=`<div class="shelf"><div class="wrap"><figure><div class="shot"><img src="${s.fig.src}" alt=""></div><figcaption>${t(s.fig)}</figcaption></figure></div></div>`;continue}
+  const cls=s.tone==="tint"?"tint":s.tone==="navy"?"navy":"";
+  h+=`<section class="${cls}"><div class="wrap">`;
+  if(s.type==="split"){
+   h+=`<div class="split"><div><span class="eyebrow">${t(s.eyebrow)}</span><h2>${t(s.h2)}</h2>${s.body.map(p=>`<p class="body">${t(p)}</p>`).join("")}</div>`;
+   h+=`<div class="aside"><p class="ct">${t(s.aside.title)}</p><div class="g">${s.aside.items.map(i=>`<p>${t(i)}</p>`).join("")}</div></div></div>`;
+  }else{
+   h+=`<span class="eyebrow">${t(s.eyebrow)}</span><h2>${t(s.h2)}</h2>`;
+   if(s.lead)h+=`<p class="lead">${t(s.lead)}</p>`;
+   if(s.figs)h+=`<div class="figs">${s.figs.map(fig).join("")}</div>`;
+   if(s.cards)h+=`<div class="cards">${s.cards.map(c=>`<div class="c"><h4>${t(c.h)}</h4><p>${t(c.p)}</p></div>`).join("")}</div>`;
+   if(s.rules)h+=`<div class="rules">${s.rules.map(r=>`<div class="r"><h4>${t(r.h)}</h4><p>${t(r.p)}</p></div>`).join("")}</div>`;
+   if(s.cols)h+=`<div class="cols">${s.cols.map(c=>`<div><p class="ct">${t(c.title)}</p><ul>${c.items.map(i=>`<li><i></i><span>${t(i)}</span></li>`).join("")}</ul></div>`).join("")}</div>`;
+  }
+  h+=`</div></section>`;
+ }
+ h+=`<footer class="cta"><div class="wrap"><h2>${t(T.ctaH)}</h2><p>${t(T.ctaP)}</p><p class="fine">${t(T.ctaFine)}</p></div></footer>`;
+ document.getElementById("doc").innerHTML=h;
+ document.getElementById("bSk").className=lang==="sk"?"on":"";
+ document.getElementById("bEn").className=lang==="en"?"on":"";
+}
+document.getElementById("bSk").onclick=()=>{lang="sk";render();window.scrollTo(0,0)};
+document.getElementById("bEn").onclick=()=>{lang="en";render();window.scrollTo(0,0)};
+render();
+</script>
+</body>
+</html>

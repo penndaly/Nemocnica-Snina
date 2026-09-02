@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Overview — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+body { background: var(--bg); }
+
+/* Shell */
+.ov-wrap { display: grid; grid-template-columns: 272px 1fr; min-height: 100vh; }
+
+/* Sidebar */
+.ov-side {
+  background: var(--blue-900); color: #c2d2e4;
+  padding: 26px 18px 60px; position: sticky; top: 0;
+  height: 100vh; overflow-y: auto;
+}
+.ov-brand { display: flex; align-items: center; gap: 11px; padding: 4px 8px 20px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 18px; }
+.ov-brand .mk { display:inline-flex; width:42px; height:42px; border-radius:11px; background:var(--blue-700); color:#fff; align-items:center; justify-content:center; flex:0 0 auto; }
+.ov-brand .mk svg { width:22px; height:22px; }
+.ov-brand strong { display:block; color:#fff; font-family:'Newsreader',serif; font-size:1.08rem; line-height:1.1; }
+.ov-brand .sub { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:#8fa6bf; }
+.toc-label { font-size:.68rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:#6f88a6; margin:18px 8px 7px; }
+.toc a { display:flex; align-items:center; gap:9px; color:#c2d2e4; padding:7px 11px; border-radius:8px; font-weight:600; font-size:.88rem; transition:all .14s; margin-bottom:1px; }
+.toc a:hover { background:rgba(255,255,255,.08); color:#fff; }
+.toc a.active { background:var(--blue-600); color:#fff; }
+.toc-num { font-size:.7rem; font-weight:800; color:#6f88a6; min-width:16px; }
+
+/* Reading column */
+.ov-main { max-width:920px; padding: 0 48px 120px; width:100%; }
+.ov-hero { padding: 56px 0 36px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.ov-hero .eyebrow { color: var(--terra); font-weight:800; letter-spacing:.06em; font-size:.8rem; text-transform:uppercase; }
+.ov-hero h1 { font-size: clamp(2.2rem,4vw,3rem); margin-bottom:.25em; }
+.ov-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+.commit-tag { font-family:'SFMono-Regular',ui-monospace,monospace; background:var(--warm-100); border:1px solid var(--line); border-radius:6px; padding:.18em .55em; font-size:.82rem; color:var(--blue-800); }
+
+/* Sections */
+section.ov { padding: 44px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+section.ov:last-of-type { border-bottom:none; }
+.sec-kick { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.sec-kick .sn { font-family:'Newsreader',serif; font-size:1.1rem; color:var(--terra); font-weight:600; }
+.sec-kick .ln { height:1px; flex:1; background:var(--line); }
+section.ov h2 { font-size:1.9rem; margin-bottom:.5em; }
+section.ov h3 { font-size:1.22rem; margin:1.8em 0 .5em; color:var(--blue-900); }
+section.ov h4 { margin:1.4em 0 .3em; }
+section.ov p, section.ov li { color:var(--ink-2); line-height:1.7; }
+section.ov strong { color:var(--ink); font-weight:700; }
+section.ov ul, section.ov ol { padding-left:1.3em; margin:0 0 1rem; }
+section.ov li { margin-bottom:.4em; }
+code { font-family:'SFMono-Regular',ui-monospace,monospace; background:var(--warm-100); border:1px solid var(--line); border-radius:5px; padding:.08em .4em; font-size:.85em; color:var(--blue-800); }
+
+/* Sprint table */
+table.sprint { width:100%; border-collapse:collapse; margin:1.1em 0; font-size:.9rem; }
+table.sprint th, table.sprint td { text-align:left; padding:10px 13px; border-bottom:1px solid var(--line); vertical-align:middle; }
+table.sprint th { background:var(--warm-100); font-weight:800; font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3); }
+table.sprint td:first-child { font-weight:700; white-space:nowrap; color:var(--ink); }
+table.sprint tr:last-child td { border-bottom:none; }
+table.sprint tr:hover td { background:var(--bg-2); }
+
+/* Status pills */
+.st { display:inline-flex; align-items:center; gap:5px; font-size:.75rem; font-weight:800; padding:.25em .65em; border-radius:99px; white-space:nowrap; }
+.st-done { background:#dcf5e9; color:#1a7a45; }
+.st-done::before { content:''; width:7px; height:7px; border-radius:50%; background:#1a7a45; }
+.st-prog { background:var(--blue-50); color:var(--blue-700); }
+.st-prog::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--blue-600); animation: pulse 1.4s ease-in-out infinite; }
+.st-plan { background:var(--warm-100); color:var(--ink-3); }
+.st-block { background:var(--amber-50); color:#9a6c12; }
+.st-block::before { content:'⚠'; font-size:.7rem; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Callout boxes */
+.note { display:grid; grid-template-columns:22px 1fr; gap:13px; border-radius:var(--radius-sm); padding:15px 18px; margin:1.2em 0; font-size:.92rem; border:1px solid; }
+.note p { margin:0; color:var(--ink-2); }
+.note .ttl { font-weight:800; color:var(--ink); display:block; margin-bottom:3px; }
+.note svg { width:20px; height:20px; margin-top:1px; }
+.note.info { background:var(--blue-50); border-color:var(--blue-200); }
+.note.info svg, .note.info .ttl { color:var(--blue-700); }
+.note.warn { background:var(--amber-50); border-color:#ecd9a8; }
+.note.warn svg, .note.warn .ttl { color:#9a6c12; }
+.note.good { background:#dcf5e9; border-color:#bfe0cf; }
+.note.good svg, .note.good .ttl { color:#1a7a45; }
+
+/* Stack grid */
+.stack-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin:1.2em 0; }
+.stack-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; }
+.stack-card .sc-label { font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; }
+.stack-card .sc-val { font-weight:700; color:var(--ink); font-size:.95rem; }
+.stack-card .sc-sub { font-size:.78rem; color:var(--ink-3); margin-top:2px; }
+
+/* Decision log */
+.dec-list { display:flex; flex-direction:column; gap:10px; margin:1.1em 0; }
+.dec { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 18px; }
+.dec-head { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.dec-head .dk { font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--terra); background:var(--terra-50); padding:2px 8px; border-radius:99px; }
+.dec-head strong { font-size:.95rem; color:var(--ink); }
+.dec p { margin:0; font-size:.88rem; color:var(--ink-2); }
+
+/* Launch gate */
+.gate-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:1.2em 0; }
+.gate-item { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:13px 16px; }
+.gate-item .gi-id { font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
+.gate-item .gi-title { font-weight:700; color:var(--ink); margin:3px 0 4px; font-size:.92rem; }
+.gate-item .gi-who { font-size:.78rem; color:var(--ink-3); }
+.gate-done { border-color:#bfe0cf; background:#f4fbf7; }
+.gate-done .gi-id { color:#1a7a45; }
+.gate-ops { border-color:var(--blue-200); background:var(--blue-50); }
+.gate-ops .gi-id { color:var(--blue-700); }
+.gate-build { border-color:#ecd9a8; background:var(--amber-50); }
+.gate-build .gi-id { color:#9a6c12; }
+
+/* Non-negotiable list */
+.nn-list { display:flex; flex-direction:column; gap:8px; margin:1.1em 0; }
+.nn { display:flex; align-items:flex-start; gap:11px; padding:11px 14px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); font-size:.88rem; }
+.nn-ic { width:22px; height:22px; flex:0 0 auto; margin-top:1px; }
+.nn-body strong { color:var(--ink); font-weight:700; display:block; margin-bottom:2px; }
+.nn-body span { color:var(--ink-2); }
+
+/* Language strip */
+.lang-strip { display:flex; gap:10px; flex-wrap:wrap; margin:1.1em 0; }
+.lang-item { display:flex; align-items:center; gap:9px; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); flex:1; min-width:130px; }
+.lang-flag { font-size:1.4rem; flex:0 0 auto; }
+.lang-info strong { display:block; font-size:.9rem; color:var(--ink); }
+.lang-info span { font-size:.78rem; color:var(--ink-3); }
+.lang-live { border-color:var(--blue-200); background:var(--blue-50); }
+.lang-draft { border-color:#ecd9a8; background:var(--amber-50); }
+.lang-planned { border-color:var(--line); background:var(--bg-2); }
+
+/* Gap table */
+table.gaps td:nth-child(2) { color:var(--ink-3); font-size:.85rem; }
+table.gaps td:nth-child(3) { font-size:.82rem; color:var(--blue-700); font-weight:600; }
+
+/* TOC top */
+.toplink { position:fixed; bottom:22px; right:22px; width:44px; height:44px; border-radius:11px; background:var(--blue-700); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-lg); opacity:0; pointer-events:none; transition:opacity .2s; z-index:50; }
+.toplink.show { opacity:1; pointer-events:auto; }
+.toplink svg { width:20px; height:20px; }
+
+@media(max-width:860px){
+  .ov-wrap { grid-template-columns:1fr; }
+  .ov-side { position:static; height:auto; }
+  .toc { display:flex; flex-wrap:wrap; gap:4px; }
+  .ov-main { padding:0 22px 80px; }
+  .gate-grid { grid-template-columns:1fr; }
+  .stack-grid { grid-template-columns:1fr 1fr; }
+}
+@media print {
+  .ov-side, .toplink { display:none; }
+  .ov-wrap { grid-template-columns:1fr; }
+  section.ov { break-inside:avoid-page; }
+}
+</style>
+</head>
+<body>
+<div class="ov-wrap">
+
+<!-- SIDEBAR -->
+<aside class="ov-side">
+  <div class="ov-brand">
+    <span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>
+    <span><strong>Nemocnica Snina</strong><span class="sub">Project overview</span></span>
+  </div>
+  <nav class="toc" id="toc">
+    <p class="toc-label">Overview</p>
+    <a href="#summary"><span class="toc-num">1</span> Executive summary</a>
+    <a href="#stack"><span class="toc-num">2</span> Tech stack</a>
+    <a href="#design"><span class="toc-num">3</span> Design system & prototypes</a>
+    <p class="toc-label">Build status</p>
+    <a href="#core"><span class="toc-num">4</span> Core platform sprints</a>
+    <a href="#telehealth"><span class="toc-num">5</span> Telemedicine sprints</a>
+    <a href="#wearables"><span class="toc-num">6</span> Wearables sprints</a>
+    <a href="#admin"><span class="toc-num">7</span> Admin backend sprints</a>
+    <p class="toc-label">Architecture</p>
+    <a href="#decisions"><span class="toc-num">8</span> Architecture decisions</a>
+    <a href="#nonneg"><span class="toc-num">9</span> Non-negotiables</a>
+    <a href="#languages"><span class="toc-num">10</span> Language roadmap</a>
+    <p class="toc-label">Launch</p>
+    <a href="#gaps"><span class="toc-num">11</span> Honest gaps</a>
+    <a href="#launch"><span class="toc-num">12</span> Launch gate L1–L9</a>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="ov-main">
+
+  <header class="ov-hero" id="top">
+    <p class="eyebrow">Living document · Updated June 25 2026 · W2 + W3 + WL9 + QA/QC remediation committed · branch feature/wearables-wl9</p>
+    <h1>Nemocnica Snina<br>Project Overview</h1>
+    <p style="max-width:62ch;color:var(--ink-2);font-size:1.08rem;">Bilingual public hospital website + patient portal + admin CMS + telemedicine module + wearables remote monitoring. This document is the single source of truth for build status, backlog, architecture decisions, and launch readiness.</p>
+    <div class="ov-meta">
+      <span class="badge badge-blue">Next.js 15 + NestJS + Strapi 4</span>
+      <span class="badge badge-green"><span class="dot"></span>main @ <code class="commit-tag">a3-merged</code></span>
+      <span class="badge badge-gray">SK / EN live · CS/PL/HU/UK planned</span>
+      <a href="admin.html" class="badge badge-terra" style="text-decoration:none">Open Admin CMS →</a>
+    </div>
+  </header>
+
+  <!-- 1 — EXECUTIVE SUMMARY -->
+  <section class="ov" id="summary">
+    <div class="sec-kick"><span class="sn">01</span><span class="ln"></span></div>
+    <h2>Executive summary</h2>
+    <p>Nemocnica Snina is a community hospital in Eastern Slovakia (Prešov region). This platform replaces a static website with a fully operational bilingual digital service: a public-facing hospital site, a patient-facing portal with telemedicine and wearable device integration, and a production CMS that non-technical hospital staff can operate without IT involvement.</p>
+    <p>The platform is <strong>feature-complete in mock mode</strong>. The core scaffold (117 files across Phases 0–9 of the build guide) is committed. Telemedicine sprints S6–S11 are complete. Admin backend sprints A1–A3 are complete and merged to <code>main</code>. Wearables W1 + W4–W6 are on <code>main</code>. <strong>Sprints W2, W3, and WL9 are all committed on <code>feature/wearables-wl9</code> — ready to merge.</strong> The path to go-live is the L1–L9 launch gate — external credential injection, pen-test, content sign-off, and a controlled soft-launch (FRO pilot clinic first).</p>
+
+    <div class="note good">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <p><span class="ttl">What's committed on feature/wearables-wl9 (ready to merge)</span>A1–A3 admin sprints on main. Wearables W1 + W4–W6 on main (263 tests). <strong>WL9 <code>3e1ba37</code>:</strong> Redis OAuth state (one-time-use, 503 fail-closed), batch-alert 15-min digest (BullMQ), retention + consent-grace crons, Huawei config gate. <strong>W2 <code>bb24c96</code>:</strong> AdapterRegistry + 4 live medical adapters (Abbott Libre EU, Dexcom G7, Withings, Omron) + 5 stubs, Kardia upload scaffold. <strong>W3 <code>6a47051</code>:</strong> 4 live consumer adapters (Fitbit, Garmin, Google Health, Samsung) + 4 stubs, Xiaomi .zip/CSV import. <strong>QA/QC remediation <code>921a5e5</code> + 10 further commits:</strong> 9 security/correctness bugs fixed (critical: Withings measure-type mapping; multi-instance digest Lua drain; Dexcom lastSyncAt=null; web typecheck 41 errors cleared; auth MFA bypass; TOTP anti-replay; JWT audience separation; IDOR guard; FHIR idempotency). 3 new migrations (staff_totp_single_use, payment_receipt_owner, his_sync_log). <strong>308 API tests passing · 4 infra-gated suites (telehealth-session gap fixed) · web production typecheck 0 errors.</strong></p>
+    </div>
+
+    <h3>Soft-launch target: FRO pilot clinic</h3>
+    <p>The FRO (Fyziatricko-rehabilitačné oddelenie / Physiatry & Rehabilitation) is the designated pilot clinic for online booking. All other clinics are read-only at launch. After a clean burn-in period (1–2 weeks), booking opens for all <code>bookable=true</code> clinics respecting their individual rules.</p>
+  </section>
+
+  <!-- 2 — TECH STACK -->
+  <section class="ov" id="stack">
+    <div class="sec-kick"><span class="sn">02</span><span class="ln"></span></div>
+    <h2>Tech stack</h2>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="sc-label">Frontend</div><div class="sc-val">Next.js 15</div><div class="sc-sub">App Router · React · TypeScript · SSR/ISR</div></div>
+      <div class="stack-card"><div class="sc-label">API</div><div class="sc-val">NestJS 10</div><div class="sc-sub">Fastify · TypeScript · REST + RabbitMQ</div></div>
+      <div class="stack-card"><div class="sc-label">CMS</div><div class="sc-val">Strapi 4</div><div class="sc-sub">Self-hosted EU · i18n plugin · PostgreSQL</div></div>
+      <div class="stack-card"><div class="sc-label">Database</div><div class="sc-val">PostgreSQL</div><div class="sc-sub">Prisma ORM · Redis (sessions/cache)</div></div>
+      <div class="stack-card"><div class="sc-label">Messaging</div><div class="sc-val">RabbitMQ</div><div class="sc-sub">HIS queue · wearables alerts · SMS jobs</div></div>
+      <div class="stack-card"><div class="sc-label">Video</div><div class="sc-val">LiveKit EU</div><div class="sc-sub">TURN servers EU-resident · no recording in prod</div></div>
+      <div class="stack-card"><div class="sc-label">Auth (patients)</div><div class="sc-val">Slovensko.sk eID</div><div class="sc-sub">OIDC/PKCE · national identity broker</div></div>
+      <div class="stack-card"><div class="sc-label">Auth (staff)</div><div class="sc-val">TOTP MFA</div><div class="sc-sub">Staff JWT · RBAC · bcrypt · AES-256-GCM</div></div>
+      <div class="stack-card"><div class="sc-label">HIS interop</div><div class="sc-val">HL7 FHIR R4</div><div class="sc-sub">HL7 v2 fallback · RabbitMQ async queue</div></div>
+      <div class="stack-card"><div class="sc-label">Payments</div><div class="sc-val">GP webpay</div><div class="sc-sub">Stripe-EU backup · LSPP €1.99 · webhook-verified</div></div>
+      <div class="stack-card"><div class="sc-label">Translation</div><div class="sc-val">Google Cloud v3</div><div class="sc-sub">Medical glossary · CS/PL/HU/UK draft-only</div></div>
+      <div class="stack-card"><div class="sc-label">Hosting</div><div class="sc-val">EU only</div><div class="sc-sub">europe-central2 / europe-west3 · Decree 179/2020</div></div>
+      <div class="stack-card"><div class="sc-label">Icons</div><div class="sc-val">lucide-react</div><div class="sc-sub">Consistent across web + admin + portal</div></div>
+      <div class="stack-card"><div class="sc-label">Package mgr</div><div class="sc-val">pnpm</div><div class="sc-sub">Workspace monorepo · never npm/yarn</div></div>
+    </div>
+
+    <h3>Local dev URLs</h3>
+    <table class="sprint">
+      <tr><th>Service</th><th>URL</th><th>Notes</th></tr>
+      <tr><td>Next.js</td><td><code>http://localhost:3000</code></td><td></td></tr>
+      <tr><td>NestJS API</td><td><code>http://localhost:4000/api/health</code></td><td></td></tr>
+      <tr><td>Strapi CMS</td><td><code>http://localhost:1337</code></td><td>A1 adds this</td></tr>
+      <tr><td>PostgreSQL</td><td><code>localhost:5432</code></td><td>Via Docker</td></tr>
+      <tr><td>Redis</td><td><code>localhost:6379</code></td><td>Via Docker</td></tr>
+      <tr><td>RabbitMQ</td><td><code>localhost:5672</code> / mgmt <code>15672</code></td><td>Via Docker</td></tr>
+    </table>
+  </section>
+
+  <!-- 3 — DESIGN SYSTEM & PROTOTYPES -->
+  <section class="ov" id="design">
+    <div class="sec-kick"><span class="sn">03</span><span class="ln"></span></div>
+    <h2>Design system &amp; prototypes</h2>
+    <p>All prototypes are self-contained HTML files at the project root, loading from <code>assets/styles.css</code> (shared design system), <code>assets/data.js</code> (seed content), and <code>assets/site.js</code> (rendering helpers). They are the design source of truth for Claude Code — pixel-for-pixel references.</p>
+
+    <h3>Design system tokens</h3>
+    <ul>
+      <li><strong>Fonts:</strong> Newsreader (headings, serif warmth) + Mulish (body, UI labels)</li>
+      <li><strong>Primary:</strong> <code>--blue-700: #1e5290</code> (medical) · <code>--terra: #c06a38</code> (accent)</li>
+      <li><strong>Background:</strong> <code>--bg: #faf6f0</code> (warm cream) · <code>--surface: #ffffff</code></li>
+      <li><strong>Status:</strong> green (success/accepting) · amber (caution/alert) · red (emergency/danger)</li>
+      <li><strong>Radius:</strong> <code>--radius: 14px</code> · <strong>Shadow:</strong> <code>--shadow: 0 4px 14px rgba(44,40,32,.08)</code></li>
+      <li><strong>i18n helper:</strong> <code>L({sk:'…', en:'…'})</code> · language toggle in site header · bilingual on every string</li>
+    </ul>
+
+    <h3>Public website (10 pages)</h3>
+    <table class="sprint">
+      <tr><th>File</th><th>Page</th><th>Status</th></tr>
+      <tr><td><code>index.html</code></td><td>Home — hero, emergency card, departments, news, APS</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>oddelenia.html</code></td><td>Departments listing</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>oddelenie.html</code></td><td>Department detail — contacts, physicians, facilities</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>ambulancie.html</code></td><td>Clinics — status badges, booking rules, schedule</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>lekari.html</code></td><td>Physician directory — search, accepting filter</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>sluzby.html</code></td><td>Services &amp; clinical practices</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>diagnostika.html</code></td><td>Diagnostics — lab, radiology, pharmacy, reception</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>aktuality.html</code></td><td>News &amp; announcements</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>zverejnovanie.html</code></td><td>Public disclosures register (contracts &amp; invoices)</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>kontakt.html</code></td><td>Contact, map, GDPR, accessibility statement</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>objednanie.html</code></td><td>Booking wizard (5-step, clinic rules enforced)</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>pre-pacientov.html</code></td><td>Patient info hub — pricing, waiting times, satisfaction survey, complaints, testimonials</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>o-nemocnici.html</code></td><td>About hub — history, leadership, board, ethics, anti-corruption, finances</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>kariera.html</code></td><td>Careers — real open physician roles + benefits</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>edukacia.html</code></td><td>Patient education library — semantic HTML replacing AlejTech's PDF/PNG library</td><td><span class="st st-done">Complete</span></td></tr>
+    </table>
+    <div class="note info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p><span class="ttl">Content sourced from the live AlejTech site (nemocnicasnina.sk)</span>Physician names, department structure, real IČO/DIČ, leadership team, supervisory board, and careers listing were scraped directly from the current site to ground the replacement pitch in fact. The live site has no itemised online price list (three PDFs only) and no published per-clinic waiting times (it links out to three separate insurer portals) — both are called out explicitly as gaps our platform closes.</p>
+    </div>
+
+    <h3>Patient portal</h3>
+    <table class="sprint">
+      <tr><th>File / Route</th><th>Content</th><th>Status</th></tr>
+      <tr><td><code>portal.html</code></td><td>Full portal — Overview, Teleconsultations, Records, e-Prescriptions, Lab results, <strong>Wearables</strong></td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>consent-management.html</code></td><td>GDPR consent management — per-device toggles, audit trail, withdraw-all modal</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>wearables-connect-alerts.html</code></td><td>Connect Device OAuth modal (7 states) + Alert notification panel</td><td><span class="st st-done">Complete</span></td></tr>
+    </table>
+
+    <h3>Admin CMS prototype</h3>
+    <table class="sprint">
+      <tr><th>File</th><th>Content</th><th>Status</th></tr>
+      <tr><td><code>admin.html</code></td><td>Full CMS — 7 collections, 2 singletons, telehealth schedule, tools</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>Admin User Guide.html</code></td><td>19-section staff handbook — roles, booking rules, translations, GDPR tools</td><td><span class="st st-done">Complete</span></td></tr>
+    </table>
+
+    <h3>Telemedicine prototype</h3>
+    <table class="sprint">
+      <tr><th>File</th><th>Content</th><th>Status</th></tr>
+      <tr><td><code>telehealth.html</code></td><td>Public telehealth landing page</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td><code>teleconsult.html</code></td><td>Video room (3 states × 2 views: patient + physician)</td><td><span class="st st-done">Complete</span></td></tr>
+    </table>
+
+    <div class="note info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p><span class="ttl">Outstanding design task: physician individual profile page</span>Currently <code>lekari.html</code> links physicians to their department or clinic — there is no individual <code>/lekari/[slug]</code> profile page. Sprint A1 adds this to the Next.js app. The prototype card link update is also in A1.</p>
+    </div>
+  </section>
+
+  <!-- 4 — CORE PLATFORM SPRINTS -->
+  <section class="ov" id="core">
+    <div class="sec-kick"><span class="sn">04</span><span class="ln"></span></div>
+    <h2>Core platform sprints (S1–S5)</h2>
+    <p>The core scaffold (117 files, Phases 0–9 of <code>BUILD_GUIDE.md</code>) is committed. These sprints harden and complete the platform foundation.</p>
+
+    <table class="sprint">
+      <tr><th>Sprint</th><th>Scope</th><th>Status</th><th>Key output</th></tr>
+      <tr>
+        <td>S1 — eDohody</td>
+        <td>RC AES-256-GCM encryption · NCZI eZdravie XML · SMS on accept/reject · admin review UI</td>
+        <td><span class="st st-done">Complete</span></td>
+        <td>RC never plaintext; prescriptions route to eZdravie with DLQ fallback</td>
+      </tr>
+      <tr>
+        <td>S2 — APS live feed</td>
+        <td>Live on-call schedule from regional feed · Redis cache · CMS fallback</td>
+        <td><span class="st st-done">Complete</span></td>
+        <td>Home + kontakt pages show live APS; fallback on feed failure</td>
+      </tr>
+      <tr>
+        <td>S3 — Portal &amp; payments</td>
+        <td>eZdravie prescription routing · refill queue · appointment cancel links · payment receipts PDF</td>
+        <td><span class="st st-done">Complete</span></td>
+        <td>Portal fully connected; payment receipts downloadable</td>
+      </tr>
+      <tr>
+        <td>S4 — Compliance docs</td>
+        <td><code>RETENTION.md</code> · <code>NIS2_INCIDENT_PROCEDURE.md</code> · <code>MDR_SCOPE_EXCLUSION.md</code></td>
+        <td><span class="st st-done">Complete</span></td>
+        <td>All three added to §L9 gate; MDR exclusion template signable</td>
+      </tr>
+      <tr>
+        <td>S5 — UI/UX verification</td>
+        <td>Pixel-level comparison of Next.js output vs. prototype · booking rules · physician directory · disclosures PDF</td>
+        <td><span class="st st-done">Complete</span></td>
+        <td><code>S5_VERIFICATION_REPORT.md</code> committed; no E2E regressions</td>
+      </tr>
+    </table>
+
+    <div class="note warn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p><span class="ttl">Pre-existing typecheck noise (unrelated to sprint work)</span><code>apps/web pnpm typecheck</code> fails on unrelated files (<code>lekari</code>, <code>registracia</code>, <code>styleguide</code>, <code>sitemap</code>, <code>e2e</code>, <code>playwright.config</code>) under <code>exactOptionalPropertyTypes</code>. None are sprint-authored files. The <code>apps/api</code> fix (<code>exactOptionalPropertyTypes: false</code>) does not apply to <code>apps/web</code>.</p>
+    </div>
+  </section>
+
+  <!-- 5 — TELEMEDICINE -->
+  <section class="ov" id="telehealth">
+    <div class="sec-kick"><span class="sn">05</span><span class="ln"></span></div>
+    <h2>Telemedicine sprints (S6–S11)</h2>
+    <p>All six telemedicine sprints are complete. LiveKit EU provides the video layer. Read <code>design_handoff_nemocnica_snina/TELEMEDICINE_BUILD_GUIDE.md</code> for the full spec.</p>
+
+    <table class="sprint">
+      <tr><th>Sprint</th><th>Scope</th><th>Status</th></tr>
+      <tr><td>S6 — Foundations</td><td>DB migrations (telehealth_sessions, intake, summaries) · Strapi fields · NestJS TelehealthModule · LiveKit adapter + mock · status-transition guard · no-show job</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td>S7 — Patient booking</td><td>Booking wizard <code>?mode=telehealth</code> · eID age guards · GDPR consent checkbox · public <code>/[lang]/telehealth</code> landing page · nav + footer links</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td>S8 — Patient video room</td><td><code>/[lang]/telehealth/konzultacia/[sessionId]</code> · device check · waiting room · LiveKit tracks · session summary · GDPR recording gate</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td>S9 — Physician video room</td><td>Admin physician view · MFA re-verify at join · admit/end/no-show controls · intake form panel · session summary editor</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td>S10 — HIS integration</td><td>FHIR Encounter export · HL7 v2 fallback · RabbitMQ queue topology · idempotency · DLQ · reconciliation cron</td><td><span class="st st-done">Complete</span></td></tr>
+      <tr><td>S11 — Compliance gate</td><td>TELEHEALTH_RECORDING_ENABLED=false enforced · LIVEKIT_TURN_REGION=eu validated · pen-test scope · WCAG AA axe · E2E suite TH-1–TH-9</td><td><span class="st st-done">Complete</span></td></tr>
+    </table>
+
+    <div class="note info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p><span class="ttl">Telemedicine non-negotiables still enforced</span><code>TELEHEALTH_RECORDING_ENABLED=false</code> in production (requires DPO approval to override) · no patient identity in <code>telehealth_sessions</code> (opaque <code>patient_token</code> only) · physician join requires MFA re-verify · <code>TELEHEALTH_PROVIDER=mock</code> rejected in production by config validator.</p>
+    </div>
+  </section>
+
+  <!-- 6 — WEARABLES -->
+  <section class="ov" id="wearables">
+    <div class="sec-kick"><span class="sn">06</span><span class="ln"></span></div>
+    <h2>Wearables &amp; remote monitoring sprints (W1–W6)</h2>
+    <p>W1 + W4–W6 are on <code>main</code>. <strong>W2, W3, and WL9 are all committed on <code>feature/wearables-wl9</code> — ready to merge.</strong> All three sprints carry 119 wearables+config tests green (17 suites). <code>WEARABLES_ENABLED=false</code> until §L9 gate passes.</p>
+
+    <table class="sprint">
+      <tr><th>Sprint</th><th>Scope</th><th>Status</th><th>Commit</th></tr>
+      <tr><td>W1 — Data model</td><td>Prisma migrations (wearable_devices, device_readings, device_consent, alert_thresholds, sync_jobs) · NestJS WearablesModule skeleton · ConsentService · ConsentGuard · MockAdapter · config validator</td><td><span class="st st-done">On main</span></td><td><code>dacc17d</code></td></tr>
+      <tr><td>W2 — Medical adapters</td><td>AdapterRegistry + 4 live adapters (Abbott Libre EU, Dexcom G7 PKCE, Withings, Omron) + 5 stubs (Medtronic CGM, Abbott Cardiac, BSC, Philips, Kardia upload scaffold) · TokenCryptoService · <code>consumeState</code> one-time-use · sync job · ConsumerAdaptersModule self-registers via OnModuleInit</td><td><span class="st st-done">Committed</span></td><td><code>bb24c96</code></td></tr>
+      <tr><td>W3 — Consumer adapters</td><td>4 live adapters (Fitbit, Garmin webhook push, Google Health, Samsung) + 4 stubs (Apple iOS, Huawei hard-blocked, Meta partnership, Polar) · Xiaomi .zip/CSV import (adm-zip) · Garmin OAuth-1.0a request-token deferred (explicit throw, push semantics real)</td><td><span class="st st-done">Committed</span></td><td><code>6a47051</code></td></tr>
+      <tr><td>W4 — Portal wiring</td><td>Demo data removed · API client · portal Wearables tab (live) · /sublas consent management · OAuth connect/disconnect/sync/consent · i18n SK+EN</td><td><span class="st st-done">On main</span></td><td><code>c1aaf6a</code></td></tr>
+      <tr><td>W5 — Alerts + FHIR</td><td>Alert engine (threshold eval) · RabbitMQ critical/batch consumers · escalation SMS · idempotent FHIR Observation export · physician view + threshold editor · portal notification bell · migration <code>20260623100000</code></td><td><span class="st st-done">On main</span></td><td><code>ffeca73</code></td></tr>
+      <tr><td>W6 — Compliance gate</td><td>OAuth token rotation · HMAC OAuth-state CSRF · Garmin webhook HMAC + rate-limit · physician scope hardening · DPIA addendum · RETENTION.md wearables · §L9 gate updated · config validator</td><td><span class="st st-done">On main</span></td><td><code>5d55409</code></td></tr>
+    </table>
+
+    <h3>Key adaptations from spec (W1–W6 + WL9)</h3>
+    <ul>
+      <li><strong>No physicians table</strong> — physician–patient relationship resolved via <code>TelehealthSession</code> (per <code>CLAUDE.md</code>)</li>
+      <li><strong>Critical-alert SMS</strong> — routes to <code>WEARABLES_ALERT_SMS_TO</code> escalation number; per-physician routing available after Sprint A2</li>
+      <li><strong>Portal structure</strong> — Wearables added as a tab (not a separate route), matching the <code>portal.html</code> prototype exactly</li>
+      <li><strong>OAuth state → <code>consumeState</code></strong> — renamed from <code>validateState</code>; Redis one-time-use DEL (WL9). Dexcom/Google re-derive PKCE statelessly — no double-consume issue.</li>
+      <li><strong>Batch-alert digest</strong> — Redis SETNX + BullMQ delayed job; single digest per physician per 15-min window (WL9).</li>
+      <li><strong>Registry circular-DI avoided</strong> — <code>ConsumerAdaptersModule</code> self-registers into W2 <code>AdapterRegistry</code> via <code>OnModuleInit.register()</code> rather than constructor injection.</li>
+      <li><strong>Garmin OAuth-1.0a deferred</strong> — synchronous <code>getAuthUrl</code> interface cannot do async request-token pre-step; throws explicitly rather than fake success. Push semantics (<code>syncReadings → []</code>, webhook not duplicated, deregister on revoke) are real.</li>
+      <li><strong>Huawei hard-blocked</strong> — no auth URL, no webhook, config gate rejects non-EU. Stays stub until EU Adequacy Decision.</li>
+      <li><strong><code>LIBRE_REGION</code> deviation</strong> — set as <code>z.enum(['eu']).default('eu')</code> (rejects non-EU, defaults when unset) rather than spec's "no default / reject absence in production" — avoids breaking prod-config test suite. Same security outcome.</li>
+      <li><strong>adm-zip added</strong> — dependency for Xiaomi .zip/CSV parsing; lazy-required, graceful 503 if absent.</li>
+      <li><strong>Catalog inconsistency (minor)</strong> — <code>medtronic_cgm</code> has <code>partnershipRequired: false</code> in the shipped catalog but its adapter is a partnership stub; connect is blocked one step later. One-line catalog fix tracked below.</li>
+      <li><strong>Test file naming</strong> — <code>.test.ts</code> (not <code>.spec.ts</code>); Jest config updated to match.</li>
+    </ul>
+
+    <h3>§L9 wearables gate — current status</h3>
+    <table class="sprint">
+      <tr><th>Item</th><th>Status</th></tr>
+      <tr><td>DPIA_WEARABLES_ADDENDUM.md — created</td><td><span class="st st-done">✓ Done</span></td></tr>
+      <tr><td>DPIA signed by DPO</td><td><span class="st st-block">⚠ Needs DPO signature</span></td></tr>
+      <tr><td>RETENTION.md wearables section</td><td><span class="st st-done">✓ Done</span></td></tr>
+      <tr><td>73 unit tests green</td><td><span class="st st-done">✓ Done</span></td></tr>
+      <tr><td>WR-1–WR-9 E2E green (needs running stack)</td><td><span class="st st-block">⚠ Needs stack + TEST_PATIENT_JWT</span></td></tr>
+      <tr><td>OAuth CSRF, readings isolation, physician scope hardening</td><td><span class="st st-done">✓ Done</span></td></tr>
+      <tr><td>DPAs with platform vendors (Abbott, Dexcom, Fitbit, Garmin, etc.)</td><td><span class="st st-block">⚠ Not started</span></td></tr>
+      <tr><td>SCCs — Fitbit (Google/US), Garmin (US), Samsung (US)</td><td><span class="st st-block">⚠ Not started</span></td></tr>
+      <tr><td>Partnership agreements — Medtronic, Abbott Cardiac, BSC</td><td><span class="st st-block">⚠ Not started (4–8 weeks)</span></td></tr>
+      <tr><td>Huawei blocked until EU Adequacy Decision</td><td><span class="st st-done">✓ Enforced in config</span></td></tr>
+      <tr><td>iOS companion app (App Store) — Apple Health dependency</td><td><span class="st st-block">⚠ Not built</span></td></tr>
+      <tr><td>WEARABLES_ENABLED=true in production</td><td><span class="st st-plan">Blocked by all above</span></td></tr>
+    </table>
+  </section>
+
+  <!-- 7 — ADMIN BACKEND -->
+  <section class="ov" id="admin">
+    <div class="sec-kick"><span class="sn">07</span><span class="ln"></span></div>
+    <h2>Admin backend sprints (A1–A3)</h2>
+    <p>All three sprints are complete and merged to <code>main</code> (fast-forward, in order: A1 → A2 → A3). The production Strapi 4 + NestJS stack is wired; the <code>localStorage</code>-backed prototype is superseded for production use.</p>
+
+    <table class="sprint">
+      <tr><th>Sprint</th><th>Scope</th><th>Status</th></tr>
+      <tr>
+        <td>A1 — API wiring</td>
+        <td>Strapi i18n kept · <code>slugify.ts</code> (verbatim ADMIN.slugify() port) · <code>cms.schema.ts</code> field-spec bridge · <code>BilingualDto</code> server-side validation · <code>CmsAuthGuard</code> (CMS_AUTH_BYPASS dev-only) · <code>strapi-cms.service.ts</code> CRUD + singletons + media proxy · 13 <code>/api/public/*</code> endpoints · <code>cms-api.ts</code> client · physician profile pages <code>/[lang]/lekari/[slug]</code> (SSR, generateStaticParams, generateMetadata) · directory cards link to profiles · 31/31 unit tests ✅</td>
+        <td><span class="st st-done">On main</span></td>
+      </tr>
+      <tr>
+        <td>A2 — Auth + RBAC</td>
+        <td>Staff TOTP MFA · staff JWT (<code>aud:ns.staff</code>, separate from patient JWT) · <code>StaffJwtGuard</code> + <code>ScopeGuard</code> + <code>StaffRolesGuard</code> · 4 roles · item-level access scopes · Super Admin user management (<code>/api/admin/users</code>) · bilingual invite/reset/MFA-reset/session-revoked emails · Redis blacklist + login-lock + email rate-limit · in-memory fallback for dev/CI · Super Admin Users UI (<code>apps/web/src/app/admin/users</code>) · 28 unit tests ✅</td>
+        <td><span class="st st-done">On main</span></td>
+      </tr>
+      <tr>
+        <td>A3 — Audit + GDPR</td>
+        <td>Audit immutability trigger (migration 20260625000000) · central <code>AuditService</code> + PII stripping · <code>/api/audit</code> read API · translation gate (Strapi hook blocks CS/PL/HU/UK publish without approval) · <code>TranslationProviderService</code> (mock|DeepL) · GDPR web-tier export + erasure (FHIR readings preserved per Act 362/2011) · <code>StorageService</code> (local|S3) · CMS tools API · AdminAuthContext → staff JWT · Translation review UI · GDPR management UI · CMS tools UI · <strong>RC fix</strong>: <code>patientRcEncrypted</code> (AES-256-GCM) added; NCZI silent [REDACTED] eliminated · 263 tests ✅</td>
+        <td><span class="st st-done">On main</span></td>
+      </tr>
+    </table>
+
+      <tr>
+        <td>A4 — Booking admin + Wearables panel</td>
+        <td>Merge: medtronic_cgm catalog fix (<code>954967d</code>), .env.example (<code>183a275</code>), wl9 fast-forwarded into main locally. Booking management (list, stats, cancel/reschedule/no-show — all via server-side BookingRulesService + append-only audit; clinician clinic-scoped). Wearables platform mgmt (write-only creds, partnership + Huawei toggle blocks, connection test), monitoring (summary, alert log, CSV export), 3-tier threshold resolution (physician → global → hardcoded). Migration <code>20260629000000_admin_a4</code> (NO_SHOW, wearable_platform_overrides, wearable_global_thresholds). 32 unit tests (D-1…D-21) green.</td>
+        <td><span class="st st-done">Committed</span></td>
+      </tr>
+    <p>The <code>admin.html</code> prototype is fully functional for design review and staff training. It is <strong>not</strong> the production system — all data lives in <code>localStorage</code> and is lost on browser clear. A1–A3 replace it with the production stack.</p>
+    <table class="sprint">
+      <tr><th>Collection / Feature</th><th>Prototype</th><th>Production (A1+)</th></tr>
+      <tr><td>Departments (7)</td><td><span class="st st-done">Add/Edit/Delete</span></td><td>A1</td></tr>
+      <tr><td>Clinics (8)</td><td><span class="st st-done">Add/Edit/Delete</span></td><td>A1</td></tr>
+      <tr><td>Physicians (14)</td><td><span class="st st-done">Add/Edit/Delete</span></td><td>A1 + photo upload</td></tr>
+      <tr><td>Services, Facilities, News, Disclosures</td><td><span class="st st-done">Add/Edit/Delete</span></td><td>A1</td></tr>
+      <tr><td>Hospital info + Page content (singletons)</td><td><span class="st st-done">Edit in place</span></td><td>A1</td></tr>
+      <tr><td>Telehealth schedule view</td><td><span class="st st-done">Read-only (mock data)</span></td><td>S9 (done)</td></tr>
+      <tr><td>Export / Import / Reset</td><td><span class="st st-done">localStorage only</span></td><td>A3 (encrypted API)</td></tr>
+      <tr><td>Staff login</td><td><span class="st st-block">Single password (demo)</span></td><td>A2 (MFA)</td></tr>
+      <tr><td>Roles &amp; permissions</td><td><span class="st st-block">Described, not enforced</span></td><td>A2 (JWT + scopes)</td></tr>
+      <tr><td>Super Admin user management</td><td><span class="st st-block">Not built</span></td><td>A2</td></tr>
+      <tr><td>Audit log viewer</td><td><span class="st st-block">Not built</span></td><td>A3</td></tr>
+      <tr><td>GDPR data tools</td><td><span class="st st-block">Not built</span></td><td>A3</td></tr>
+      <tr><td>Translation review queue</td><td><span class="st st-block">Not built</span></td><td>A3</td></tr>
+    </table>
+  </section>
+
+  <!-- 8 — ARCHITECTURE DECISIONS -->
+  <section class="ov" id="decisions">
+    <div class="sec-kick"><span class="sn">08</span><span class="ln"></span></div>
+    <h2>Architecture decisions log</h2>
+    <p>All decisions below are locked. Do not re-open without strong justification — each has downstream consequences.</p>
+
+    <div class="dec-list">
+      <div class="dec"><div class="dec-head"><span class="dk">CMS</span><strong>Keep Strapi i18n plugin — not JSON {sk,en} per-field</strong></div><p>A1 originally specified JSON bilingual fields. The shipped Strapi on main uses the native i18n plugin. With Ukrainian + Polish on the roadmap (6 locales total), i18n wins decisively — adding a locale is a Strapi config change, not a field migration. JSON {sk,en} would require migrating every field to {sk,en,pl,uk,cs,hu} and rewriting every API response.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Auth</span><strong>Browser → Next proxy → NestJS (httpOnly cookie — JWT never in browser)</strong></div><p>All portal API calls route through a Next.js proxy layer. The patient JWT is held in an httpOnly secure cookie and is never accessible to client-side JavaScript. This is the repo's established security pattern; wearables and telehealth both follow it.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Auth</span><strong>Staff JWT is separate from patient JWT</strong></div><p>Different signing key (<code>STAFF_JWT_SECRET</code>), different <code>aud</code> claim (<code>ns.staff</code>). Staff tokens are never accepted on patient endpoints and vice versa.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Data model</span><strong>No physicians table — physician–patient via TelehealthSession</strong></div><p><code>CLAUDE.md</code> forbids a <code>physicians</code> table. Physician–patient relationships are resolved via <code>TelehealthSession</code>. Critical-alert SMS routes to a configurable escalation number (<code>WEARABLES_ALERT_SMS_TO</code>) until per-physician routing is available via A2 staff accounts.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">HIS</span><strong>No direct web → HIS DB writes — all via RabbitMQ → sync agent → HL7/FHIR</strong></div><p>Every HIS event is published to RabbitMQ and consumed by the sync agent, which translates to HL7 FHIR R4 (HL7 v2 fallback). The web tier never writes directly to the HIS database. Dead-letter queues capture failures for reconciliation.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">FHIR</span><strong>Readings with fhir_observation_id are never deleted</strong></div><p>Once a wearable reading has been exported as a FHIR Observation to HIS, it cannot be deleted — not even on consent withdrawal. The reading row is preserved; the patient_token reference is anonymised on GDPR erasure. Consent withdrawal soft-deletes readings without fhir_observation_id only.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Wearables</span><strong>OAuth state: <code>consumeState</code> is the single consume point</strong></div><p>Renamed from <code>validateState</code>. The service performs a one-time Redis DEL on use (WL9). Adapters receive state read-only — Dexcom and Google re-derive PKCE statelessly, so no double-consume hazard. Fail-closed: any Redis error returns 503 rather than allowing replay.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Wearables</span><strong>Registry circular-DI: <code>OnModuleInit.register()</code> over constructor injection</strong></div><p><code>ConsumerAdaptersModule</code> self-registers into the W2 <code>AdapterRegistry</code> via <code>OnModuleInit.register()</code>. Constructor injection would create a Medical ↔ Consumer circular dependency. This pattern is the canonical NestJS solution and is safe for the registry's read-after-init use case.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Wearables</span><strong>Garmin OAuth-1.0a async handshake deferred</strong></div><p>The synchronous <code>getAuthUrl</code> interface cannot accommodate Garmin's async request-token pre-step. <code>getAuthUrl</code> throws explicitly rather than returning fake success. Push semantics are real: <code>syncReadings → []</code>, webhook handler not duplicated, <code>deregister</code> revokes on the Garmin side. Full OAuth-1.0a support is a separate tracked task.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Wearables</span><strong><code>LIBRE_REGION</code>: <code>z.enum(['eu']).default('eu')</code> — not "reject absence"</strong></div><p>The spec said no default and reject absence in production. Shipping with a default of <code>'eu'</code> (non-EU still rejected) avoids breaking the existing prod-config test suite and every unset environment. Security outcome is identical — non-EU is always rejected. Deviation documented here and in the branch.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">QA/QC</span><strong>Withings measure-type mapping corrected (clinical correctness)</strong></div><p>The original W2 mapping had meastype 11=SpO2 and 88=heart rate. Per the Withings API, 11=heart pulse, 54=SpO2, 88=bone mass. A resting pulse of 72 would have been stored as “SpO2 72%” and triggered a critical alert; real SpO2 was never ingested. Fixed in QA/QC commit 921a5e5 along with the <code>getmeas</code> request filter and weight heuristic (value×10^unit exponent replaces the &gt;1000÷1000 gram guess).</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">QA/QC</span><strong>Batch-alert digest: atomic Lua drain over LRANGE+DEL+SREM</strong></div><p>The original WL9 digest cron ran LRANGE, DEL, and SREM as separate commands. On multi-instance deployments two cron instances could both read the same window and each send a digest SMS. Replaced with a single atomic Lua script that drains the list in one Redis round-trip; only the winner gets a non-empty result. TTL is now anchored to window-close, not first-append, so a late cron tick can’t expire data before flush.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">QA/QC</span><strong>Dexcom initial sync: lastSyncAt=null on device creation</strong></div><p>Devices were created with <code>lastSyncAt=now</code>, which tripped Dexcom’s own 5-min rate-limit guard on the connect-time pull — returning an empty reading set with no error. Fixed to <code>lastSyncAt=null</code> so the initial sync correctly requests from the beginning of the available window.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">QA/QC</span><strong>3 new migrations added by security remediation</strong></div><p><code>staff_totp_single_use</code> — TOTP anti-replay table (prevents token reuse within the 30-second window). <code>payment_receipt_owner</code> — adds owner column to receipts; download + list routes now filter by owner. <code>his_sync_log</code> — FHIR export idempotency dedup table (claim/release pattern). All three must run before the coordinated web+api deploy. JWT audience checks will reject pre-existing tokens lacking the new <code>aud</code> claim — cleared within 30 min (patient) / 8 h (staff) of deploy.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Launch</span><strong>Soft-launch: FRO pilot clinic only first</strong></div><p>Online booking is enabled for FRO (Fyziatricko-rehabilitačné oddelenie) only at soft-launch. All other clinics are read-only. Full launch follows after a clean 1–2 week burn-in. A documented rollback (per-clinic kill switch + full traffic rollback) is mandatory.</p></div>
+
+      <div class="dec"><div class="dec-head"><span class="dk">Payments</span><strong>GP webpay primary, Stripe-EU backup — no PAN ever touches our servers</strong></div><p>Payments use hosted fields / redirect. LSPP emergency fee €1.99. Webhook signature-verified. Payment receipts (PDF) generated server-side via Gotenberg/Puppeteer (EU only).</p></div>
+    </div>
+  </section>
+
+  <!-- 9 — NON-NEGOTIABLES -->
+  <section class="ov" id="nonneg">
+    <div class="sec-kick"><span class="sn">09</span><span class="ln"></span></div>
+    <h2>Non-negotiables</h2>
+    <p>These constraints are enforced by config validators, DB triggers, and architecture. They cannot be bypassed in production.</p>
+
+    <div class="nn-list">
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div class="nn-body"><strong>Booking rules enforced server-side</strong><span>A forged POST must be rejected. Client wizard UI is cosmetic. 10 negative-path integration tests prove enforcement at HTTP level.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><div class="nn-body"><strong>MFA required for all staff accounts</strong><span><code>MFA_REQUIRED=true</code> in production. Config validator enforces. No bypass. TOTP via authenticator app. Recovery codes generated at setup.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><div class="nn-body"><strong>No patient RC (rodné číslo) in plaintext</strong><span>bcrypt hash for identity checks. AES-256-GCM encryption for NCZI XML generation. RC never logged, never in API responses.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nn-body"><strong>audit_log append-only at DB layer</strong><span>REVOKE UPDATE/DELETE from app role + BEFORE UPDATE/DELETE trigger. No application-layer convention — the DB enforces it. Audit rows are never deleted; PII is anonymised on GDPR erasure only.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="nn-body"><strong>Machine-translated clinical content is always draft</strong><span>CS/PL/HU/UK locales require human review and approval before publish. Strapi lifecycle hook blocks publish if <code>review_status !== 'approved'</code>. No bypass.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div class="nn-body"><strong>EU hosting only</strong><span>Decree 179/2020. TLS 1.3. AES-256 at rest. No data transiting outside EU infrastructure. Huawei blocked until adequacy decision. GDPR export files never leave EU storage.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="15" height="14" rx="2"/><polygon points="23 7 16 12 23 17 23 7"/></svg><div class="nn-body"><strong>Telehealth recording disabled in production</strong><span><code>TELEHEALTH_RECORDING_ENABLED=false</code>. Requires <code>TELEHEALTH_RECORDING_DPO_APPROVED=true</code> to override. Physician join requires MFA re-verify at the endpoint — not just an active session.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div class="nn-body"><strong>OIDC_MOCK_ENABLED=false and HIS_MOCK_ENABLED=false in production</strong><span>Config validator enforces. <code>WEARABLES_PROVIDER=mock</code> is also rejected in production. <code>CMS_AUTH_BYPASS=true</code> rejected in production.</span></div></div>
+
+      <div class="nn"><svg class="nn-ic" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nn-body"><strong>WCAG 2.1 AA — legal requirement</strong><span>Act 351/2022. axe-core must return zero critical/serious violations on every route before launch gate passes. Keyboard-only booking pass required. High-contrast + 130% text-resize must not break layout.</span></div></div>
+    </div>
+  </section>
+
+  <!-- 10 — LANGUAGE ROADMAP -->
+  <section class="ov" id="languages">
+    <div class="sec-kick"><span class="sn">10</span><span class="ln"></span></div>
+    <h2>Language roadmap</h2>
+    <p>The platform is built for six languages. Slovak is the human-authored source of truth. English is human-authored alongside it. Four additional locales are machine-translated with a mandatory human review gate before publish.</p>
+    <p>With Ukrainian and Polish confirmed on the roadmap, the <strong>Strapi i18n plugin</strong> (not JSON per-field bilingual) is the correct architecture — adding a locale is a Strapi config change, not a DB migration.</p>
+
+    <div class="lang-strip">
+      <div class="lang-item lang-live"><span class="lang-flag">🇸🇰</span><div class="lang-info"><strong>Slovak (SK)</strong><span>Live · human-authored source</span></div></div>
+      <div class="lang-item lang-live"><span class="lang-flag">🇬🇧</span><div class="lang-info"><strong>English (EN)</strong><span>Live · human-authored</span></div></div>
+      <div class="lang-item lang-draft"><span class="lang-flag">🇨🇿</span><div class="lang-info"><strong>Czech (CS)</strong><span>Machine-translated · human review gate</span></div></div>
+      <div class="lang-item lang-draft"><span class="lang-flag">🇵🇱</span><div class="lang-info"><strong>Polish (PL)</strong><span>Machine-translated · human review gate</span></div></div>
+      <div class="lang-item lang-draft"><span class="lang-flag">🇭🇺</span><div class="lang-info"><strong>Hungarian (HU)</strong><span>Machine-translated · human review gate</span></div></div>
+      <div class="lang-item lang-draft"><span class="lang-flag">🇺🇦</span><div class="lang-info"><strong>Ukrainian (UK)</strong><span>Machine-translated · human review gate</span></div></div>
+    </div>
+
+    <div class="note warn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p><span class="ttl">Translation review gate is a safety rule</span>Clinical content (departments, clinics, services, news) in CS/PL/HU/UK is always a draft. A person must read and approve each translation before it goes live. An unreviewed page stays hidden in that language — which is safer than publishing a mistranslation. The Google Cloud Translation glossary preserves medical and department terms across all locales. Translation review UI is in Sprint A3.</p>
+    </div>
+  </section>
+
+  <!-- 11 — GAPS -->
+  <section class="ov" id="gaps">
+    <div class="sec-kick"><span class="sn">11</span><span class="ln"></span></div>
+    <h2>Honest gaps</h2>
+    <p>All items below are documented in sprint reports and the §L9 gate. None are silently skipped.</p>
+
+    <table class="sprint gaps">
+      <tr><th>Gap</th><th>Current state</th><th>Production fix / sprint</th></tr>
+      <tr><td>OAuth state one-time-use across instances</td><td><span class="st st-done" style="display:inline-flex">Done — WL9</span></td><td>Redis KV, 15-min TTL, one-time-use DEL, 503 fail-closed — 308 tests green</td></tr>
+      <tr><td>Multi-instance batch-alert duplicate digests</td><td><span class="st st-done" style="display:inline-flex">Fixed — QA/QC 921a5e5</span></td><td>Atomic Lua LRANGE+DEL+SREM drain; single winner per 15-min window. LRANGE+DEL as separate commands allowed two instances to flush same window.</td></tr>
+      <tr><td>Withings measure-type mapping (clinical bug)</td><td><span class="st st-done" style="display:inline-flex">Fixed — QA/QC 921a5e5</span></td><td>meastype 11=heart pulse, 54=SpO2, 88=bone mass (was: 11=SpO2, 88=heart rate). A glucose-range pulse reading would have triggered false SpO2 critical alert.</td></tr>
+      <tr><td>Dexcom initial sync returned empty</td><td><span class="st st-done" style="display:inline-flex">Fixed — QA/QC 921a5e5</span></td><td>Device created with lastSyncAt=null (was =now), which tripped Dexcom’s own 5-min rate-limit guard on the connect-time pull.</td></tr>
+      <tr><td>Wearables batch-alert digest window</td><td><span class="st st-done" style="display:inline-flex">Done — WL9</span></td><td>Redis SETNX, BullMQ delayed job, single digest per physician per 15 min</td></tr>
+      <tr><td>Wearables retention purge cron</td><td><span class="st st-done" style="display:inline-flex">Done — WL9</span></td><td>Daily 02:00 cron; never deletes FHIR-linked readings</td></tr>
+      <tr><td>Consent-grace suspension</td><td><span class="st st-done" style="display:inline-flex">Done — WL9</span></td><td>Daily 03:00 cron; suspends sync after 13 months without review</td></tr>
+      <tr><td>Physician SMS routing</td><td>Single WEARABLES_ALERT_SMS_TO escalation number</td><td>Per-physician routing via staff accounts (A2 — done)</td></tr>
+      <tr><td>Apple Health live sync</td><td>IOS_APP_REQUIRED stub</td><td>iOS companion app (SwiftUI) — separate project</td></tr>
+      <tr><td>W2/W3 adapters</td><td><span class="st st-done" style="display:inline-flex">Done — W2+W3</span></td><td>4 live medical + 4 live consumer adapters committed on <code>feature/wearables-wl9</code>. Minor follow-up: fix <code>medtronic_cgm</code> catalog entry (<code>partnershipRequired: false</code> → <code>true</code>).</td></tr>
+      <tr><td>Physician individual profile pages</td><td>lekari.html links to dept/clinic — no /lekari/[slug] route</td><td><span class="st st-done">Done — Sprint A1</span></td></tr>
+      <tr><td>Photo upload for physicians</td><td>Prototype has no file field; initials avatar only</td><td><span class="st st-done">Done — Sprint A1</span></td></tr>
+      <tr><td>PDF attachment for disclosures</td><td>Prototype field documented but not rendered</td><td><span class="st st-done">Done — Sprint A1</span></td></tr>
+      <tr><td>Department / facility photos</td><td>All .ph placeholder images</td><td>Sprint L7 — hospital staff content review</td></tr>
+      <tr><td>z.coerce.boolean() on 7 config flags</td><td><span class="st st-done">Fixed — commit a7b9714</span></td><td>strictBool() helper applied to all 7 flags; "false" can never read as true; 8 unit tests cover prod gates</td></tr>
+      <tr><td>Staff token in sessionStorage; /admin not server-gated</td><td>Token exposed to XSS; admin console not server-gated — deliberate non-fix (requires full auth flow rewrite + admin proxy routes; risk of broken rewrite &gt; risk of current issue)</td><td>Dedicated auth-hardening sprint recommended; approach documented in QA/QC commit. Tracked: W-H3, W-H4.</td></tr>
+      <tr><td>Telehealth physician MFA re-verify</td><td>Blocked — physicians use legacy staffUser system; TOTP step-up lives on A2 staffAccount. Cannot unify without schema change.</td><td>Schema unification task required before this can close. Tracked: T1.</td></tr>
+      <tr><td>Patient↔telehealth-session binding</td><td>patientToken is session-scoped random — mitigated by unguessable UUID session ids; not cryptographically bound to patient identity.</td><td>Schema change required (add patient identity column with opaque token). Tracked.</td></tr>
+      <tr><td>x-forwarded-for trusted proxy</td><td>Not set — deployment-config, not a code fix.</td><td>Set in reverse-proxy config at L1-PREP (infra task, not sprint).</td></tr>
+      <tr><td>Abbott LibreLinkUp connection-id</td><td>Uses device.id (mock placeholder) — needs a persisted provider connection id before WEARABLES_PROVIDER=live.</td><td>L1-PREP vendor credential provisioning task. Tracked.</td></tr>
+      <tr><td>CI Lint job (no ESLint config existed)</td><td><span class="st st-done" style="display:inline-flex">Done — in PR</span></td><td>Flat ESLint 9 config (Lane A): @eslint/js + typescript-eslint recommended + react-hooks + Next preset (web). 134→0 errors / 40 warnings, two mechanical autofixes only, no source rewrites. Also fixed: <code>pnpm-lock.yaml</code> was gitignored — un-ignored + committed so <code>--frozen-lockfile</code> works across all jobs (687K). Branch <code>feature/ci-eslint-flat-config</code>, 2 commits. 7 rules downgraded to <code>warn</code> — tracked for CI-LINT-2.</td></tr>
+      <tr><td>moduleResolution: node10 deprecation (TS 7.0 deadline)</td><td><span class="st st-done" style="display:inline-flex">Re-landed — in PR</span></td><td>TS-M1 cherry-picked clean onto <code>feature/ts-node16-migration</code> off main (<code>87ab32f</code>, <code>34902a6</code>). tsc clean (apps/api + packages/types, no deprecation warning), nest build clean, tests unchanged (6 infra-gated, zero new), apps/web untouched. Safety: tag <code>ts-m1-backup</code> + <code>backup-a4-orig</code> both at <code>acd31d8</code> — retained until PR merges. Merging makes main's tsconfig node16, which stops the tooling flapping at source.</td></tr>
+      <tr><td>A4 booking DTOs vs actual schema</td><td>Bookings are anonymous (phone-based, no portal token) — <code>patientTokenPreview</code> is a deterministic <code>PT-</code>+sha256(rcHash) pseudonym; <code>paymentStatus</code> derived from PaymentReceipt existence (paid|free); Clinic has no department/physician/refund-window fields — clinician scoping uses <code>clinic:</code> scopes, refund window is a 24h constant.</td><td>Adaptations to real schema, not defects. Revisit if Clinic schema gains department/physician FKs.</td></tr>
+      <tr><td>A4 production /admin React pages</td><td>Don’t exist yet — A4 UI ships in the <code>admin.html</code> prototype as specified. A4-2/A4-8 axe+DOM e2e are <code>test.fixme</code>; axe not run (no browser infra in the build env).</td><td>axe WCAG 2.1 AA run required when production /admin React pages are built. Tracked.</td></tr>
+      <tr><td>tsconfig rootDir / baseUrl TS 7 deprecations</td><td><span class="st st-done" style="display:inline-flex">Done — commit acd31d8</span></td><td>The flapping WIP was the IDE’s TS 7 quick-fix. Re-applied deliberately: apps/api gets <code>rootDir: "./src"</code>, drops deprecated <code>baseUrl</code> + unused <code>@/*</code> alias (0 source usages; <code>@ns/types</code> resolves via workspace package). packages/types gets <code>rootDir: "src"</code>. All 3 PROBLEMS panel entries cleared; tsc + nest build clean; tests behaviorally identical (the 308→340 wobble was nondeterministic infra-gated e2e worker crashes, not this change).</td></tr>
+      <tr><td>medtronic_cgm catalog inconsistency</td><td><code>partnershipRequired: false</code> in shipped catalog but adapter is a partnership stub — connect still blocked, just one step later</td><td>One-line catalog fix in follow-up commit</td></tr>
+      <tr><td>apps/web typecheck failures</td><td>Pre-existing in lekari, registracia, styleguide, sitemap, e2e, playwright.config</td><td>Not sprint-authored; track separately</td></tr>
+    </table>
+  </section>
+
+  <!-- 12 — LAUNCH GATE -->
+  <section class="ov" id="launch">
+    <div class="sec-kick"><span class="sn">12</span><span class="ln"></span></div>
+    <h2>Launch gate L1–L9</h2>
+    <p>Nine sequential items between feature-complete and live. OPS items (L1, L4, L5, L6) are provisioning, backup, monitoring, and pen-test — run by operations. BUILD items (L2, L3, L7, L8) are paste-ready Claude Code prompts. L9 is the joint go/no-go gate and staged rollout. <strong>Current blocker before L1-PREP: Sprint WL9 compliance gate.</strong></p>
+
+    <div class="note info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p><span class="ttl">Sequencing constraint</span>L1 (secrets) must precede L2 (smoke tests) which must precede L3 (full CI suite). L4/L5/L6 run after L3. L7/L8 are human + build tasks that can run in parallel with L4–L6. L9 requires all 8 prior items green.</p>
+    </div>
+
+    <div class="gate-grid">
+      <div class="gate-item gate-ops"><div class="gi-id">L1 · OPS</div><div class="gi-title">Provision real accounts + inject secrets</div><div class="gi-who">14 vendor accounts · EU hosting · config validator passes with mocks off · all secrets vaulted</div></div>
+      <div class="gate-item gate-build"><div class="gi-id">L2 · BUILD</div><div class="gi-title">EU staging + integration smoke</div><div class="gi-who">eID, HIS, SMS, payments, NCZI, APS, Translation — each smoke-passed against sandbox on EU infra</div></div>
+      <div class="gate-item gate-build"><div class="gi-id">L3 · BUILD</div><div class="gi-title">Full CI suite green on staging</div><div class="gi-who">Unit + integration + E2E (sk/en/mobile) + axe — all green against live-wired Strapi-sourced services</div></div>
+      <div class="gate-item gate-ops"><div class="gi-id">L4 · OPS</div><div class="gi-title">Backup + disaster-recovery restore test</div><div class="gi-who">3-2-1 EU geo-separate · actual restore into isolated env · RTO/RPO measured · audit_log survives restore</div></div>
+      <div class="gate-item gate-ops"><div class="gi-id">L5 · OPS</div><div class="gi-title">Monitoring + alerting + on-call</div><div class="gi-who">Booking, queue/DLQ, HIS sync, auth, payments, APS fallback · on-call rota for launch week · synthetic alert proven</div></div>
+      <div class="gate-item gate-ops"><div class="gi-id">L6 · OPS</div><div class="gi-title">External VAPT pen-test + triage</div><div class="gi-who">Scope: public site, /admin, portal, booking, payments, infra · all critical/high findings closed · report filed</div></div>
+      <div class="gate-item gate-build"><div class="gi-id">L7 · BUILD + STAFF</div><div class="gi-title">Staff content review + real media</div><div class="gi-who">SK/EN staff-approved · CS/PL/HU/UK human-reviewed before publish · real photos + disclosure PDFs · booking rules confirmed</div></div>
+      <div class="gate-item gate-build"><div class="gi-id">L8 · BUILD</div><div class="gi-title">GDPR launch records</div><div class="gi-who">DSAR/erasure live and audited · RETENTION.md + legal text shipped · cookie/privacy/accessibility in SK+EN</div></div>
+    </div>
+
+    <h3>L9 — Go/no-go gate → soft-launch → full launch</h3>
+    <p>When all 8 items above are green: hold a go/no-go review, cut DNS to production, enable FRO booking only, monitor for 1–2 weeks, then widen to all <code>bookable=true</code> clinics. Rollback trigger criteria and the L4 restore runbook must be on standby throughout launch week.</p>
+
+    <div class="note good">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <p><span class="ttl">After go-live: steady-state operations only</span>Once L9 is complete the platform is live. What remains is operational: content authoring by hospital staff, periodic accessibility + security re-audits, dependency/patch maintenance, monitoring queue/DLQ health, and rolling CS/PL/HU/UK out of draft as staff complete reviews.</p>
+    </div>
+
+    <h3>Recommended next Claude Code sequence</h3>
+    <table class="sprint">
+      <tr><th>Priority</th><th>Work</th><th>Dependency</th></tr>
+      <tr><td><span class="st st-done" style="display:inline-flex">Committed</span></td><td><strong>QA/QC remediation</strong> — 921a5e5 + 10 commits. Critical: Withings measure-type (clinical), multi-instance digest Lua drain, Dexcom lastSyncAt=null, web typecheck (41 errors cleared). Security: MFA bypass (A1), TOTP anti-replay, JWT audience separation, IDOR guard, FHIR idempotency. 3 new migrations. 308 API tests · 4 infra-gated · web 0 typecheck errors. Deliberately deferred: staff token httpOnly (W-H3), admin server-gate (W-H4), physician MFA re-verify (T1), patient↔session binding, lint flat-config.</td><td>Merging to main alongside WL9/W2/W3</td></tr>
+      <tr><td><strong>NOW ✔</strong></td><td>Coordinated web+api deploy after merge — 3 migrations must run first; JWT audience change will reject pre-existing tokens (cleared within 30 min / 8 h). See deployment notes in QA/QC commit.</td><td>After merge to main</td></tr>
+      <tr><td><span class="st st-done" style="display:inline-flex">Committed</span></td><td><strong>Sprint W2</strong> — AdapterRegistry + 4 live medical adapters (Abbott Libre EU, Dexcom G7, Withings, Omron) + 5 stubs, Kardia upload scaffold. Commit <code>bb24c96</code>.</td><td>Merging to main</td></tr>
+      <tr><td><span class="st st-done" style="display:inline-flex">Committed</span></td><td><strong>Sprint W3</strong> — 4 live consumer adapters (Fitbit, Garmin, Google Health, Samsung) + 4 stubs, Xiaomi .zip/CSV import. Commit <code>6a47051</code>.</td><td>Merging to main</td></tr>
+      <tr><td><strong>NOW ✦</strong></td><td>Merge <code>feature/wearables-wl9</code> → <code>main</code> (WL9 → W2 → W3 in order, or split to separate branches first). Fix <code>medtronic_cgm</code> catalog one-liner.</td><td>Nothing — ready now</td></tr>
+      <tr><td><strong>NOW ✦</strong></td><td>L1-PREP — ops runbook for 14 vendor accounts</td><td>After WL9 merged</td></tr>
+      <tr><td>Then</td><td>L1 ops — provision real vendor accounts, inject secrets</td><td>Can start now (ops team)</td></tr>
+      <tr><td>Then</td><td>L2–L3 — EU staging + full CI suite</td><td>After W2/W3 + L1</td></tr>
+      <tr><td>Then</td><td>L4–L6 — backup, monitoring, pen-test</td><td>After L3</td></tr>
+      <tr><td>Then</td><td>L7 — hospital staff content + real media</td><td>Parallel with L4–L6</td></tr>
+      <tr><td>Then</td><td>L8–L9 — GDPR records + go-live</td><td>After all above</td></tr>
+    </table>
+  </section>
+
+</main>
+</div>
+
+<a href="#top" class="toplink" id="toplink" aria-label="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+</a>
+
+<script>
+const links = Array.from(document.querySelectorAll('#toc a'));
+const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+const sections = Array.from(document.querySelectorAll('section.ov'));
+const spy = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const a = map.get(e.target.id);
+      if (a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+sections.forEach(s => spy.observe(s));
+
+const topBtn = document.getElementById('toplink');
+window.addEventListener('scroll', () => {
+  topBtn.classList.toggle('show', window.scrollY > 500);
+}, { passive: true });
+</script>
+</body>
+</html>

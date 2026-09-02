@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wearables — Connect & Alerts — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main id="main"></main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/wearables-demo-data.js"></script>
+<script>
+Site.mount({ active: "" });
+
+/* ── i18n ───────────────────────────────────────────────────────────────── */
+function gl()  { return document.documentElement.lang || "sk"; }
+function L(o)  { var l=gl(); return o&&(o[l]!==undefined?o[l]:o.sk!==undefined?o.sk:o.en)||""; }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function ago(iso){ var ms=Date.now()-new Date(iso); if(ms<3600000){var m=Math.floor(ms/60000);return L({sk:"pred "+m+"m",en:m+"m ago"});} var h=Math.floor(ms/3600000);return L({sk:"pred "+h+"h",en:h+"h ago"}); }
+
+/* ── Extra SVG icons ────────────────────────────────────────────────────── */
+var XI = {
+  bell:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  check:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  right:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  phone:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>',
+  x:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  alert:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  spin:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ca-spin"><circle cx="12" cy="12" r="10" stroke-opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>',
+  lock:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  watch:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="3"/><path d="M9 5V3h6v2M9 19v2h6v-2"/></svg>'
+};
+function xi(n){ return XI[n]||""; }
+
+/* ── Alert data ─────────────────────────────────────────────────────────── */
+var ALERTS = [
+  { id:1, device:{sk:"Abbott FreeStyle Libre 3",en:"Abbott FreeStyle Libre 3"},
+    metric:{sk:"Glukóza",en:"Glucose"}, value:"15.1", unit:"mmol/l", severity:"critical",
+    ts: new Date(Date.now()-2*3600000).toISOString(), read:false },
+  { id:2, device:{sk:"Apple Watch Series 10",en:"Apple Watch Series 10"},
+    metric:{sk:"Tepová frekvencia",en:"Heart rate"}, value:"148", unit:"bpm", severity:"critical",
+    ts: new Date(Date.now()-4*3600000).toISOString(), read:false },
+  { id:3, device:{sk:"Withings ScanWatch 2",en:"Withings ScanWatch 2"},
+    metric:{sk:"TK systolický",en:"Systolic BP"}, value:"162", unit:"mmHg", severity:"high",
+    ts: new Date(Date.now()-6*3600000).toISOString(), read:false }
+];
+
+/* ── Platform catalogue ─────────────────────────────────────────────────── */
+var PLAT = {
+  medical:[
+    {id:"abbott_libre",  brand:"Abbott",           model:"FreeStyle Libre 3",    s:"normal"},
+    {id:"dexcom",        brand:"Dexcom",            model:"G7 / ONE+",            s:"normal"},
+    {id:"medtronic_cgm", brand:"Medtronic",         model:"Guardian 4 CGM",       s:"partnership"},
+    {id:"medtronic_pm",  brand:"Medtronic",         model:"MyCareLink",           s:"partnership"},
+    {id:"abbott_icd",    brand:"Abbott",            model:"Merlin.net",           s:"partnership"},
+    {id:"bsc",           brand:"Boston Scientific", model:"Latitude NXT",         s:"partnership"},
+    {id:"alivecor",      brand:"AliveCor",          model:"KardiaMobile 6L",      s:"upload"},
+    {id:"withings_bp",   brand:"Withings",          model:"BPM Connect Pro",      s:"normal"},
+    {id:"omron",         brand:"Omron",             model:"Evolv / Complete",     s:"normal"}
+  ],
+  consumer:[
+    {id:"apple",         brand:"Apple",             model:"Watch / HealthKit",    s:"ios"},
+    {id:"samsung",       brand:"Samsung",           model:"Galaxy Watch",         s:"normal"},
+    {id:"google",        brand:"Google",            model:"Pixel Watch",          s:"normal"},
+    {id:"fitbit",        brand:"Fitbit",            model:"Sense / Charge",       s:"normal"},
+    {id:"garmin",        brand:"Garmin",            model:"Health Sync",          s:"normal"},
+    {id:"huawei",        brand:"Huawei",            model:"Watch GT / Band",      s:"normal"},
+    {id:"xiaomi",        brand:"Xiaomi",            model:"Smart Band / Watch",   s:"upload"},
+    {id:"withings_w",    brand:"Withings",          model:"ScanWatch 2",          s:"connected"},
+    {id:"meta",          brand:"Meta",              model:"Ray-Ban Glasses",      s:"partnership"}
+  ]
+};
+
+/* platform permissions (scopes shown in step 2) */
+var PERMS = {
+  abbott_libre: {name:"Abbott LibreLink Up", scopes:[{sk:"Glukóza (CGM nepretržite)",en:"Glucose (CGM continuous)",loinc:"14745-4"}]},
+  dexcom:       {name:"Dexcom",  scopes:[{sk:"Glukóza (CGM)",en:"Glucose (CGM)",loinc:"14745-4"}]},
+  withings_bp:  {name:"Withings",scopes:[{sk:"Krvný tlak",en:"Blood pressure",loinc:"85354-9"},{sk:"Tepová frekvencia",en:"Heart rate",loinc:"8867-4"},{sk:"Hmotnosť",en:"Weight",loinc:"29463-7"}]},
+  omron:        {name:"Omron",   scopes:[{sk:"Krvný tlak",en:"Blood pressure",loinc:"85354-9"},{sk:"Pulz",en:"Pulse rate",loinc:"8867-4"}]},
+  samsung:      {name:"Samsung Health",scopes:[{sk:"Tepová frekvencia",en:"Heart rate",loinc:"8867-4"},{sk:"Kroky",en:"Steps",loinc:"55423-8"},{sk:"SpO₂",en:"SpO₂",loinc:"59408-5"}]},
+  google:       {name:"Google Health Connect",scopes:[{sk:"Tepová frekvencia",en:"Heart rate",loinc:"8867-4"},{sk:"Krvný tlak",en:"Blood pressure",loinc:"85354-9"},{sk:"Glukóza",en:"Glucose",loinc:"14745-4"},{sk:"Kroky",en:"Steps",loinc:"55423-8"}]},
+  fitbit:       {name:"Fitbit",  scopes:[{sk:"Tepová frekvencia",en:"Heart rate",loinc:"8867-4"},{sk:"Kroky",en:"Steps",loinc:"55423-8"},{sk:"Spánok",en:"Sleep",loinc:"93831-6"},{sk:"SpO₂",en:"SpO₂",loinc:"59408-5"}]},
+  garmin:       {name:"Garmin Health",scopes:[{sk:"Tepová frekvencia",en:"Heart rate",loinc:"8867-4"},{sk:"Kroky",en:"Steps",loinc:"55423-8"},{sk:"Spánok",en:"Sleep",loinc:"93831-6"},{sk:"SpO₂",en:"SpO₂",loinc:"59408-5"}]},
+  huawei:       {name:"Huawei Health Kit",scopes:[{sk:"Tepová frekvencia",en:"Heart rate",loinc:"8867-4"},{sk:"Krvný tlak",en:"Blood pressure",loinc:"85354-9"},{sk:"SpO₂",en:"SpO₂",loinc:"59408-5"}]}
+};
+
+/* ── UI state ────────────────────────────────────────────────────────────── */
+var pat = DB.get("patient");
+var alertOpen = false;
+var oauthOpen = false;
+var oauthStep = "platforms"; // platforms | perms | redirecting | success | partnership | ios | upload
+var oauthTab  = "consumer";
+var oauthPlat = null;
+
+/* ── Main render ─────────────────────────────────────────────────────────── */
+var main = document.getElementById("main");
+
+function render() {
+  var unread = ALERTS.filter(function(a){return !a.read;}).length;
+  var criticals = ALERTS.filter(function(a){return a.severity==="critical"&&!a.read;});
+  var pat = DB.get("patient");
+
+  main.innerHTML =
+    '<section class="section section-sm"><div class="container">'
+
+    /* portal header card */
+    + '<div class="card card-pad portal-header">'
+    + '<div class="flex-center gap">'
+    + '<span class="avatar avatar-lg">' + esc(initials(pat.name)) + '</span>'
+    + '<div><h2 class="mb-0" style="font-size:1.5rem">' + esc(L({sk:"Vitajte",en:"Welcome"})) + ', ' + esc(pat.name) + '</h2>'
+    + '<div class="flex gap small muted mt-1 wrap">'
+    + '<span>RČ: ' + esc(pat.id) + '</span>'
+    + '<span>' + esc(L({sk:"Krv",en:"Blood"})) + ': <b style="color:var(--red)">' + esc(pat.blood) + '</b></span>'
+    + '<span>' + esc(pat.insurance) + '</span>'
+    + '</div></div></div>'
+    + '<div class="flex-center gap-sm">'
+    /* Bell button */
+    + '<div class="ca-bell-wrap" id="bellWrap">'
+    + '<button class="ca-bell-btn" id="bellBtn" aria-label="' + esc(L({sk:"Upozornenia",en:"Alerts"})) + ' (' + unread + ')">'
+    + xi("bell")
+    + (unread > 0 ? '<span class="ca-badge">' + unread + '</span>' : '')
+    + '</button>'
+    + (alertOpen ? renderAlertPanel() : '')
+    + '</div>'
+    /* Logout */
+    + '<button class="btn btn-ghost btn-sm">' + icon("lock") + ' ' + esc(L({sk:"Odhlásiť",en:"Sign out"})) + '</button>'
+    + '</div></div>'
+
+    /* portal grid */
+    + '<div class="portal-grid mt-3">'
+    /* sidebar nav */
+    + '<aside class="pnav">'
+    + pnavBtn("overview",  {sk:"Prehľad",en:"Overview"},       "activity")
+    + pnavBtn("teleconsult",{sk:"Telekonzultácie",en:"Teleconsults"},"video")
+    + pnavBtn("records",   {sk:"Záznamy",en:"Records"},        "doc")
+    + pnavBtn("meds",      {sk:"e-Recepty",en:"e-Prescriptions"},"pill")
+    + pnavBtn("labs",      {sk:"Výsledky",en:"Lab results"},   "flask")
+    + pnavBtn("wearables", {sk:"Wearables",en:"Wearables"},    "watch", unread)
+    + '</aside>'
+    /* main view */
+    + '<div id="pview">' + renderWearablesView(criticals) + '</div>'
+    + '</div>'
+    + '</div></section>'
+
+    /* OAuth modal */
+    + (oauthOpen ? renderOauthModal() : '');
+
+  attachEvents();
+}
+
+function pnavBtn(k, lbl, ic, badge) {
+  return '<button class="pnav-btn active" style="pointer-events:none">' + icon(ic) + ' ' + esc(L(lbl))
+    + (badge ? ' <span class="ca-badge ca-badge-nav">' + badge + '</span>' : '')
+    + (k==="wearables" ? ' <span style="font-size:.7rem;font-weight:800;margin-left:auto;color:var(--blue-600)">← here</span>' : '')
+    + '</button>';
+}
+
+/* ── Wearables view ──────────────────────────────────────────────────────── */
+function renderWearablesView(criticals) {
+  var devCards = WEARABLES.devices.map(function(d){
+    return '<div class="wr-device-card">'
+      + '<div class="wr-device-head">'
+      + '<div class="wr-device-icon wr-icon-' + esc(d.category) + '">' + icon(d.icon) + '</div>'
+      + '<div class="wr-device-meta"><strong>' + esc(d.brand) + '</strong><span class="small muted">' + esc(d.model) + '</span></div>'
+      + '<span class="badge badge-green"><span class="dot"></span>' + esc(L({sk:"Aktívne",en:"Active"})) + '</span>'
+      + '</div>'
+      + '<div class="wr-readings-mini">'
+      + d.readings.slice(0,2).map(function(r){
+          return '<div class="wr-mini-row"><span class="small muted">' + esc(L(r.metric)) + '</span>'
+            + '<span class="wr-mini-val' + (r.flag==="high"?" wr-val-high":"") + '">' + esc(r.value) + (r.unit?' <span class="wr-unit">'+esc(r.unit)+'</span>':'') + '</span></div>';
+        }).join("")
+      + '</div>'
+      + '<div class="wr-device-foot">'
+      + '<span class="small muted" style="display:flex;align-items:center;gap:5px">' + icon("sync") + ' ' + esc(fmtAgo(d.lastSync)) + '</span>'
+      + '<label class="wr-share-lbl"><input type="checkbox" checked onchange="return false"><span class="small">' + esc(L({sk:"Zdieľať s lekárom",en:"Share with physician"})) + '</span></label>'
+      + '</div>'
+      + '</div>';
+  }).join("");
+
+  return ''
+    /* critical banner */
+    + (criticals.length > 0 ? renderCriticalBanner(criticals[0]) : '')
+
+    /* devices grid */
+    + '<div class="card">'
+    + '<div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+    + '<div class="flex-center gap-sm">' + xi("watch") + ' <span>' + esc(L({sk:"Nositeľné zariadenia",en:"Wearables & Devices"})) + '</span>'
+    + ' <span class="badge badge-gray">' + esc(L({sk:"Voliteľné",en:"Optional"})) + '</span></div>'
+    + '<div class="flex-center gap-sm">'
+    + '<a href="consent-management.html" class="btn btn-ghost btn-sm">' + xi("shield") + ' ' + esc(L({sk:"Správa súhlasov",en:"Manage consent"})) + '</a>'
+    + '<button class="btn btn-primary btn-sm" id="openConnectBtn">' + icon("bluetooth") + ' ' + esc(L({sk:"Pripojiť zariadenie",en:"Connect device"})) + '</button>'
+    + '</div></div>'
+    + '<div class="wr-devices-grid">' + devCards + '</div>'
+    + '</div>'
+
+    /* readings timeline (abbreviated) */
+    + renderReadingsTimeline();
+}
+
+function renderCriticalBanner(a) {
+  return '<div class="ca-critical-banner" role="alert">'
+    + '<span class="ca-critical-ic">' + xi("alert") + '</span>'
+    + '<div class="ca-critical-body">'
+    + '<strong>' + esc(L({sk:"Kritické upozornenie",en:"Critical alert"})) + '</strong>'
+    + ' · ' + esc(L(a.device)) + ' · '
+    + '<span style="font-weight:800">' + esc(L(a.metric)) + ' ' + esc(a.value) + ' ' + esc(a.unit) + '</span>'
+    + ' · ' + esc(ago(a.ts))
+    + '</div>'
+    + '<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3);white-space:nowrap" id="viewAlertBtn">'
+    + esc(L({sk:"Zobraziť merania",en:"View readings"})) + ' ' + xi("right") + '</button>'
+    + '</div>';
+}
+
+function renderReadingsTimeline() {
+  var readings = WEARABLES.devices.flatMap(function(d){return d.readings.map(function(r){return Object.assign({},r,{dBrand:d.brand});});}).sort(function(a,b){return new Date(b.time)-new Date(a.time);}).slice(0,5);
+  var rows = readings.map(function(r){
+    return '<div class="wr-tl-row">'
+      + '<div class="wr-tl-time">' + esc(fmtAgo(r.time)) + '</div>'
+      + '<div class="wr-tl-dot' + (r.flag==="high"?" wr-tl-dot-hi":"") + '"></div>'
+      + '<div class="wr-tl-body">'
+      + '<span class="wr-tl-metric">' + esc(L(r.metric)) + '</span>'
+      + '<span class="wr-tl-val' + (r.flag==="high"?" wr-val-high":"") + '">' + esc(r.value) + (r.unit?" "+esc(r.unit):"") + '</span>'
+      + '<span class="chip">' + esc(r.dBrand) + '</span>'
+      + (r.flag==="high"?'<span class="badge badge-amber">'+esc(L({sk:"Zvýšené",en:"High"}))+'</span>':'<span class="badge badge-green">'+esc(L({sk:"V norme",en:"Normal"}))+'</span>')
+      + '</div></div>';
+  }).join("");
+  return '<div class="card mt-3">'
+    + '<div class="sec-head flex-center gap-sm">' + icon("activity") + '<span>' + esc(L({sk:"Posledné merania",en:"Recent readings"})) + '</span></div>'
+    + '<div class="wr-timeline">' + rows + '</div></div>';
+}
+
+/* ── Alert dropdown panel ───────────────────────────────────────────────── */
+function renderAlertPanel() {
+  var rows = ALERTS.map(function(a){
+    var isCrit = a.severity==="critical";
+    return '<div class="ca-alert-row' + (isCrit?" ca-alert-crit":" ca-alert-high") + (a.read?" ca-alert-read":"") + '" data-alert-id="' + esc(a.id) + '">'
+      + '<div class="ca-alert-dot-col">'
+      + '<span class="ca-severity-dot' + (isCrit?" ca-dot-crit":" ca-dot-high") + '"></span></div>'
+      + '<div class="ca-alert-info">'
+      + '<div class="ca-alert-line1">'
+      + '<span class="ca-severity-lbl ' + (isCrit?"ca-lbl-crit":"ca-lbl-high") + '">'
+      + esc(L(isCrit?{sk:"KRITICKÉ",en:"CRITICAL"}:{sk:"ZVÝŠENÉ",en:"HIGH"})) + '</span>'
+      + '<span class="ca-alert-metric">' + esc(L(a.metric)) + '</span>'
+      + '<span class="ca-alert-val">' + esc(a.value) + ' <span style="font-weight:400;color:var(--ink-3)">' + esc(a.unit) + '</span></span>'
+      + '</div>'
+      + '<div class="ca-alert-line2 small muted">' + esc(L(a.device)) + ' · ' + esc(ago(a.ts)) + '</div>'
+      + '</div></div>';
+  }).join("");
+
+  var unread = ALERTS.filter(function(a){return !a.read;}).length;
+  return '<div class="ca-alert-panel" id="alertPanel" role="dialog" aria-label="' + esc(L({sk:"Upozornenia",en:"Alert notifications"})) + '">'
+    + '<div class="ca-ap-head">'
+    + '<span style="font-weight:700;font-size:.95rem">' + esc(L({sk:"Upozornenia",en:"Alert notifications"})) + '</span>'
+    + (unread > 0 ? '<button class="ca-ap-readall" id="markAllReadBtn">' + esc(L({sk:"Označiť všetky",en:"Mark all read"})) + '</button>' : '<span class="small muted">'+esc(L({sk:"Všetky prečítané",en:"All read"}))+'</span>')
+    + '</div>'
+    + '<div class="ca-ap-list">' + rows + '</div>'
+    + '<div class="ca-ap-foot">'
+    + '<button class="ca-ap-viewall" id="apViewAll">' + esc(L({sk:"Zobraziť všetky merania",en:"View all readings"})) + ' ' + xi("right") + '</button>'
+    + '</div></div>';
+}
+
+/* ── OAuth modal ────────────────────────────────────────────────────────── */
+function renderOauthModal() {
+  var stepMap = {platforms:1,perms:2,redirecting:3,success:4,partnership:4,ios:4,upload:4};
+  var curStep = stepMap[oauthStep]||1;
+  var inner = "";
+  if (oauthStep==="platforms")   inner = renderStepPlatforms();
+  if (oauthStep==="perms")       inner = renderStepPerms();
+  if (oauthStep==="redirecting") inner = renderStepRedirecting();
+  if (oauthStep==="success")     inner = renderStepSuccess();
+  if (oauthStep==="partnership") inner = renderStepPartnership();
+  if (oauthStep==="ios")         inner = renderStepIos();
+  if (oauthStep==="upload")      inner = renderStepUpload();
+
+  return '<div class="ca-overlay" id="oauthOverlay">'
+    + '<div class="ca-modal" role="dialog" aria-modal="true" aria-label="' + esc(L({sk:"Pripojiť zariadenie",en:"Connect a device"})) + '">'
+    + '<div class="ca-modal-head">'
+    + '<div class="ca-modal-title">' + xi("watch") + ' <span>' + esc(L({sk:"Pripojiť zariadenie",en:"Connect a device"})) + '</span></div>'
+    + (oauthStep!=="redirecting" ? '<button class="ca-modal-close" id="oauthClose" aria-label="'+esc(L({sk:"Zavrieť",en:"Close"}))+'">'+xi("x")+'</button>' : '')
+    + '</div>'
+    + renderStepDots(curStep)
+    + '<div class="ca-modal-body">' + inner + '</div>'
+    + '</div></div>';
+}
+
+function renderStepDots(cur) {
+  if (oauthStep==="partnership"||oauthStep==="ios"||oauthStep==="upload") return "";
+  var dots = [1,2,3,4].map(function(n){
+    return '<span class="ca-step-dot' + (n===cur?" ca-dot-active":n<cur?" ca-dot-done":"") + '">'
+      + (n<cur ? xi("check") : n) + '</span>';
+  }).join("");
+  return '<div class="ca-step-dots">' + dots
+    + '<div class="ca-step-track"><div class="ca-step-fill" style="width:' + ((cur-1)/3*100) + '%"></div></div>'
+    + '</div>';
+}
+
+function renderStepPlatforms() {
+  var tabs = '<div class="ca-plat-tabs">'
+    + '<button class="ca-plat-tab'+(oauthTab==="medical"?" active":"")+'" id="tabMedical">'+icon("heart")+" "+esc(L({sk:"Medicínske",en:"Medical"}))+'</button>'
+    + '<button class="ca-plat-tab'+(oauthTab==="consumer"?" active":"")+'" id="tabConsumer">'+xi("watch")+" Fitness &amp; Wellness"+'</button>'
+    + '</div>';
+
+  var cards = PLAT[oauthTab].map(function(p){
+    var mono = p.brand.slice(0,2).toUpperCase();
+    var badge = "";
+    if (p.s==="partnership") badge='<span class="ca-plat-badge ca-plat-badge-partner">'+esc(L({sk:"Dohoda",en:"Agreement"}))+'</span>';
+    if (p.s==="ios")         badge='<span class="ca-plat-badge ca-plat-badge-ios">iOS</span>';
+    if (p.s==="upload")      badge='<span class="ca-plat-badge ca-plat-badge-upload">'+xi("upload")+'</span>';
+    if (p.s==="connected")   badge='<span class="ca-plat-badge ca-plat-badge-done">'+xi("check")+' '+esc(L({sk:"Pripojené",en:"Connected"}))+'</span>';
+    return '<button class="ca-plat-card" data-plat-id="'+esc(p.id)+'" data-plat-status="'+esc(p.s)+'">'
+      + '<div class="ca-plat-mono">'+esc(mono)+'</div>'
+      + '<div class="ca-plat-info"><div class="ca-plat-brand">'+esc(p.brand)+'</div><div class="small muted">'+esc(p.model)+'</div></div>'
+      + badge
+      + '</button>';
+  }).join("");
+
+  return tabs + '<div class="ca-plat-grid">' + cards + '</div>';
+}
+
+function renderStepPerms() {
+  var p = oauthPlat;
+  var info = PERMS[p.id]||{name:p.brand,scopes:[]};
+  var scopeRows = info.scopes.map(function(s){
+    return '<div class="ca-perm-row"><span class="ca-perm-check">'+xi("check")+'</span>'
+      + '<div><div style="font-weight:600;font-size:.92rem">'+esc(L({sk:s.sk,en:s.en}))+'</div>'
+      + '<div class="small muted">LOINC '+esc(s.loinc)+'</div></div></div>';
+  }).join("");
+
+  return '<div class="ca-perms-view">'
+    + '<div class="ca-perms-head">'
+    + '<div class="ca-perms-logo">'+esc(p.brand.slice(0,2).toUpperCase())+'</div>'
+    + '<div><h3 class="mb-0" style="font-size:1.15rem">'+esc(L({sk:"Autorizovať "+info.name+"?",en:"Authorize "+info.name+"?"}))+'</h3>'
+    + '<p class="small muted mb-0">'+esc(L({sk:"Nemocnica Snina bude čítať tieto dáta:",en:"Nemocnica Snina will read the following data:"}))+'</p>'
+    + '</div></div>'
+    + '<div class="ca-perm-list">'+scopeRows+'</div>'
+    + '<div class="ca-perms-privacy">'
+    + xi("lock") + ' <span class="small muted">'+esc(L({sk:"Dáta šifrované pri prenose · AES-256-GCM · EU servery · Výlučne pre vášho lekára.",en:"Encrypted in transit · AES-256-GCM at rest · EU servers · Shared only with your physician."}))+'</span>'
+    + '</div>'
+    + '<div class="ca-perms-actions">'
+    + '<button class="btn btn-ghost" id="permsBack">'+esc(L({sk:"Späť",en:"Back"}))+'</button>'
+    + '<button class="btn btn-primary" id="permsAuth">'+xi("right")+' '+esc(L({sk:"Autorizovať v "+info.name,en:"Authorize in "+info.name}))+'</button>'
+    + '</div></div>';
+}
+
+function renderStepRedirecting() {
+  var info = (oauthPlat&&PERMS[oauthPlat.id])||{name:oauthPlat?oauthPlat.brand:"..."};
+  return '<div class="ca-redirect-view">'
+    + '<div class="ca-redirect-spin">'+xi("spin")+'</div>'
+    + '<p class="mt-2 mb-0" style="font-weight:600">'+esc(L({sk:"Presmerovanie na "+info.name+"…",en:"Opening "+info.name+" authorization…"}))+'</p>'
+    + '<p class="small muted">'+esc(L({sk:"Neodchádzajte z tejto stránky.",en:"Please stay on this page."}))+'</p>'
+    + '</div>';
+}
+
+function renderStepSuccess() {
+  var info = (oauthPlat&&PERMS[oauthPlat.id])||{name:oauthPlat?oauthPlat.brand:"zariadenie"};
+  return '<div class="ca-success-view">'
+    + '<div class="ca-success-ic">'+xi("check")+'</div>'
+    + '<h3>'+esc(L({sk:info.name+" pripojené!",en:info.name+" connected!"}))+'</h3>'
+    + '<p class="muted">'+esc(L({sk:"Prvá synchronizácia prebieha — merania sa zobrazia o chvíľu.",en:"First sync in progress — readings will appear shortly."}))+'</p>'
+    + '<button class="btn btn-primary btn-sm" id="successClose">'+esc(L({sk:"Zobraziť zariadenie",en:"View device"}))+'</button>'
+    + '</div>';
+}
+
+function renderStepPartnership() {
+  var p = oauthPlat;
+  var contacts = {medtronic_pm:"mycarelink-api@medtronic.com",medtronic_cgm:"partnerapi@medtronic.com",abbott_icd:"cardiovascular.digital@abbott.com",bsc:"rpmpartner@bsci.com",meta:"partnerapi@meta.com"};
+  var contact = contacts[p?p.id:""]||"api-partnerships@nemocnicasnina.sk";
+  return '<div class="ca-partner-view">'
+    + '<div class="ca-partner-ic">'+xi("lock")+'</div>'
+    + '<h3>'+esc(L({sk:"Vyžaduje sa partnerská dohoda",en:"Partnership agreement required"}))+'</h3>'
+    + '<p class="muted">'+esc(L({sk:"Táto platforma vyžaduje podpísanú zmluvu s výrobcom pred aktiváciou.",en:"This platform requires a signed vendor agreement before live sync can be enabled."}))+'</p>'
+    + '<div class="ca-partner-contact">'
+    + '<span class="small" style="color:var(--ink-3)">'+esc(L({sk:"Kontakt výrobcu:",en:"Vendor contact:"}))+'</span>'
+    + '<a href="mailto:'+esc(contact)+'" class="small" style="font-weight:700">'+esc(contact)+'</a>'
+    + '</div>'
+    + '<div class="ca-partner-actions">'
+    + '<button class="btn btn-ghost btn-sm" id="partnerBack">'+esc(L({sk:"Späť",en:"Back"}))+'</button>'
+    + '<button class="btn btn-primary btn-sm" id="partnerNotify">'+esc(L({sk:"Upozorniť ma pri dostupnosti",en:"Notify me when available"}))+'</button>'
+    + '</div></div>';
+}
+
+function renderStepIos() {
+  return '<div class="ca-ios-view">'
+    + '<div class="ca-ios-ic">'+xi("phone")+'</div>'
+    + '<h3>'+esc(L({sk:"Vyžaduje sa iOS aplikácia",en:"iOS companion app required"}))+'</h3>'
+    + '<p class="muted">'+esc(L({sk:"Apple HealthKit nie je dostupný cez web — dáta z Apple Watch prenáša naša iOS aplikácia.",en:"Apple HealthKit isn't accessible via web — data from Apple Watch is sent by our iOS companion app."}))+'</p>'
+    + '<div class="ca-ios-steps">'
+    + '<div class="ca-ios-step"><span class="ca-ios-num">1</span><span>'+esc(L({sk:"Stiahnite aplikáciu Nemocnica Snina z App Store",en:"Download the Nemocnica Snina app from the App Store"}))+'</span></div>'
+    + '<div class="ca-ios-step"><span class="ca-ios-num">2</span><span>'+esc(L({sk:"Prihláste sa rovnakým účtom (eZdravie ID)",en:"Sign in with the same account (eHealth ID)"}))+'</span></div>'
+    + '<div class="ca-ios-step"><span class="ca-ios-num">3</span><span>'+esc(L({sk:"Autorizujte prístup k Apple Health v aplikácii",en:"Authorise HealthKit access in the app"}))+'</span></div>'
+    + '</div>'
+    + '<div class="ca-ios-store ph" data-label="App Store badge" style="height:54px;width:180px;border-radius:10px;margin:16px auto 0"></div>'
+    + '<button class="btn btn-ghost btn-sm mt-2" id="iosBack">'+esc(L({sk:"Späť",en:"Back"}))+'</button>'
+    + '</div>';
+}
+
+function renderStepUpload() {
+  var p = oauthPlat;
+  var isXiaomi = p && p.id==="xiaomi";
+  return '<div class="ca-upload-view">'
+    + '<div class="ca-upload-ic">'+xi("upload")+'</div>'
+    + '<h3>'+esc(L({sk:"Manuálny import dát",en:"Manual data import"}))+'</h3>'
+    + '<p class="muted">'+esc(L(isXiaomi
+      ? {sk:"Xiaomi nemá verejné OAuth API. Exportujte dáta z aplikácie Mi Fitness (Nastavenia → Súkromie → Export) a nahrajte .zip súbor.",en:"Xiaomi has no public OAuth API. Export data from the Mi Fitness app (Settings → Privacy → Export) and upload the .zip file."}
+      : {sk:"AliveCor neposkytuje priamy prístup pre pacientov. Nahrajte PDF záznamu EKG z aplikácie Kardia.",en:"AliveCor doesn't offer direct patient API access. Upload the EKG PDF recording from the Kardia app."}))+'</p>'
+    + '<div class="ca-upload-drop" id="uploadDrop">'
+    + xi("upload")
+    + '<p class="mb-0" style="font-weight:600">'+esc(L({sk:"Presuňte súbor sem",en:"Drag file here"}))+'</p>'
+    + '<p class="small muted">'+esc(L(isXiaomi?{sk:".zip zo Mi Fitness",en:".zip from Mi Fitness"}:{sk:"PDF zo Kardia aplikácie",en:"PDF from Kardia app"}))+'</p>'
+    + '<button class="btn btn-ghost btn-sm mt-1">'+esc(L({sk:"Vybrať súbor",en:"Browse"}))+'</button>'
+    + '</div>'
+    + '<button class="btn btn-ghost btn-sm mt-2" id="uploadBack">'+esc(L({sk:"Späť",en:"Back"}))+'</button>'
+    + '</div>';
+}
+
+/* ── Events ─────────────────────────────────────────────────────────────── */
+function attachEvents() {
+  /* bell */
+  var bellBtn = document.getElementById("bellBtn");
+  if (bellBtn) bellBtn.onclick = function(e){ e.stopPropagation(); alertOpen=!alertOpen; render(); };
+  var markAllBtn = document.getElementById("markAllReadBtn");
+  if (markAllBtn) markAllBtn.onclick = function(){ ALERTS.forEach(function(a){a.read=true;}); alertOpen=true; render(); };
+  var apViewAll = document.getElementById("apViewAll");
+  if (apViewAll) apViewAll.onclick = function(){ alertOpen=false; render(); };
+  var viewAlertBtn = document.getElementById("viewAlertBtn");
+  if (viewAlertBtn) viewAlertBtn.onclick = function(){ alertOpen=true; render(); };
+
+  /* close alert panel on outside click */
+  document.onclick = function(e){
+    if (alertOpen && !document.getElementById("bellWrap").contains(e.target)) { alertOpen=false; render(); }
+  };
+
+  /* open OAuth */
+  var openBtn = document.getElementById("openConnectBtn");
+  if (openBtn) openBtn.onclick = function(){ oauthOpen=true; oauthStep="platforms"; oauthPlat=null; render(); };
+
+  /* close OAuth */
+  var closeBtn = document.getElementById("oauthClose");
+  if (closeBtn) closeBtn.onclick = function(){ oauthOpen=false; render(); };
+  var overlay = document.getElementById("oauthOverlay");
+  if (overlay) overlay.onclick = function(e){ if(e.target===e.currentTarget){oauthOpen=false;render();} };
+
+  /* platform tabs */
+  var tabM = document.getElementById("tabMedical");
+  if (tabM) tabM.onclick = function(){ oauthTab="medical"; render(); };
+  var tabC = document.getElementById("tabConsumer");
+  if (tabC) tabC.onclick = function(){ oauthTab="consumer"; render(); };
+
+  /* platform card clicks */
+  document.querySelectorAll(".ca-plat-card").forEach(function(btn){
+    btn.onclick = function(){
+      var platId = btn.dataset.platId;
+      var status = btn.dataset.platStatus;
+      var platArr = PLAT.medical.concat(PLAT.consumer);
+      oauthPlat = platArr.find(function(p){return p.id===platId;});
+      if (status==="normal")      { oauthStep="perms"; }
+      else if (status==="partnership") { oauthStep="partnership"; }
+      else if (status==="ios")    { oauthStep="ios"; }
+      else if (status==="upload") { oauthStep="upload"; }
+      else if (status==="connected") { oauthOpen=false; }
+      render();
+    };
+  });
+
+  /* perms step */
+  var permsBack = document.getElementById("permsBack");
+  if (permsBack) permsBack.onclick = function(){ oauthStep="platforms"; render(); };
+  var permsAuth = document.getElementById("permsAuth");
+  if (permsAuth) permsAuth.onclick = function(){
+    oauthStep="redirecting"; render();
+    setTimeout(function(){ oauthStep="success"; render(); }, 2200);
+  };
+
+  /* success */
+  var successClose = document.getElementById("successClose");
+  if (successClose) successClose.onclick = function(){ oauthOpen=false; render(); };
+
+  /* partnership */
+  var partnerBack = document.getElementById("partnerBack");
+  if (partnerBack) partnerBack.onclick = function(){ oauthStep="platforms"; render(); };
+  var partnerNotify = document.getElementById("partnerNotify");
+  if (partnerNotify) partnerNotify.onclick = function(){ partnerNotify.textContent=L({sk:"✓ Upozorníme vás",en:"✓ We'll notify you"}); partnerNotify.disabled=true; };
+
+  /* ios */
+  var iosBack = document.getElementById("iosBack");
+  if (iosBack) iosBack.onclick = function(){ oauthStep="platforms"; render(); };
+
+  /* upload */
+  var uploadBack = document.getElementById("uploadBack");
+  if (uploadBack) uploadBack.onclick = function(){ oauthStep="platforms"; render(); };
+}
+
+/* reuse portal helpers */
+function initials(n){ return n.replace(/MUDr\.|Mgr\.|Bc\.|MBA|,/g,"").trim().split(/\s+/).slice(0,2).map(function(x){return x[0];}).join("").toUpperCase(); }
+ICON.watch = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="3"/><path d="M9 5V3h6v2M9 19v2h6v-2"/><line x1="12" y1="9" x2="12" y2="12"/><line x1="12" y1="12" x2="14" y2="14"/></svg>';
+ICON.glucose='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>';
+ICON.bluetooth='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>';
+ICON.heart='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+ICON.sync='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+function fmtAgo(iso){var ms=Date.now()-new Date(iso);if(ms<60000)return L({sk:"práve teraz",en:"just now"});if(ms<3600000){var m=Math.floor(ms/60000);return L({sk:"pred "+m+" min",en:m+" min ago"});}if(ms<86400000){var h=Math.floor(ms/3600000);return L({sk:"pred "+h+" h",en:h+" h ago"});}var d=Math.floor(ms/86400000);return L({sk:"pred "+d+" dňami",en:d+" days ago"});}
+
+new MutationObserver(function(){ render(); }).observe(document.documentElement,{attributes:true,attributeFilter:["lang"]});
+render();
+</script>
+
+<style>
+/* ── Bell & notifications ───────────────────────────────────────────────── */
+.ca-bell-wrap { position: relative; }
+.ca-bell-btn {
+  position: relative; background: none; border: 1px solid var(--line-2);
+  border-radius: 9px; width: 40px; height: 40px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2); transition: all .14s;
+}
+.ca-bell-btn:hover { background: var(--warm-100); color: var(--ink); }
+.ca-bell-btn svg { width: 19px !important; height: 19px !important; }
+.ca-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: var(--red); color: #fff;
+  font-family: 'Mulish', sans-serif; font-weight: 800; font-size: .68rem;
+  min-width: 18px; height: 18px; border-radius: 99px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px; border: 2px solid var(--surface); line-height: 1;
+}
+.ca-badge-nav {
+  position: static; transform: none; border: none;
+  font-size: .7rem; min-width: 16px; height: 16px;
+}
+
+/* alert dropdown */
+.ca-alert-panel {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 360px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); z-index: 500; overflow: hidden;
+}
+.ca-ap-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--bg-2);
+}
+.ca-ap-readall {
+  background: none; border: none; cursor: pointer; font-family: 'Mulish', sans-serif;
+  font-size: .8rem; font-weight: 700; color: var(--blue-700); padding: 0;
+}
+.ca-ap-readall:hover { text-decoration: underline; }
+.ca-ap-list { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
+.ca-alert-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 16px; border-bottom: 1px solid var(--line);
+  cursor: default; transition: background .1s;
+}
+.ca-alert-row:last-child { border-bottom: none; }
+.ca-alert-row.ca-alert-crit { background: #fff8f8; }
+.ca-alert-row.ca-alert-high { background: #fffcf5; }
+.ca-alert-row.ca-alert-read { opacity: .6; background: none; }
+.ca-alert-row:hover { background: var(--bg); }
+.ca-alert-dot-col { padding-top: 4px; flex: 0 0 auto; }
+.ca-severity-dot { display: block; width: 9px; height: 9px; border-radius: 50%; }
+.ca-dot-crit { background: var(--red); box-shadow: 0 0 0 3px var(--red-50); }
+.ca-dot-high { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-50); }
+.ca-alert-line1 { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.ca-severity-lbl {
+  font-family: 'Mulish', sans-serif; font-weight: 800; font-size: .68rem;
+  letter-spacing: .08em; border-radius: 4px; padding: 1px 5px;
+}
+.ca-lbl-crit { background: var(--red-50);   color: var(--red); }
+.ca-lbl-high { background: var(--amber-50); color: var(--amber); }
+.ca-alert-metric { font-weight: 600; font-size: .88rem; }
+.ca-alert-val    { font-weight: 700; font-size: .88rem; color: var(--ink); }
+.ca-alert-line2  { margin-top: 2px; }
+.ca-ap-foot {
+  padding: 10px 16px; border-top: 1px solid var(--line); background: var(--bg-2);
+}
+.ca-ap-viewall {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Mulish', sans-serif; font-size: .85rem; font-weight: 700;
+  color: var(--blue-700); display: flex; align-items: center; gap: 5px; padding: 0;
+}
+.ca-ap-viewall:hover { text-decoration: underline; }
+.ca-ap-viewall svg { width: 14px !important; height: 14px !important; }
+
+/* critical banner */
+.ca-critical-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--red); color: #fff;
+  border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px;
+}
+.ca-critical-ic { flex: 0 0 auto; }
+.ca-critical-ic svg { width: 20px !important; height: 20px !important; }
+.ca-critical-body { flex: 1; font-size: .92rem; }
+
+/* ── OAuth modal overlay ─────────────────────────────────────────────────── */
+.ca-overlay {
+  position: fixed; inset: 0; background: rgba(20,35,60,.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px; backdrop-filter: blur(3px);
+}
+.ca-modal {
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); width: 100%; max-width: 560px;
+  max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.ca-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px 14px; border-bottom: 1px solid var(--line);
+  background: var(--bg-2); flex: 0 0 auto;
+}
+.ca-modal-title {
+  display: flex; align-items: center; gap: 9px;
+  font-family: 'Mulish', sans-serif; font-weight: 700; font-size: 1rem;
+}
+.ca-modal-title svg { width: 18px !important; height: 18px !important; color: var(--blue-700); }
+.ca-modal-close {
+  background: none; border: none; cursor: pointer; color: var(--ink-3);
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 7px; transition: all .12s;
+}
+.ca-modal-close:hover { background: var(--warm-100); color: var(--ink); }
+.ca-modal-close svg { width: 17px !important; height: 17px !important; }
+.ca-modal-body { flex: 1; overflow-y: auto; padding: 20px 22px; }
+
+/* step dots */
+.ca-step-dots {
+  display: flex; align-items: center; gap: 0; padding: 14px 22px 0;
+  position: relative; flex: 0 0 auto;
+}
+.ca-step-track {
+  position: absolute; left: 22px; right: 22px; top: 50%; height: 2px;
+  background: var(--line); z-index: 0; margin-top: -1px;
+}
+.ca-step-fill { height: 100%; background: var(--blue-600); transition: width .3s ease; }
+.ca-step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--line-2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .8rem;
+  color: var(--ink-3); z-index: 1; flex: 0 0 auto; margin-right: auto;
+  transition: all .2s;
+}
+.ca-step-dot:last-of-type { margin-right: 0; }
+.ca-step-dot.ca-dot-active { background: var(--blue-700); border-color: var(--blue-700); color: #fff; }
+.ca-step-dot.ca-dot-done   { background: var(--green); border-color: var(--green); color: #fff; }
+.ca-step-dot.ca-dot-done svg { width: 13px !important; height: 13px !important; }
+
+/* platform grid (step 1) */
+.ca-plat-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.ca-plat-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  background: none; font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .85rem;
+  color: var(--ink-2); cursor: pointer; transition: all .14s;
+}
+.ca-plat-tab svg { width: 15px !important; height: 15px !important; }
+.ca-plat-tab.active { background: var(--blue-50); border-color: var(--blue-200); color: var(--blue-700); }
+.ca-plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.ca-plat-card {
+  display: flex; align-items: center; gap: 9px; padding: 10px 11px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); cursor: pointer; text-align: left;
+  transition: all .13s; position: relative; overflow: hidden;
+}
+.ca-plat-card:hover { border-color: var(--blue-200); background: var(--blue-50); }
+.ca-plat-mono {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--warm-100);
+  color: var(--ink-2); display: flex; align-items: center; justify-content: center;
+  font-family: 'Mulish', sans-serif; font-weight: 800; font-size: .78rem;
+  flex: 0 0 auto; letter-spacing: 0;
+}
+.ca-plat-brand { font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .82rem; line-height: 1.2; }
+.ca-plat-badge {
+  position: absolute; top: 4px; right: 4px;
+  font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .65rem;
+  padding: 1px 5px; border-radius: 4px; display: flex; align-items: center; gap: 2px;
+}
+.ca-plat-badge svg { width: 10px !important; height: 10px !important; }
+.ca-plat-badge-partner { background: var(--amber-50); color: var(--amber); }
+.ca-plat-badge-ios     { background: var(--blue-50);  color: var(--blue-700); }
+.ca-plat-badge-upload  { background: var(--warm-100); color: var(--ink-2); }
+.ca-plat-badge-done    { background: var(--green-50); color: var(--green); }
+
+/* permissions (step 2) */
+.ca-perms-view { display: flex; flex-direction: column; gap: 16px; }
+.ca-perms-head { display: flex; align-items: center; gap: 14px; }
+.ca-perms-logo {
+  width: 52px; height: 52px; border-radius: 13px; background: var(--blue-100);
+  color: var(--blue-700); display: flex; align-items: center; justify-content: center;
+  font-family: 'Mulish', sans-serif; font-weight: 800; font-size: 1.1rem; flex: 0 0 auto;
+}
+.ca-perm-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.ca-perm-row {
+  display: flex; align-items: flex-start; gap: 12px; padding: 11px 14px;
+  border-bottom: 1px solid var(--line); background: var(--bg);
+}
+.ca-perm-row:last-child { border-bottom: none; }
+.ca-perm-check { flex: 0 0 auto; color: var(--green); margin-top: 1px; }
+.ca-perm-check svg { width: 16px !important; height: 16px !important; }
+.ca-perms-privacy {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: var(--blue-50); border-radius: var(--radius-sm);
+  border: 1px solid var(--blue-100);
+}
+.ca-perms-privacy svg { width: 14px !important; height: 14px !important; color: var(--blue-600); flex: 0 0 auto; }
+.ca-perms-actions { display: flex; justify-content: space-between; align-items: center; }
+.ca-perms-actions .btn-primary { display: flex; align-items: center; gap: .45em; }
+.ca-perms-actions .btn-primary svg { width: 15px !important; height: 15px !important; }
+
+/* redirecting (step 3) */
+.ca-redirect-view { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; text-align: center; }
+.ca-redirect-spin { color: var(--blue-600); }
+.ca-redirect-spin svg { width: 48px !important; height: 48px !important; }
+@keyframes ca-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.ca-spin { animation: ca-spin .9s linear infinite; }
+
+/* success (step 4) */
+.ca-success-view { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; text-align: center; gap: 8px; }
+.ca-success-ic {
+  width: 64px; height: 64px; border-radius: 50%; background: var(--green-50);
+  color: var(--green); display: flex; align-items: center; justify-content: center;
+  animation: ca-pop .35s cubic-bezier(.175,.885,.32,1.275) forwards;
+}
+.ca-success-ic svg { width: 32px !important; height: 32px !important; }
+@keyframes ca-pop { from{transform:scale(0);opacity:0} 60%{transform:scale(1.15)} to{transform:scale(1);opacity:1} }
+
+/* partnership state */
+.ca-partner-view { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 16px; gap: 12px; }
+.ca-partner-ic { width: 56px; height: 56px; border-radius: 14px; background: var(--amber-50); color: var(--amber); display: flex; align-items: center; justify-content: center; }
+.ca-partner-ic svg { width: 28px !important; height: 28px !important; }
+.ca-partner-contact { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; width: 100%; }
+.ca-partner-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* iOS state */
+.ca-ios-view { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 12px; gap: 12px; }
+.ca-ios-ic { width: 56px; height: 56px; border-radius: 14px; background: var(--blue-50); color: var(--blue-700); display: flex; align-items: center; justify-content: center; }
+.ca-ios-ic svg { width: 28px !important; height: 28px !important; }
+.ca-ios-steps { display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; }
+.ca-ios-step { display: flex; align-items: flex-start; gap: 12px; font-size: .9rem; padding: 8px 12px; background: var(--bg-2); border-radius: var(--radius-sm); }
+.ca-ios-num { width: 22px; height: 22px; border-radius: 50%; background: var(--blue-700); color: #fff; font-family: 'Mulish', sans-serif; font-weight: 800; font-size: .75rem; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+/* upload state */
+.ca-upload-view { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 12px; gap: 12px; }
+.ca-upload-ic { width: 56px; height: 56px; border-radius: 14px; background: var(--warm-100); color: var(--ink-2); display: flex; align-items: center; justify-content: center; }
+.ca-upload-ic svg { width: 28px !important; height: 28px !important; }
+.ca-upload-drop {
+  width: 100%; border: 2px dashed var(--line-2); border-radius: var(--radius);
+  padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: var(--bg); cursor: pointer; transition: all .14s;
+}
+.ca-upload-drop:hover { border-color: var(--blue-500); background: var(--blue-50); }
+.ca-upload-drop svg { width: 28px !important; height: 28px !important; color: var(--ink-3); }
+
+/* responsive */
+@media (max-width: 540px) {
+  .ca-plat-grid { grid-template-columns: repeat(2,1fr); }
+  .ca-alert-panel { width: calc(100vw - 32px); right: -100px; }
+}
+</style>
+</body>
+</html>

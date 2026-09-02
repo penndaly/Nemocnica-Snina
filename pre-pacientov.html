@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre pacientov — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+      <p class="eyebrow" id="phEyebrow"></p>
+      <h1 id="phTitle"></h1>
+      <p class="lede" id="phBody" style="max-width:70ch"></p>
+      <div class="flex gap-sm wrap mt-2" id="phJump"></div>
+    </div>
+  </section>
+
+  <section class="section" id="cennik" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="cennikTitle"></h2>
+      <p class="muted" id="cennikNote" style="max-width:70ch"></p>
+      <div class="table-wrap mt-2">
+        <table class="data" id="cennikTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-warm" id="cakacie-lehoty" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="waitTitle"></h2>
+      <p class="muted" id="waitNote" style="max-width:70ch"></p>
+      <div class="card mt-2" id="waitList"></div>
+    </div>
+  </section>
+
+  <section class="section" id="informacie" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="infoTitle"></h2>
+      <div class="grid grid-2 mt-2">
+        <div class="card card-pad" id="infoAdmission"></div>
+        <div class="card card-pad" id="infoPharmacy"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-warm" id="dotaznik" style="scroll-margin-top:90px">
+    <div class="container container-narrow">
+      <h2 id="surveyTitle"></h2>
+      <p class="muted" id="surveyNote"></p>
+      <form class="card card-pad mt-2" id="surveyForm">
+        <div class="grid grid-2">
+          <label class="field"><span id="surveyClinicLbl"></span><input type="text" id="surveyClinic" required></label>
+          <label class="field"><span id="surveyDateLbl"></span><input type="date" id="surveyDate"></label>
+        </div>
+        <label class="field mt-1"><span id="surveyRatingLbl"></span>
+          <select id="surveyRating"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select>
+        </label>
+        <label class="field mt-1"><span id="surveyCommentLbl"></span><textarea id="surveyComment" rows="4"></textarea></label>
+        <button type="submit" class="btn btn-primary mt-2" id="surveySubmit"></button>
+        <p class="small muted mt-1 mb-0" id="surveyConfirm" style="display:none"></p>
+      </form>
+    </div>
+  </section>
+
+  <section class="section" id="staznosti" style="scroll-margin-top:90px">
+    <div class="container container-narrow">
+      <h2 id="compTitle"></h2>
+      <p class="muted" id="compNote"></p>
+      <form class="card card-pad mt-2" id="compForm">
+        <div class="grid grid-2">
+          <label class="field"><span id="compNameLbl"></span><input type="text" id="compName" required></label>
+          <label class="field"><span id="compEmailLbl"></span><input type="email" id="compEmail" required></label>
+        </div>
+        <label class="field mt-1"><span id="compDeptLbl"></span><input type="text" id="compDept"></label>
+        <label class="field mt-1"><span id="compTextLbl"></span><textarea id="compText" rows="5" required></textarea></label>
+        <button type="submit" class="btn btn-primary mt-2" id="compSubmit"></button>
+        <p class="small muted mt-1 mb-0" id="compConfirm" style="display:none"></p>
+        <p class="small muted mt-2 mb-0" id="compAlt"></p>
+      </form>
+    </div>
+  </section>
+
+  <section class="section band-warm" id="podakovania" style="scroll-margin-top:90px">
+    <div class="container">
+      <h2 id="testiTitle"></h2>
+      <div class="grid grid-3 mt-2" id="testiGrid"></div>
+    </div>
+  </section>
+</main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "patients" });
+const PI = DB.get("patientInfo");
+
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = t("nav.patients");
+document.getElementById("phEyebrow").textContent = L({sk:"Pre pacientov",en:"For patients"});
+document.getElementById("phTitle").textContent = L({sk:"Všetko, čo potrebujete pred návštevou",en:"Everything you need before your visit"});
+document.getElementById("phBody").textContent = L({sk:"Ceny pre samoplatcov, čakacie lehoty na jednotlivé ambulancie, dotazník spokojnosti, podávanie sťažností a poďakovania pacientov — na jednom mieste.",en:"Self-pay pricing, clinic waiting times, a satisfaction survey, complaint submission and patient testimonials — all in one place."});
+document.getElementById("phJump").innerHTML = [
+  ["#cennik",{sk:"Cenník",en:"Price list"}],["#cakacie-lehoty",{sk:"Čakacie lehoty",en:"Waiting times"}],
+  ["#informacie",{sk:"Informácie pred prijatím",en:"Admission info"}],["#dotaznik",{sk:"Dotazník spokojnosti",en:"Satisfaction survey"}],
+  ["#staznosti",{sk:"Sťažnosti",en:"Complaints"}],["#podakovania",{sk:"Poďakovania",en:"Testimonials"}]
+].map(([href,lbl]) => `<a href="${href}" class="chip">${esc(L(lbl))}</a>`).join("");
+
+document.getElementById("cennikTitle").textContent = L({sk:"Cenník pre samoplatcov",en:"Price list for self-pay patients"});
+document.getElementById("cennikNote").innerHTML = L({sk:"Cenník pre samoplatcov, zostavený z platných dokumentov nemocnice (cenník SM-06 platný od 1.10.2025, cenník biochémie a cenník hematológie). Namiesto troch samostatných PDF súborov je tu ako prehľadná, vyhľadateľná tabuľka.",en:"Self-pay pricing compiled from the hospital's current documents (price list SM-06 valid from 1 Oct 2025, biochemistry and hematology price lists). Shown here as one searchable table instead of three separate PDFs."});
+document.getElementById("cennikTable").innerHTML = `
+  <thead><tr><th>${esc(L({sk:"Kategória",en:"Category"}))}</th><th>${esc(L({sk:"Výkon",en:"Service"}))}</th><th>${esc(L({sk:"Cena",en:"Price"}))}</th></tr></thead>
+  <tbody>${PI.pricing.map(p => `<tr><td>${esc(L(p.category))}</td><td>${esc(L(p.item))}</td><td><b>${esc(p.price)}</b></td></tr>`).join("")}</tbody>`;
+
+document.getElementById("waitTitle").textContent = L({sk:"Čakacie lehoty na ambulancie",en:"Clinic waiting times"});
+document.getElementById("waitNote").textContent = L({sk:"Doteraz sme čakacie lehoty nezverejňovali priamo — pacienti museli hľadať na stránkach poisťovní (Dôvera, VšZP, Union). Tu je aktuálny odhad pre každú ambulanciu priamo na jednom mieste.",en:"Waiting times weren't published directly before — patients had to check insurer sites (Dôvera, VšZP, Union) separately. Here's a current estimate for every clinic, in one place."});
+document.getElementById("waitList").innerHTML = PI.waitingTimes.map(w => {
+  const badgeCls = w.level === "good" ? "badge-green" : w.level === "closed" ? "badge-red" : "badge-amber";
+  return `<div class="wait-row"><span class="wr-clinic">${esc(L(w.clinic))}</span><span class="badge ${badgeCls}">${esc(L(w.wait))}</span></div>`;
+}).join("");
+
+document.getElementById("infoTitle").textContent = L({sk:"Informácie pred prijatím",en:"Before your admission"});
+document.getElementById("infoAdmission").innerHTML = `
+  <h3>${esc(L({sk:"Čo si priniesť",en:"What to bring"}))}</h3>
+  <ul>
+    <li>${esc(L({sk:"Preukaz zdravotnej poisťovne a občiansky preukaz",en:"Your health-insurance card and ID"}))}</li>
+    <li>${esc(L({sk:"Výmenný lístok od odosielajúceho lekára (ak je vyžadovaný)",en:"A referral note from your referring physician (if required)"}))}</li>
+    <li>${esc(L({sk:"Predchádzajúcu zobrazovaciu dokumentáciu (MRI, CT, RTG), ak existuje",en:"Prior imaging records (MRI, CT, X-ray), if available"}))}</li>
+    <li>${esc(L({sk:"Zoznam aktuálne užívaných liekov",en:"A list of medications you currently take"}))}</li>
+  </ul>
+  <a href="objednanie.html" class="btn btn-primary btn-sm mt-1">${icon("calendar")} ${esc(t("book"))}</a>`;
+document.getElementById("infoPharmacy").innerHTML = `
+  <h3>${esc(L({sk:"Lekárenská pohotovosť",en:"Pharmacy on-call service"}))}</h3>
+  <p>${esc(L({sk:"Nemocničná lekáreň vydáva lieky na recept aj voľnopredajné, s hodinami zosúladenými s ambulanciami.",en:"The hospital pharmacy dispenses both prescription and over-the-counter medicine, with hours aligned to the clinics."}))}</p>
+  <p class="mb-0"><b>${esc(L({sk:"Lekáreň",en:"Pharmacy"}))}:</b> ${esc(DB.get("hospital").pharmacy)}<br>
+  <a href="diagnostika.html">${esc(L({sk:"Viac o diagnostike a lekárni →",en:"More on diagnostics & pharmacy →"}))}</a></p>`;
+
+document.getElementById("surveyTitle").textContent = L({sk:"Dotazník spokojnosti",en:"Satisfaction survey"});
+document.getElementById("surveyNote").textContent = L({sk:"Vaša spätná väzba nám pomáha zlepšovať starostlivosť. Dotazník je anonymný.",en:"Your feedback helps us improve care. The survey is anonymous."});
+document.getElementById("surveyClinicLbl").textContent = L({sk:"Oddelenie / ambulancia",en:"Department / clinic"});
+document.getElementById("surveyDateLbl").textContent = L({sk:"Dátum návštevy",en:"Visit date"});
+document.getElementById("surveyRatingLbl").textContent = L({sk:"Celková spokojnosť",en:"Overall satisfaction"});
+document.getElementById("surveyCommentLbl").textContent = L({sk:"Komentár (nepovinné)",en:"Comment (optional)"});
+document.getElementById("surveySubmit").textContent = L({sk:"Odoslať dotazník",en:"Submit survey"});
+document.getElementById("surveyForm").onsubmit = e => { e.preventDefault(); document.getElementById("surveyConfirm").style.display = "block"; document.getElementById("surveyConfirm").textContent = L({sk:"Ďakujeme za spätnú väzbu.",en:"Thank you for your feedback."}); e.target.reset(); };
+
+document.getElementById("compTitle").textContent = L({sk:"Sťažnosti",en:"Complaints"});
+document.getElementById("compNote").textContent = L({sk:"Sťažnosti vybavujeme podľa zákona č. 9/2010 Z. z. o sťažnostiach. Odpoveď zašleme do 30 pracovných dní.",en:"Complaints are handled under Act No. 9/2010 on Complaints. We respond within 30 working days."});
+document.getElementById("compNameLbl").textContent = L({sk:"Meno a priezvisko",en:"Full name"});
+document.getElementById("compEmailLbl").textContent = L({sk:"E-mail na odpoveď",en:"Email for reply"});
+document.getElementById("compDeptLbl").textContent = L({sk:"Oddelenie / ambulancia (ak sa týka)",en:"Department / clinic (if applicable)"});
+document.getElementById("compTextLbl").textContent = L({sk:"Popis sťažnosti",en:"Complaint details"});
+document.getElementById("compSubmit").textContent = L({sk:"Podať sťažnosť",en:"Submit complaint"});
+document.getElementById("compAlt").innerHTML = L({sk:`Sťažnosť môžete podať aj priamo na <a href="mailto:${DB.get("hospital").email}">${DB.get("hospital").email}</a>.`,en:`You may also file a complaint directly at <a href="mailto:${DB.get("hospital").email}">${DB.get("hospital").email}</a>.`});
+document.getElementById("compForm").onsubmit = e => { e.preventDefault(); document.getElementById("compConfirm").style.display = "block"; document.getElementById("compConfirm").textContent = L({sk:"Sťažnosť bola prijatá. Budeme vás kontaktovať.",en:"Your complaint has been received. We will contact you."}); e.target.reset(); };
+
+document.getElementById("testiTitle").textContent = L({sk:"Poďakovania pacientov",en:"Patient testimonials"});
+document.getElementById("testiGrid").innerHTML = PI.testimonials.map(x => `
+  <div class="card card-pad quote-card">
+    <blockquote>“${esc(L(x.quote))}”</blockquote>
+    <cite>${esc(L(x.author))}</cite>
+  </div>`).join("");
+</script>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
+</body>
+</html>

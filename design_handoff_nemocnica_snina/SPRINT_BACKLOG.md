@@ -15,9 +15,9 @@
 
 | # | Feature | Handoff reference | Audit verdict | Sprint |
 |---|---|---|---|---|
-| G1 | eDohody staff review queue (admin accept/reject onboarding applications) | BUILD_GUIDE Phase 5 | ❌ Absent — admin collections list departments/clinics/physicians/services/facilities/news/disclosures only; no onboarding review queue | S1 |
-| G2 | NCZI eDohoda XML generation on acceptance | BUILD_GUIDE Phase 5 | ❌ Absent — OnboardingModule creates application and publishes to HIS queue but no XML generation described | S1 |
-| G3 | Patient notification to sign via eID after acceptance | BUILD_GUIDE Phase 5 | ❌ Not mentioned in audit | S1 |
+| G1 | eDohody RC encryption gap — `onboarding.service.ts` passes `[REDACTED]` as patientRc to `generateEDohoda()`; RC must be encrypted (not just hashed) at apply-time so it is recoverable at acceptance | BUILD_GUIDE Phase 5 | ⚠️ Partial — `nczi-xml.service.ts` + `review()` exist; XML payload incomplete | S1 |
+| G2 | eDohody patient SMS notification — `review()` accept/reject has no SMS dispatch; patient is not notified | BUILD_GUIDE Phase 5 | ⚠️ Partial — admin UI at `/admin/onboarding/` confirmed; SMS step missing | S1 |
+| G3 | APS rendering on home + contact — `aps.service.ts` confirmed in API; confirm web pages call it and render live schedule | BUILD_GUIDE Phase 7.2 | ⚠️ Partial — service exists; web rendering unconfirmed | S2 |
 | G4 | APS live feed (home + contact) with Redis cache + CMS fallback | BUILD_GUIDE Phase 7.2, PRODUCTION_ARCHITECTURE.md | ⚠️ Smoke test verifies e-VÚC PSK URL reachability; pages use `getPageContent().aps` (CMS text); live feed rendering + Redis caching not confirmed | S2 |
 | G5 | NCZI eZdravie prescription routing (Act 362/2011) | TELEMEDICINE_COMPLIANCE_REVIEW.md B2 | ❌ Prescriptions exist only as FHIR MedicationRequest in HIS; eZdravie submission step missing for all prescription flows | S3 |
 | G6 | Portal: medication refill request | BUILD_GUIDE Phase 6 | ❌ Portal shows MedicationRequest tab but no refill action described | S3 |

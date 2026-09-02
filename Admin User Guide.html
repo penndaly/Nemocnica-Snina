@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin User Guide — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  /* ============ Guide shell ============ */
+  body.guide { background: var(--bg); }
+  .guide-wrap { display: grid; grid-template-columns: 286px 1fr; gap: 0; min-height: 100vh; }
+
+  /* Sidebar TOC — echoes the admin's blue rail so staff recognise it */
+  .toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    background: var(--blue-900); color: #c2d2e4; padding: 26px 18px 40px;
+  }
+  .toc-brand { display: flex; align-items: center; gap: 11px; padding: 4px 8px 18px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 16px; }
+  .toc-brand .mk { display: inline-flex; width: 42px; height: 42px; border-radius: 11px; background: var(--blue-700); color: #fff; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .toc-brand .mk svg { width: 22px; height: 22px; }
+  .toc-brand strong { display: block; color: #fff; font-family: 'Newsreader', serif; font-size: 1.08rem; line-height: 1.1; }
+  .toc-brand span.sub { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: #8fa6bf; }
+  .toc-label { font-size: .68rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: #6f88a6; margin: 18px 8px 7px; }
+  .toc a {
+    display: flex; align-items: center; gap: 9px; color: #c2d2e4; padding: 7px 11px; border-radius: 8px;
+    font-weight: 600; font-size: .9rem; transition: all .14s; line-height: 1.25; margin-bottom: 1px;
+  }
+  .toc a .num { font-size: .72rem; font-weight: 800; color: #6f88a6; min-width: 16px; }
+  .toc a:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .toc a.active { background: var(--blue-600); color: #fff; }
+  .toc a.active .num { color: #cfe0f2; }
+
+  /* Reading column */
+  .reading { max-width: 860px; margin: 0 auto; padding: 0 40px 120px; width: 100%; }
+  .doc-hero { padding: 60px 0 34px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .doc-hero .eyebrow { color: var(--terra); }
+  .doc-hero h1 { font-size: clamp(2.3rem, 4vw, 3.2rem); margin-bottom: .25em; }
+  .doc-hero .lede { max-width: 60ch; }
+  .doc-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+
+  section.doc { padding: 46px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+  section.doc:last-of-type { border-bottom: none; }
+  .sec-kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .sec-kicker .sn { font-family: 'Newsreader', serif; font-size: 1.1rem; color: var(--terra); font-weight: 600; }
+  .sec-kicker .line { height: 1px; flex: 1; background: var(--line); }
+  section.doc h2 { font-size: 1.95rem; margin-bottom: .5em; }
+  section.doc h3 { font-size: 1.28rem; margin: 1.7em 0 .5em; color: var(--blue-900); }
+  section.doc h4 { margin: 1.4em 0 .3em; color: var(--ink); }
+  section.doc p, section.doc li { color: var(--ink-2); }
+  section.doc strong { color: var(--ink); font-weight: 700; }
+  section.doc ul, section.doc ol { padding-left: 1.2em; margin: 0 0 1rem; }
+  section.doc li { margin-bottom: .4em; }
+  code { font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace; background: var(--warm-100); border: 1px solid var(--line); border-radius: 5px; padding: .08em .4em; font-size: .86em; color: var(--blue-800); white-space: nowrap; }
+
+  /* Step list */
+  ol.steps { list-style: none; padding: 0; counter-reset: step; margin: 1.2em 0; }
+  ol.steps > li { counter-increment: step; position: relative; padding: 0 0 1.1em 52px; margin: 0; }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: -2px;
+    width: 34px; height: 34px; border-radius: 50%; background: var(--blue-50); color: var(--blue-700);
+    font-family: 'Mulish', sans-serif; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; border: 1px solid var(--blue-200);
+  }
+  ol.steps > li::after { content: ""; position: absolute; left: 17px; top: 34px; bottom: 2px; width: 2px; background: var(--line); }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps > li strong { color: var(--ink); }
+
+  /* Callouts */
+  .note { display: grid; grid-template-columns: 26px 1fr; gap: 13px; border-radius: var(--radius-sm); padding: 16px 18px; margin: 1.3em 0; font-size: .95rem; border: 1px solid; }
+  .note p { margin: 0; }
+  .note p + p { margin-top: .5em; }
+  .note .ic { width: 22px; height: 22px; margin-top: 1px; }
+  .note .ttl { font-weight: 800; color: var(--ink); display: block; margin-bottom: 3px; letter-spacing: .01em; }
+  .note.tip { background: var(--green-50); border-color: #bfe0cf; }
+  .note.tip .ic, .note.tip .ttl { color: var(--green); }
+  .note.warn { background: var(--amber-50); border-color: #ecd9a8; }
+  .note.warn .ic, .note.warn .ttl { color: #9a6c12; }
+  .note.crit { background: var(--red-50); border-color: #f0c9c4; }
+  .note.crit .ic, .note.crit .ttl { color: var(--red); }
+  .note.info { background: var(--blue-50); border-color: var(--blue-200); }
+  .note.info .ic, .note.info .ttl { color: var(--blue-700); }
+  .note.tip p, .note.warn p, .note.crit p, .note.info p { color: var(--ink-2); }
+
+  /* Mock UI chrome — reconstructs what staff actually see */
+  .mock { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); margin: 1.3em 0; background: var(--surface); }
+  .mock-cap { font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); background: var(--warm-100); padding: 8px 14px; border-bottom: 1px solid var(--line); }
+  .mock-body { padding: 16px; background: var(--bg-2); }
+
+  .m-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 16px; }
+  .m-row + .m-row { margin-top: 9px; }
+  .m-main { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .m-ic { width: 40px; height: 40px; border-radius: 11px; background: var(--blue-50); color: var(--blue-700); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .m-ic svg { width: 21px; height: 21px; }
+  .m-row h4 { margin: 0; font-size: 1rem; }
+  .m-row .m-sub { font-size: .82rem; color: var(--ink-3); }
+  .m-act { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+  .m-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; }
+  .m-btn svg { width: 16px; height: 16px; }
+
+  /* Mock bilingual field */
+  .m-field { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .m-field-lbl { font-weight: 700; font-size: .9rem; margin-bottom: 8px; color: var(--ink); }
+  .m-bil { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .m-inp { position: relative; }
+  .m-inp .tag { position: absolute; top: 8px; right: 9px; font-size: .6rem; font-weight: 800; color: var(--ink-3); background: var(--warm-100); padding: 1px 6px; border-radius: 5px; }
+  .m-inp .box { border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: #fff; padding: 9px 36px 9px 11px; font-size: .9rem; color: var(--ink); min-height: 40px; }
+  .m-inp .box.ph { color: var(--ink-3); }
+  .m-switch { display: flex; align-items: center; gap: 11px; font-weight: 600; color: var(--ink); }
+  .m-switch .sw { width: 38px; height: 22px; border-radius: 999px; background: var(--blue-600); position: relative; flex: 0 0 auto; }
+  .m-switch .sw::after { content: ""; position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .m-switch .sw.off { background: var(--warm-200); }
+  .m-switch .sw.off::after { right: auto; left: 2px; }
+
+  /* Field reference tables */
+  table.ref { width: 100%; border-collapse: collapse; margin: 1.1em 0; font-size: .92rem; }
+  table.ref th, table.ref td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.ref th { background: var(--warm-100); color: var(--ink); font-weight: 700; font-size: .82rem; letter-spacing: .02em; }
+  table.ref td { color: var(--ink-2); }
+  table.ref td:first-child { white-space: nowrap; font-weight: 600; color: var(--ink); }
+  table.ref tr:last-child td { border-bottom: none; }
+  table.ref .fieldname { font-family: 'SFMono-Regular', ui-monospace, monospace; font-size: .82rem; color: var(--blue-800); }
+
+  /* Collection anchor cards */
+  .coll-head { display: flex; align-items: center; gap: 14px; margin: 2.2em 0 .4em; }
+  .coll-head .ch-ic { width: 46px; height: 46px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .coll-head .ch-ic svg { width: 24px; height: 24px; }
+  .coll-head h3 { margin: 0; }
+  .coll-head .ch-where { font-size: .82rem; color: var(--ink-3); }
+  .ic-blue { background: var(--blue-50); color: var(--blue-700); }
+  .ic-terra { background: var(--terra-50); color: var(--terra); }
+
+  .pillrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 1em 0; }
+
+  /* Days strip for booking rules */
+  .days { display: flex; gap: 6px; flex-wrap: wrap; margin: .9em 0; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .day .d { width: 46px; height: 46px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--ink-2); font-size: .9rem; }
+  .day .d.on { background: var(--blue-700); color: #fff; border-color: var(--blue-700); }
+  .day .n { font-size: .72rem; color: var(--ink-3); font-weight: 700; }
+  .day .n b { color: var(--blue-700); }
+
+  /* back to top + footer */
+  .doc-foot { padding: 40px 0 0; color: var(--ink-3); font-size: .9rem; }
+  .toplink { position: fixed; bottom: 22px; right: 22px; width: 46px; height: 46px; border-radius: 12px; background: var(--blue-700); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; }
+  .toplink.show { opacity: 1; pointer-events: auto; }
+  .toplink svg { width: 20px; height: 20px; }
+
+  @media (max-width: 940px) {
+    .guide-wrap { grid-template-columns: 1fr; }
+    .toc { position: static; height: auto; }
+    .toc a { display: inline-flex; }
+    .toc-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    .reading { padding: 0 22px 90px; }
+    .m-bil { grid-template-columns: 1fr; }
+  }
+  @media print {
+    .toc, .toplink { display: none; }
+    .guide-wrap { grid-template-columns: 1fr; }
+    section.doc { break-inside: avoid-page; }
+  }
+</style>
+</head>
+<body class="guide">
+<div class="guide-wrap">
+
+  <!-- ============ TABLE OF CONTENTS ============ -->
+  <aside class="toc">
+    <div class="toc-brand">
+      <span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>
+      <span><strong>Nemocnica Snina</strong><span class="sub">Admin guide</span></span>
+    </div>
+    <nav class="toc-list" id="toc">
+      <p class="toc-label">Getting started</p>
+      <a href="#intro"><span class="num">1</span> About this guide</a>
+      <a href="#signin"><span class="num">2</span> Signing in &amp; security</a>
+      <a href="#tour"><span class="num">3</span> The interface</a>
+      <a href="#editing"><span class="num">4</span> How editing works</a>
+      <p class="toc-label">Managing content</p>
+      <a href="#departments"><span class="num">5</span> Departments</a>
+      <a href="#clinics"><span class="num">6</span> Clinics</a>
+      <a href="#booking"><span class="num">7</span> Booking rules</a>
+      <a href="#physicians"><span class="num">8</span> Physicians</a>
+      <a href="#services"><span class="num">9</span> Services</a>
+      <a href="#facilities"><span class="num">10</span> Diagnostics</a>
+      <a href="#news"><span class="num">11</span> News</a>
+      <a href="#disclosures"><span class="num">12</span> Disclosures</a>
+      <p class="toc-label">Media &amp; languages</p>
+      <a href="#media"><span class="num">13</span> Images &amp; PDFs</a>
+      <a href="#translations"><span class="num">14</span> Translations &amp; review</a>
+      <p class="toc-label">Settings &amp; tools</p>
+      <a href="#settings"><span class="num">15</span> Hospital &amp; pages</a>
+      <a href="#tools"><span class="num">16</span> Tools &amp; backups</a>
+      <a href="#roles"><span class="num">17</span> Roles &amp; permissions</a>
+      <p class="toc-label">Reference</p>
+      <a href="#practices"><span class="num">18</span> Good practices</a>
+      <a href="#faq"><span class="num">19</span> Troubleshooting</a>
+    </nav>
+  </aside>
+
+  <!-- ============ READING COLUMN ============ -->
+  <main class="reading">
+
+    <header class="doc-hero" id="top">
+      <p class="eyebrow">Content administration · Staff handbook</p>
+      <h1>Admin User Guide</h1>
+      <p class="lede">Everything the hospital team needs to keep the Nemocnica Snina website accurate — departments, clinics, physicians, booking rules, news and official disclosures — without touching a line of code.</p>
+      <div class="doc-meta">
+        <span class="badge badge-blue">For editors, clinicians &amp; administrators</span>
+        <span class="badge badge-gray">Bilingual SK / EN</span>
+        <span class="badge badge-green"><span class="dot"></span>Changes go live immediately</span>
+      </div>
+    </header>
+
+    <!-- 1 — INTRO -->
+    <section class="doc" id="intro">
+      <div class="sec-kicker"><span class="sn">01</span><span class="line"></span></div>
+      <h2>About this guide</h2>
+      <p>The content admin is the control room for the public website. From one screen you can add a new physician, change a clinic's opening hours, publish an announcement, or upload a contract for the disclosures register — and every change appears on the live site within moments.</p>
+      <p>This guide is written for <strong>non-technical staff</strong>. You do not need any web or IT background. If you can fill in a form, you can run the website.</p>
+
+      <h3>The three things to remember</h3>
+      <ol class="steps">
+        <li><strong>You are editing the live site.</strong> There is no separate "draft website" for Slovak and English — when you press <em>Save</em>, the public page updates. Read your text before saving.</li>
+        <li><strong>Slovak is the original; English sits beside it.</strong> Most content fields show two boxes — <code>SK</code> and <code>EN</code> — side by side. Fill in both so every visitor gets a complete page.</li>
+        <li><strong>Booking rules are clinical safety settings.</strong> The fields that control which days and times patients can book are covered in their own section. Treat them with the same care as a real appointment book.</li>
+      </ol>
+
+      <div class="note info">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+        <p><span class="ttl">Who can do what</span>Your account has a role — <strong>editor</strong>, <strong>clinician</strong>, or <strong>administrator</strong> — and some areas are limited to certain roles. If a button or section described here is missing for you, it is restricted to another role. See <a href="#roles">Roles &amp; permissions</a>.</p>
+      </div>
+    </section>
+
+    <!-- 2 — SIGN IN -->
+    <section class="doc" id="signin">
+      <div class="sec-kicker"><span class="sn">02</span><span class="line"></span></div>
+      <h2>Signing in &amp; security</h2>
+      <p>The admin lives at the <code>/admin</code> address of the hospital website. Access is protected by your staff account and a second security step, because the system can reach personal data and clinical settings.</p>
+
+      <h3>First sign-in — set up your authenticator</h3>
+      <p>Every staff account uses <strong>two-factor authentication (MFA)</strong>. The first time you log in, you connect an authenticator app on your phone (such as the one issued by hospital IT). After that, each login asks for a fresh 6-digit code.</p>
+      <ol class="steps">
+        <li>Open the <strong>authenticator app</strong> on your phone.</li>
+        <li>On the admin login screen, scan the <strong>QR code</strong> shown (or type the setup key) to add "Nemocnica Snina Admin" to your app.</li>
+        <li>Enter the <strong>6-digit code</strong> from the app to confirm. Your phone is now your second key.</li>
+        <li>Store the <strong>recovery codes</strong> you are given somewhere safe — they let you back in if you lose your phone.</li>
+      </ol>
+
+      <div class="mock">
+        <div class="mock-cap">Login screen</div>
+        <div class="mock-body" style="display:flex;justify-content:center;">
+          <div class="card" style="max-width:360px;width:100%;overflow:hidden;box-shadow:var(--shadow);">
+            <div style="background:var(--blue-900);color:#fff;padding:24px;text-align:center;">
+              <span style="display:inline-flex;width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.12);color:#bcd6f0;align-items:center;justify-content:center;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+              <h3 style="color:#fff;margin:0;">Content administration</h3>
+              <p class="small" style="color:#cfe0f2;margin:2px 0 0;">Nemocnica Snina — content system</p>
+            </div>
+            <div class="card-pad">
+              <div class="m-field-lbl">Authentication code</div>
+              <div class="m-inp"><div class="box ph">• • •  • • •</div></div>
+              <button class="btn btn-primary btn-block" style="margin-top:14px;">Log in to admin</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note crit">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <p><span class="ttl">Never share your login</span>Accounts are personal. The audit log records who changed what, so a shared login means changes can't be traced to the right person. Always <strong>sign out</strong> when you leave a shared computer, and never give your code to anyone — IT will never ask for it.</p>
+      </div>
+    </section>
+
+    <!-- 3 — INTERFACE TOUR -->
+    <section class="doc" id="tour">
+      <div class="sec-kicker"><span class="sn">03</span><span class="line"></span></div>
+      <h2>The interface</h2>
+      <p>Once you are in, the screen has two parts: a <strong>dark blue rail on the left</strong> for navigation, and the <strong>working area on the right</strong> where you read and edit.</p>
+
+      <h3>The left rail</h3>
+      <p>The rail is grouped into three sets:</p>
+      <ul>
+        <li><strong>Content</strong> — the seven things you edit most: Departments, Clinics, Physicians, Services, Diagnostics, News and Disclosures. Each shows a live count of how many items it holds.</li>
+        <li><strong>Settings</strong> — two "single page" areas: <em>Hospital info</em> (address, phone numbers, IDs) and <em>Page content</em> (the home-page banner and intro text).</li>
+        <li><strong>Tools</strong> — Export, Import and Reset, used for backups. See <a href="#tools">Tools &amp; backups</a>.</li>
+      </ul>
+
+      <h3>The top bar</h3>
+      <p>Along the top of the working area you'll find:</p>
+      <ul>
+        <li>An <strong>SK / EN switch</strong> — changes the language of the admin labels only. It does <em>not</em> change which language you are editing; both languages are always edited together.</li>
+        <li><strong>View website</strong> — opens the public site in a new tab so you can check your changes.</li>
+        <li><strong>Sign out</strong> — always use this when you finish.</li>
+      </ul>
+
+      <div class="note tip">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c.5.5 1 1.5 1 2h6c0-.5.5-1.5 1-2a7 7 0 0 0-4-12z"/></svg></span>
+        <p><span class="ttl">Keep the website open in a second tab</span>Use <strong>View website</strong> before you start. After each save, switch to that tab and refresh to see exactly what visitors see.</p>
+      </div>
+    </section>
+
+    <!-- 4 — HOW EDITING WORKS -->
+    <section class="doc" id="editing">
+      <div class="sec-kicker"><span class="sn">04</span><span class="line"></span></div>
+      <h2>How editing works</h2>
+      <p>Every content type works the same way, so once you've learned one you've learned them all. There are three screens: the <strong>list</strong>, the <strong>editor</strong>, and a small confirmation message.</p>
+
+      <h3>The list</h3>
+      <p>Choosing a content type from the rail shows its list — one row per item, each with an icon, a title, a short summary, and a status badge. On the right of each row are two buttons: a <strong>pencil</strong> to edit and a <strong>bin</strong> to delete. The blue <strong>Add new</strong> button (top right) creates a fresh item.</p>
+
+      <div class="mock">
+        <div class="mock-cap">List view — example row</div>
+        <div class="mock-body">
+          <div class="m-row">
+            <div class="m-main">
+              <span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+              <div>
+                <h4>Urology clinic</h4>
+                <span class="m-sub">MUDr. Nebesník · Pavilion A, 2nd floor</span>
+              </div>
+            </div>
+            <div class="m-act">
+              <span class="badge badge-green"><span class="dot"></span>Open</span>
+              <span class="m-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></span>
+              <span class="m-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>The editor</h3>
+      <p>The editor is a form. Each content type shows the fields relevant to it. The field <em>types</em> you'll meet are always the same:</p>
+
+      <table class="ref">
+        <tr><th>Field type</th><th>What it looks like</th><th>How to use it</th></tr>
+        <tr><td>Bilingual text</td><td>Two boxes, <code>SK</code> and <code>EN</code>, side by side</td><td>Fill in both. Slovak is the original; English is the translation.</td></tr>
+        <tr><td>Bilingual list</td><td>Two large boxes</td><td><strong>One item per line.</strong> Each line becomes a bullet on the site (e.g. a facilities list).</td></tr>
+        <tr><td>Switch</td><td>A toggle (on / off)</td><td>Turns something on or off — e.g. "Accepting new patients".</td></tr>
+        <tr><td>Dropdown</td><td>A menu of fixed choices</td><td>Pick one — e.g. a clinic's status.</td></tr>
+        <tr><td>Link to another item</td><td>A dropdown of existing items</td><td>Connects records — e.g. attach a physician to a department.</td></tr>
+        <tr><td>Tags</td><td>A single box</td><td>Separate entries with commas — e.g. languages <code>SK, EN, UK</code>.</td></tr>
+        <tr><td>Number / Date</td><td>A number box / date picker</td><td>Type a number, or pick a date from the calendar.</td></tr>
+      </table>
+
+      <div class="mock">
+        <div class="mock-cap">Editor — a bilingual field &amp; a switch</div>
+        <div class="mock-body" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="m-field">
+            <div class="m-field-lbl">Summary</div>
+            <div class="m-bil">
+              <div class="m-inp"><span class="tag">SK</span><div class="box">Moderné chirurgické oddelenie s nepretržitou pohotovosťou.</div></div>
+              <div class="m-inp"><span class="tag">EN</span><div class="box">A modern surgical department with 24/7 emergency care.</div></div>
+            </div>
+          </div>
+          <div class="m-field">
+            <label class="m-switch"><span class="sw"></span> Accepting new patients</label>
+          </div>
+        </div>
+      </div>
+
+      <h3>Saving</h3>
+      <ol class="steps">
+        <li>Make your changes in the form.</li>
+        <li>Press the blue <strong>Save</strong> button at the bottom. A small <em>"Saved"</em> message confirms it worked.</li>
+        <li>The list reappears and the public site is already updated. Use <strong>Cancel</strong> instead if you want to discard changes.</li>
+      </ol>
+
+      <div class="note info">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+        <p><span class="ttl">Web addresses are created for you</span>When you add a new item, the system builds its web address automatically from the title. You don't need to set it. (Disclosures are the one exception — there you type the document number yourself.)</p>
+      </div>
+    </section>
+
+    <!-- 5 — DEPARTMENTS -->
+    <section class="doc" id="departments">
+      <div class="sec-kicker"><span class="sn">05</span><span class="line"></span></div>
+      <h2>Managing content</h2>
+      <p>The rest of this guide walks through each content type — what it controls, where it appears on the site, and the fields that need care. Every one is edited with the form described above.</p>
+
+      <div class="coll-head">
+        <span class="ch-ic ic-terra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg></span>
+        <div><h3 style="margin:0;">Departments</h3><span class="ch-where">Inpatient wards · shows on the Departments page &amp; department detail pages</span></div>
+      </div>
+      <p>Departments are the hospital's inpatient wards (Surgery, Internal Medicine, Paediatrics, and so on). Each has its own detail page with contacts, an "About" section, a facilities checklist and the physicians who work there.</p>
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Full name / Short name</td><td>Both bilingual. The short name is used on cards and menus.</td></tr>
+        <tr><td>Head physician / Deputy</td><td>Names as they should appear publicly, with titles.</td></tr>
+        <tr><td>Beds</td><td>A number. Shown as a small chip on the department card.</td></tr>
+        <tr><td>Phone / Email</td><td>Public contact details for the ward.</td></tr>
+        <tr><td>Feature on home</td><td>Switch. When on, the department appears in the "Featured departments" block on the home page. Keep this to about three.</td></tr>
+        <tr><td>Summary / Description</td><td>Summary is the short card text; Description is the longer "About" text on the detail page.</td></tr>
+        <tr><td>Facilities</td><td>Bilingual list — one item per line. Each becomes a green-ticked item.</td></tr>
+        <tr><td>Visiting hours</td><td>Bilingual text, shown in the sticky contact card.</td></tr>
+      </table>
+
+      <div class="coll-head">
+        <span class="ch-ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <div><h3 style="margin:0;">A note on links between items</h3><span class="ch-where">Departments, clinics &amp; facilities are connected to physicians</span></div>
+      </div>
+      <p>You don't list a department's doctors inside the department. Instead, each <strong>physician</strong> record points to its department (and clinic or facility). The website then assembles the "related physicians" list automatically. So to move a doctor between wards, you edit the doctor — not the ward.</p>
+    </section>
+
+    <!-- 6 — CLINICS -->
+    <section class="doc" id="clinics">
+      <div class="sec-kicker"><span class="sn">06</span><span class="line"></span></div>
+      <h2 style="display:flex;align-items:center;gap:14px;"><span class="ch-ic ic-blue" style="width:46px;height:46px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Clinics</h2>
+      <p class="ch-where" style="margin-top:-.4em;">Outpatient clinics (ambulancie) · shows on the Clinics page and drives the online booking wizard</p>
+      <p>Clinics are outpatient services patients can attend or book. This is the most important content type to keep accurate, because several of its fields decide <strong>whether and when a patient can book an appointment online</strong>. Those booking fields get their own section next — read it carefully.</p>
+
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Clinic name / Specialty</td><td>Both bilingual.</td></tr>
+        <tr><td>Physician(s) / Nurse</td><td>Staff names shown on the clinic card.</td></tr>
+        <tr><td>Location / Phone</td><td>Where to find the clinic and how to reach it.</td></tr>
+        <tr><td>Status</td><td>Dropdown — see the next section. Controls the coloured badge and whether booking is offered.</td></tr>
+        <tr><td>Online booking</td><td>Switch — the master on/off for online booking at this clinic.</td></tr>
+        <tr><td>Referral required</td><td>Switch — if on, patients must confirm they have a referral (výmenný lístok).</td></tr>
+        <tr><td>Accepting new patients</td><td>Switch — shows the green "accepting" badge.</td></tr>
+        <tr><td>Booking weekdays / window</td><td>Which days and times can be booked. <strong>Covered in detail next.</strong></td></tr>
+        <tr><td>Operating hours</td><td>Bilingual list — one line per day, shown in the schedule panel.</td></tr>
+        <tr><td>Booking rule</td><td>Bilingual note explaining the rule to patients in plain words.</td></tr>
+        <tr><td>Fee</td><td>Optional bilingual text — e.g. an emergency-use fee.</td></tr>
+      </table>
+    </section>
+
+    <!-- 7 — BOOKING RULES -->
+    <section class="doc" id="booking">
+      <div class="sec-kicker"><span class="sn">07</span><span class="line"></span></div>
+      <h2>Booking rules — read carefully</h2>
+      <p>These five clinic fields control the online appointment wizard. A mistake here doesn't just look wrong — it can offer patients appointments that don't exist, or hide ones that do. Change them only when you are sure, and check the live booking flow afterwards.</p>
+
+      <div class="note crit">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <p><span class="ttl">Treat these like the real appointment book</span>If unsure, ask the clinic's lead nurse or physician before changing booking weekdays, the booking window, or the status. After any change, open <strong>View website</strong> → book a test appointment to confirm the right days and times appear.</p>
+      </div>
+
+      <h3>1 · Status</h3>
+      <p>The status dropdown sets the badge patients see and whether booking is possible:</p>
+      <div class="pillrow">
+        <span class="badge badge-green"><span class="dot"></span>Open</span>
+        <span class="badge badge-blue"><span class="dot"></span>New · accepting</span>
+        <span class="badge badge-amber"><span class="dot"></span>Temporary measures</span>
+        <span class="badge badge-red"><span class="dot"></span>Closed</span>
+      </div>
+      <p>A clinic set to <strong>Temporary measures</strong> or <strong>Closed</strong> will not accept online bookings, even if other fields say otherwise. Use these when a clinic is paused.</p>
+
+      <h3>2 · Online booking switch</h3>
+      <p>The master switch. If it's off, the clinic shows a greyed-out "Online booking unavailable" button and no wizard — regardless of the days or window. Turn it on only for clinics that genuinely take online appointments.</p>
+
+      <h3>3 · Booking weekdays</h3>
+      <p>This decides which days of the week the wizard offers. Days are entered as numbers, separated by commas, using this key:</p>
+      <div class="days">
+        <div class="day"><span class="d on">Mo</span><span class="n"><b>1</b></span></div>
+        <div class="day"><span class="d on">Tu</span><span class="n"><b>2</b></span></div>
+        <div class="day"><span class="d">We</span><span class="n">3</span></div>
+        <div class="day"><span class="d on">Th</span><span class="n"><b>4</b></span></div>
+        <div class="day"><span class="d on">Fr</span><span class="n"><b>5</b></span></div>
+        <div class="day"><span class="d">Sa</span><span class="n">6</span></div>
+        <div class="day"><span class="d">Su</span><span class="n">0</span></div>
+      </div>
+      <p>So <strong>Monday is 1, Tuesday 2 … Saturday 6, and Sunday is 0</strong>. To let patients book on Tuesdays and Thursdays only, you'd enter <code>2, 4</code>. The wizard will then offer only the next available Tuesdays and Thursdays.</p>
+
+      <h3>4 · Booking window</h3>
+      <p>An optional time range that narrows bookings to part of the day, written like <code>13:00–14:00</code>. Leave it blank to offer the clinic's normal slots; fill it in when a clinic only books within a fixed hour.</p>
+
+      <h3>5 · Referral required</h3>
+      <p>When this switch is on, the patient must tick a box confirming they hold a referral (výmenný lístok) before they can finish booking. Use it for clinics that legally require one.</p>
+
+      <h4>Worked examples</h4>
+      <table class="ref">
+        <tr><th>Clinic</th><th>Settings</th><th>What the patient sees</th></tr>
+        <tr><td>Angiology</td><td>Booking on · weekdays <code>4, 5</code> · window <code>13:00–14:00</code> · referral on</td><td>Only Thursdays &amp; Fridays, only 13:00–14:00 slots, and must confirm a referral.</td></tr>
+        <tr><td>Trauma surgery</td><td>Booking on · weekdays <code>2, 4</code></td><td>Only Tuesdays &amp; Thursdays.</td></tr>
+        <tr><td>Diabetology</td><td>Status <em>Closed</em></td><td>No booking — a "currently unavailable" message.</td></tr>
+        <tr><td>General surgery</td><td>24/7 emergency · fee <code>€1.99</code></td><td>Emergency access noted, with the fee shown on the card.</td></tr>
+      </table>
+
+      <div class="note warn">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <p><span class="ttl">Always write the plain-language booking rule too</span>When you set days or a window, also fill the <strong>Booking rule</strong> field (SK + EN) with a sentence patients can understand — e.g. "Bookings Thu &amp; Fri, 13:00–14:00; a referral is required." The numbers drive the system; this sentence reassures the patient.</p>
+      </div>
+    </section>
+
+    <!-- 8 — PHYSICIANS -->
+    <section class="doc" id="physicians">
+      <div class="sec-kicker"><span class="sn">08</span><span class="line"></span></div>
+      <h2 style="display:flex;align-items:center;gap:14px;"><span class="ch-ic ic-blue" style="width:46px;height:46px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Physicians</h2>
+      <p class="ch-where" style="margin-top:-.4em;">Doctors directory · shows on the Physicians page and on the ward/clinic they're linked to</p>
+      <p>Each physician is one record. The directory has a search box and an "only accepting new patients" filter, both powered by these fields.</p>
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Name (with titles)</td><td>A single field (not bilingual) — write the name exactly as it should appear, e.g. <em>MUDr. Jana Nováková, PhD.</em></td></tr>
+        <tr><td>Role / Specialty</td><td>Bilingual.</td></tr>
+        <tr><td>Bio</td><td>Bilingual short profile.</td></tr>
+        <tr><td>Accepting new patients</td><td>Switch — turns on the green badge and includes the doctor in the directory filter.</td></tr>
+        <tr><td>Department / Clinic / Facility</td><td>Link fields — choose where this doctor works. This is what connects them to the right pages.</td></tr>
+        <tr><td>Languages</td><td>Tags — comma separated, e.g. <code>SK, EN, UK</code>. Shown as small language chips.</td></tr>
+      </table>
+      <div class="note tip">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c.5.5 1 1.5 1 2h6c0-.5.5-1.5 1-2a7 7 0 0 0-4-12z"/></svg></span>
+        <p><span class="ttl">No photo needed</span>The directory shows the doctor's initials in a coloured circle automatically. You don't have to upload a portrait.</p>
+      </div>
+    </section>
+
+    <!-- 9 — SERVICES -->
+    <section class="doc" id="services">
+      <div class="sec-kicker"><span class="sn">09</span><span class="line"></span></div>
+      <h2 style="display:flex;align-items:center;gap:14px;"><span class="ch-ic ic-blue" style="width:46px;height:46px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Services</h2>
+      <p class="ch-where" style="margin-top:-.4em;">Clinical services &amp; practices · shows on the Services page</p>
+      <p>Services describe what the hospital offers across departments — a procedure, a programme, a clinical practice. Each card can link to the department, clinic or facility that provides it, giving the visitor a "read more" path.</p>
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Service name / Description</td><td>Both bilingual.</td></tr>
+        <tr><td>Icon</td><td>Dropdown — pick the symbol that best fits (heart, scan, pill, etc.).</td></tr>
+        <tr><td>Related department / clinic / facility</td><td>Optional links. Whichever you set becomes the card's "view more" link.</td></tr>
+      </table>
+    </section>
+
+    <!-- 10 — FACILITIES -->
+    <section class="doc" id="facilities">
+      <div class="sec-kicker"><span class="sn">10</span><span class="line"></span></div>
+      <h2 style="display:flex;align-items:center;gap:14px;"><span class="ch-ic ic-terra" style="width:46px;height:46px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.5 18a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9.5V3"/></svg></span> Diagnostics &amp; support</h2>
+      <p class="ch-where" style="margin-top:-.4em;">Labs, radiology, reception, pharmacy (SVaLZ) · shows on the Diagnostics page</p>
+      <p>These are the support facilities — Laboratory Medicine, Radiodiagnostics, Central Reception, Pharmacy. Each is a card with a lead, a phone, a description and a feature list.</p>
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Facility name / Kind</td><td>Both bilingual. "Kind" is the short eyebrow label (e.g. <em>Laboratory</em>).</td></tr>
+        <tr><td>Lead / Phone</td><td>Who runs it and how to reach it.</td></tr>
+        <tr><td>Description</td><td>Bilingual.</td></tr>
+        <tr><td>Features</td><td>Bilingual list — one per line, shown as green-ticked chips.</td></tr>
+      </table>
+    </section>
+
+    <!-- 11 — NEWS -->
+    <section class="doc" id="news">
+      <div class="sec-kicker"><span class="sn">11</span><span class="line"></span></div>
+      <h2 style="display:flex;align-items:center;gap:14px;"><span class="ch-ic ic-blue" style="width:46px;height:46px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg></span> News &amp; announcements</h2>
+      <p class="ch-where" style="margin-top:-.4em;">Shows on the News page and, for recent items, the home page</p>
+      <p>Use News for announcements: a new service, a notice, a temporary change. The <strong>Type</strong> you choose colours the badge so readers grasp the tone at a glance.</p>
+      <div class="pillrow">
+        <span class="badge badge-green">Good / New service</span>
+        <span class="badge badge-blue">Info</span>
+        <span class="badge badge-amber">Alert</span>
+      </div>
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Title / Body</td><td>Both bilingual. Body is the announcement text.</td></tr>
+        <tr><td>Tag</td><td>Bilingual short label shown on the badge.</td></tr>
+        <tr><td>Type</td><td>Dropdown — sets the badge colour (good / info / alert).</td></tr>
+        <tr><td>Date</td><td>Pick the publish date. Newest items appear first.</td></tr>
+      </table>
+    </section>
+
+    <!-- 12 — DISCLOSURES -->
+    <section class="doc" id="disclosures">
+      <div class="sec-kicker"><span class="sn">12</span><span class="line"></span></div>
+      <h2 style="display:flex;align-items:center;gap:14px;"><span class="ch-ic ic-terra" style="width:46px;height:46px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Public disclosures</h2>
+      <p class="ch-where" style="margin-top:-.4em;">Contracts &amp; invoices register (zverejňovanie) · a legally required public table</p>
+      <p>This is the mandatory register of contracts and invoices. It appears as a searchable, filterable table with a PDF download on each row. Because it's a legal record, this is the one content type where <strong>you set the document number yourself</strong>.</p>
+      <table class="ref">
+        <tr><th>Field</th><th>Notes</th></tr>
+        <tr><td>Document ID</td><td>You type this — the official document/registry number. It is shown and used as the record's identifier.</td></tr>
+        <tr><td>Type</td><td>Bilingual — "Zmluva / Contract" or "Faktúra / Invoice". Sets the badge colour and the filter.</td></tr>
+        <tr><td>Partner / Subject</td><td>The counterparty or what the document concerns.</td></tr>
+        <tr><td>Value</td><td>The amount, written as it should display (e.g. <code>€12 480,00</code>).</td></tr>
+        <tr><td>Date</td><td>The document date.</td></tr>
+        <tr><td>PDF</td><td>Attach the signed document — see <a href="#media">Images &amp; PDFs</a>.</td></tr>
+      </table>
+      <div class="note warn">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <p><span class="ttl">Disclosures are a legal obligation</span>Publish required contracts and invoices promptly and accurately, and don't delete a disclosure once it's published unless your records officer confirms it. Retention rules apply even when erasing other data.</p>
+      </div>
+    </section>
+
+    <!-- 13 — MEDIA -->
+    <section class="doc" id="media">
+      <div class="sec-kicker"><span class="sn">13</span><span class="line"></span></div>
+      <h2>Images &amp; PDFs</h2>
+      <p>Where a page shows a photo (department, facility, map) or a document (a disclosure PDF), the editor gives you an upload field. Until a real file is added, the site shows a neutral striped placeholder labelled with what belongs there.</p>
+      <ol class="steps">
+        <li>In the editor, find the <strong>image</strong> or <strong>file</strong> field and choose <strong>Upload</strong>.</li>
+        <li>Select the file from your computer, or pick one already in the media library to reuse it.</li>
+        <li>For photos, add a short <strong>description (alt text)</strong> — this is read aloud by screen readers and is required for accessibility.</li>
+        <li>Save. The placeholder is replaced by your file.</li>
+      </ol>
+      <table class="ref">
+        <tr><th>Use</th><th>Best format</th><th>Guidance</th></tr>
+        <tr><td>Department / facility photos</td><td>JPG</td><td>Landscape, good light. Aim for a wide 16:9 shot; large images are resized for you.</td></tr>
+        <tr><td>Maps / diagrams</td><td>PNG or JPG</td><td>Make sure text in the image is legible at small sizes.</td></tr>
+        <tr><td>Disclosure documents</td><td>PDF</td><td>The final signed version. Name the file clearly before uploading.</td></tr>
+      </table>
+      <div class="note tip">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c.5.5 1 1.5 1 2h6c0-.5.5-1.5 1-2a7 7 0 0 0-4-12z"/></svg></span>
+        <p><span class="ttl">Use real photos before launch</span>Every placeholder on the live site should be replaced with a genuine photograph. Avoid generic stock imagery where a real photo of the hospital would build more trust.</p>
+      </div>
+    </section>
+
+    <!-- 14 — TRANSLATIONS -->
+    <section class="doc" id="translations">
+      <div class="sec-kicker"><span class="sn">14</span><span class="line"></span></div>
+      <h2>Translations &amp; the review gate</h2>
+      <p>The site is built for six languages: Slovak and English first, then Czech, Polish, Hungarian and Ukrainian. Slovak is always the human-written original. English is written by staff. The other four are produced by machine translation — and that's where the review step matters.</p>
+
+      <h3>How the languages flow</h3>
+      <ul>
+        <li><strong>Slovak (SK)</strong> — you write it. This is the source of truth.</li>
+        <li><strong>English (EN)</strong> — you write it in the box beside Slovak.</li>
+        <li><strong>Czech / Polish / Hungarian / Ukrainian</strong> — generated automatically from your Slovak, using a locked glossary so medical and department terms stay correct.</li>
+      </ul>
+
+      <div class="note crit">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <p><span class="ttl">Machine translations are never published automatically</span>For clinical and safety-related content (departments, clinics, services, news), the four machine-translated languages arrive as <strong>drafts marked "needs review"</strong>. A person must read and approve each one before it goes live. This is a safety rule — do not bypass it.</p>
+      </div>
+
+      <h3>Reviewing a translation</h3>
+      <ol class="steps">
+        <li>Open the item and switch to the language marked <strong>needs review</strong>.</li>
+        <li>Read the machine translation against the Slovak original. Check medical terms, names and numbers especially.</li>
+        <li>Correct anything that reads awkwardly or wrongly.</li>
+        <li>Mark it <strong>approved / publish</strong>. Only then does that language appear on the public site.</li>
+      </ol>
+      <p>If you're not confident in a language, leave it in "needs review" and ask a colleague who is. An unreviewed page simply stays hidden in that language — which is safer than publishing a mistranslation.</p>
+    </section>
+
+    <!-- 15 — SETTINGS -->
+    <section class="doc" id="settings">
+      <div class="sec-kicker"><span class="sn">15</span><span class="line"></span></div>
+      <h2>Hospital info &amp; page content</h2>
+      <p>The two items under <strong>Settings</strong> aren't lists — they're single pages you edit in place.</p>
+
+      <div class="coll-head">
+        <span class="ch-ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        <div><h3 style="margin:0;">Hospital info</h3><span class="ch-where">Name, address, IDs and the phone numbers used across the whole site</span></div>
+      </div>
+      <p>This holds the details that appear in the footer, contact page and emergency card: official name, tagline, address, registration numbers (IČO / DIČ), switchboard, reception, pharmacy, email and region. Change a phone number here once and it updates everywhere.</p>
+
+      <div class="coll-head">
+        <span class="ch-ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></span>
+        <div><h3 style="margin:0;">Page content</h3><span class="ch-where">The editable text blocks on the home and contact pages</span></div>
+      </div>
+      <p>Three grouped blocks, each bilingual:</p>
+      <ul>
+        <li><strong>Hero banner</strong> — the badge, headline and subtitle at the top of the home page.</li>
+        <li><strong>About</strong> — the introductory text about the hospital.</li>
+        <li><strong>Emergency (APS)</strong> — the "who's on duty" notice. <em>Note:</em> once the live regional feed is connected, this text becomes a fallback shown only if that feed is unavailable.</li>
+      </ul>
+    </section>
+
+    <!-- 16 — TOOLS -->
+    <section class="doc" id="tools">
+      <div class="sec-kicker"><span class="sn">16</span><span class="line"></span></div>
+      <h2>Tools &amp; backups</h2>
+      <p>The <strong>Tools</strong> group holds three actions. The first two are safe; the third is not.</p>
+      <table class="ref">
+        <tr><th>Tool</th><th>What it does</th><th>When to use it</th></tr>
+        <tr><td>Export data</td><td>Downloads a complete copy of all content as a single file.</td><td>Before any big editing session, as a safety copy. Keep it somewhere safe.</td></tr>
+        <tr><td>Import data</td><td>Loads content back from a previously exported file.</td><td>To restore from a backup, or move content between environments. It replaces current content.</td></tr>
+        <tr><td>Reset to defaults</td><td>Wipes all your changes and returns to the original sample content.</td><td>Almost never. This is destructive.</td></tr>
+      </table>
+      <div class="note crit">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+        <p><span class="ttl">"Reset to defaults" erases everything you've entered</span>It cannot be undone except by importing a backup. Export first, and only reset if you genuinely want to start over. When in doubt, don't — ask an administrator.</p>
+      </div>
+    </section>
+
+    <!-- 17 — ROLES -->
+    <section class="doc" id="roles">
+      <div class="sec-kicker"><span class="sn">17</span><span class="line"></span></div>
+      <h2>Roles &amp; permissions</h2>
+      <p>Not everyone sees the same buttons. Your account has one of three roles, and the system hides what your role isn't meant to touch.</p>
+      <table class="ref">
+        <tr><th>Role</th><th>Can do</th></tr>
+        <tr><td>Editor</td><td>Add and edit content — departments, clinics, physicians, services, facilities, news, disclosures, page text. The day-to-day website work.</td></tr>
+        <tr><td>Clinician</td><td>Everything an editor can, plus the patient-onboarding review queue (accepting or rejecting new-patient applications).</td></tr>
+        <tr><td>Administrator</td><td>Everything, plus account management, the data tools, and the GDPR data-request tools (exporting or erasing a person's data on request).</td></tr>
+      </table>
+      <p>Every action you take — create, edit, delete, or a sensitive data access — is written to a permanent audit log with your name, the time, and what changed. This protects both patients and staff, and is a legal requirement.</p>
+    </section>
+
+    <!-- 18 — GOOD PRACTICES -->
+    <section class="doc" id="practices">
+      <div class="sec-kicker"><span class="sn">18</span><span class="line"></span></div>
+      <h2>Good practices</h2>
+      <ul>
+        <li><strong>Fill both languages.</strong> A page with Slovak but no English looks half-finished to an English visitor. Complete <code>SK</code> and <code>EN</code> together.</li>
+        <li><strong>Check the live page after saving.</strong> Switch to your "View website" tab and refresh. Trust your eyes, not just the form.</li>
+        <li><strong>Export before big changes.</strong> A 10-second backup can save an afternoon.</li>
+        <li><strong>Keep titles short and clear.</strong> They become menu items and card headings.</li>
+        <li><strong>Double-check booking fields.</strong> Days, window, status. When in doubt, test a booking.</li>
+        <li><strong>Write for patients.</strong> Plain, calm, reassuring language — avoid internal abbreviations the public won't know.</li>
+        <li><strong>Sign out on shared computers.</strong> Your account is your responsibility.</li>
+      </ul>
+    </section>
+
+    <!-- 19 — FAQ -->
+    <section class="doc" id="faq">
+      <div class="sec-kicker"><span class="sn">19</span><span class="line"></span></div>
+      <h2>Troubleshooting</h2>
+
+      <h4>My change isn't showing on the website</h4>
+      <p>First make sure you pressed <strong>Save</strong> and saw the "Saved" message. Then refresh the public page (the site may hold a short cache — wait a minute and refresh again). Confirm you're looking at the right language on the public site.</p>
+
+      <h4>I can't see a section this guide mentions</h4>
+      <p>It's probably limited to another role. The onboarding queue is for clinicians and administrators; the data tools and GDPR tools are administrator-only. Ask an administrator if you need access.</p>
+
+      <h4>I deleted something by mistake</h4>
+      <p>If you have a recent <strong>Export</strong> file, an administrator can <strong>Import</strong> it to restore. This is exactly why exporting before big edits is worth the habit.</p>
+
+      <h4>The booking wizard offers the wrong days</h4>
+      <p>Open the clinic and re-check <strong>Booking weekdays</strong> (Mon=1 … Sun=0), the <strong>window</strong>, the <strong>status</strong>, and the <strong>Online booking</strong> switch. See <a href="#booking">Booking rules</a>.</p>
+
+      <h4>I lost my phone / can't get my code</h4>
+      <p>Use one of the recovery codes you saved at first sign-in. If you don't have them, contact hospital IT to reset your authenticator — for security, this can't be done from inside the admin.</p>
+
+      <div class="note info" style="margin-top:1.8em;">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+        <p><span class="ttl">Still stuck?</span>For content questions, ask your site administrator. For login, access, or technical problems, contact hospital IT. Keep this guide handy — most answers are a section away.</p>
+      </div>
+
+      <div class="doc-foot">
+        <p>Nemocnica Snina — Content Admin User Guide · For hospital staff · Keep with your onboarding materials.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<a href="#top" class="toplink" id="toplink" aria-label="Back to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></a>
+
+<script>
+  // Scroll-spy: highlight the current section in the TOC
+  const links = Array.from(document.querySelectorAll('#toc a'));
+  const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const sections = Array.from(document.querySelectorAll('section.doc'));
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const a = map.get(e.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+  sections.forEach(s => spy.observe(s));
+
+  // Back-to-top button
+  const topBtn = document.getElementById('toplink');
+  window.addEventListener('scroll', () => {
+    topBtn.classList.toggle('show', window.scrollY > 600);
+  }, { passive: true });
+</script>
+</body>
+</html>

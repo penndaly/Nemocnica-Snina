@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Správa súhlasov — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main id="main"></main>
+<footer id="siteFooter"></footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Site.mount({ active: "" });
+
+/* ── i18n helpers ──────────────────────────────────────────────────────── */
+function getLang() { return document.documentElement.lang || "sk"; }
+function L(o) { var l = getLang(); return (o && (o[l] !== undefined ? o[l] : o.sk !== undefined ? o.sk : o.en)) || ""; }
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function fmtDT(iso) {
+  if (!iso) return "—";
+  var d = new Date(iso), lang = getLang();
+  return d.toLocaleDateString(lang==="sk"?"sk-SK":"en-GB",{day:"numeric",month:"short",year:"numeric"})
+       + ", " + d.toLocaleTimeString(lang==="sk"?"sk-SK":"en-GB",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ── Prototype data ────────────────────────────────────────────────────── */
+var BASE = {
+  devices: [
+    {
+      id:"w1", brand:"Abbott", model:"FreeStyle Libre 3",
+      category:"medical", icon:"glucose", connectedAt:"2024-03-15T09:22:00",
+      consents:[
+        { type:"data_storage",
+          label:{sk:"Ukladanie meraní",en:"Store readings"},
+          desc:{sk:"Merania ukladané na serveroch nemocnice (AES-256-GCM, EU).",en:"Readings stored on hospital servers (AES-256-GCM, EU)."},
+          required:true, granted:true, grantedAt:"2024-03-15T09:22:00" },
+        { type:"physician_sharing",
+          label:{sk:"Zdieľanie s lekárom",en:"Share with physician"},
+          desc:{sk:"Ošetrujúci lekár vidí vaše merania v klinickej aplikácii.",en:"Your treating physician sees your readings in the clinical app."},
+          required:false, granted:true, grantedAt:"2024-03-15T09:22:00" },
+        { type:"his_export",
+          label:{sk:"Export do FHIR záznamu",en:"Export to FHIR record"},
+          desc:{sk:"Merania exportované ako FHIR Observation do vášho eHealth záznamu.",en:"Readings exported as FHIR Observations into your eHealth record."},
+          required:false, granted:true, grantedAt:"2024-03-21T14:05:00" }
+      ]
+    },
+    {
+      id:"w2", brand:"Apple", model:"Watch Series 10",
+      category:"consumer", icon:"watch", connectedAt:"2024-04-02T11:40:00",
+      consents:[
+        { type:"data_storage",
+          label:{sk:"Ukladanie meraní",en:"Store readings"},
+          desc:{sk:"Merania ukladané na serveroch nemocnice (AES-256-GCM, EU).",en:"Readings stored on hospital servers (AES-256-GCM, EU)."},
+          required:true, granted:true, grantedAt:"2024-04-02T11:40:00" },
+        { type:"physician_sharing",
+          label:{sk:"Zdieľanie s lekárom",en:"Share with physician"},
+          desc:{sk:"Ošetrujúci lekár vidí vaše merania v klinickej aplikácii.",en:"Your treating physician sees your readings in the clinical app."},
+          required:false, granted:true, grantedAt:"2024-04-02T11:42:00" },
+        { type:"his_export",
+          label:{sk:"Export do FHIR záznamu",en:"Export to FHIR record"},
+          desc:{sk:"Merania exportované ako FHIR Observation do vášho eHealth záznamu.",en:"Readings exported as FHIR Observations into your eHealth record."},
+          required:false, granted:false, grantedAt:null }
+      ]
+    },
+    {
+      id:"w3", brand:"Withings", model:"ScanWatch 2",
+      category:"consumer", icon:"heart", connectedAt:"2024-05-10T16:15:00",
+      consents:[
+        { type:"data_storage",
+          label:{sk:"Ukladanie meraní",en:"Store readings"},
+          desc:{sk:"Merania ukladané na serveroch nemocnice (AES-256-GCM, EU).",en:"Readings stored on hospital servers (AES-256-GCM, EU)."},
+          required:true, granted:true, grantedAt:"2024-05-10T16:15:00" },
+        { type:"physician_sharing",
+          label:{sk:"Zdieľanie s lekárom",en:"Share with physician"},
+          desc:{sk:"Ošetrujúci lekár vidí vaše merania v klinickej aplikácii.",en:"Your treating physician sees your readings in the clinical app."},
+          required:false, granted:true, grantedAt:"2024-05-10T16:15:00" },
+        { type:"his_export",
+          label:{sk:"Export do FHIR záznamu",en:"Export to FHIR record"},
+          desc:{sk:"Merania exportované ako FHIR Observation do vášho eHealth záznamu.",en:"Readings exported as FHIR Observations into your eHealth record."},
+          required:false, granted:true, grantedAt:"2024-06-01T10:30:00" }
+      ]
+    }
+  ],
+  auditLog:[
+    {ts:"2024-06-01T10:30:00",device:{sk:"Withings ScanWatch 2",en:"Withings ScanWatch 2"},       type:"his_export",         action:"granted",   ipHash:"a3f8…c92e"},
+    {ts:"2024-05-10T16:15:00",device:{sk:"Withings ScanWatch 2",en:"Withings ScanWatch 2"},       type:"physician_sharing",  action:"granted",   ipHash:"a3f8…c92e"},
+    {ts:"2024-05-10T16:15:00",device:{sk:"Withings ScanWatch 2",en:"Withings ScanWatch 2"},       type:"data_storage",       action:"granted",   ipHash:"a3f8…c92e"},
+    {ts:"2024-04-02T11:42:00",device:{sk:"Apple Watch Series 10",en:"Apple Watch Series 10"},     type:"physician_sharing",  action:"granted",   ipHash:"7b1d…44a1"},
+    {ts:"2024-04-02T11:40:00",device:{sk:"Apple Watch Series 10",en:"Apple Watch Series 10"},     type:"data_storage",       action:"granted",   ipHash:"7b1d…44a1"},
+    {ts:"2024-03-21T14:05:00",device:{sk:"Abbott FreeStyle Libre 3",en:"Abbott FreeStyle Libre 3"},type:"his_export",        action:"granted",   ipHash:"a3f8…c92e"},
+    {ts:"2024-03-15T09:22:00",device:{sk:"Abbott FreeStyle Libre 3",en:"Abbott FreeStyle Libre 3"},type:"physician_sharing", action:"granted",   ipHash:"a3f8…c92e"},
+    {ts:"2024-03-15T09:22:00",device:{sk:"Abbott FreeStyle Libre 3",en:"Abbott FreeStyle Libre 3"},type:"data_storage",      action:"granted",   ipHash:"a3f8…c92e"}
+  ]
+};
+
+/* Deep clone so mutations don't affect BASE */
+var STATE = JSON.parse(JSON.stringify(BASE));
+var pendingDisconnectId = null;
+var bannerDismissed = false;
+
+/* ── Render ───────────────────────────────────────────────────────────── */
+var main = document.getElementById("main");
+
+function render() {
+  var cards = STATE.devices.map(renderDeviceCard).join("");
+  var auditRows = STATE.auditLog.map(renderAuditRow).join("");
+  var totalActive = STATE.devices.reduce(function(n,d){ return n + d.consents.filter(function(c){return !c.required && c.granted;}).length; },0);
+
+  main.innerHTML = '<section class="section section-sm"><div class="container-narrow">'
+
+    /* breadcrumb */
+    + '<nav class="breadcrumb" aria-label="' + esc(L({sk:"Navigácia",en:"Navigation"})) + '">'
+    + '<a href="portal.html">' + esc(L({sk:"Pacientsky portál",en:"Patient portal"})) + '</a>'
+    + '<span>›</span><span>' + esc(L({sk:"Wearables",en:"Wearables"})) + '</span>'
+    + '<span>›</span><span aria-current="page">' + esc(L({sk:"Správa súhlasov",en:"Consent management"})) + '</span></nav>'
+
+    /* page title row */
+    + '<div class="cm-page-head">'
+    + '<div>'
+    + '<h2 class="mb-0">' + esc(L({sk:"Správa súhlasov",en:"Consent management"})) + '</h2>'
+    + '<p class="lede mt-1 mb-0">' + esc(L({sk:"Spravujte, aké dáta zdieľate a s kým. Súhlas možete kedykoľvek odvolať.",en:"Manage what data you share and with whom. You can withdraw consent at any time."})) + '</p>'
+    + '</div>'
+    + '<button class="btn btn-sm cm-btn-danger" id="withdrawAllBtn">'
+    + svgIcon("trash") + " " + esc(L({sk:"Odvolať všetky",en:"Withdraw all"}))
+    + '</button></div>'
+
+    /* GDPR banner */
+    + (bannerDismissed ? "" :
+       '<div class="cm-gdpr-banner card card-pad mt-3" id="gdprBanner">'
+     + '<div class="cm-gdpr-body"><span class="cm-gdpr-ic">' + svgIcon("shield") + '</span><div>'
+     + '<strong>' + esc(L({sk:"Vaše práva podľa GDPR (čl. 7 · 17 · 21)",en:"Your rights under GDPR (Art. 7 · 17 · 21)"})) + '</strong>'
+     + '<p class="small muted mt-1 mb-0">'
+     + esc(L({sk:"Súhlas môžete kedykoľvek odvolať bez vplyvu na zákonnosť predchádzajúceho spracovania. Odvolanie súhlasu pre zariadenie zastaví synchronizáciu a zmaže merania, ktoré neboli exportované do zdravotného záznamu.",
+              en:"You may withdraw consent at any time without affecting the lawfulness of prior processing. Withdrawing consent stops sync and deletes readings not yet exported to your health record."}))
+     + '</p></div></div>'
+     + '<button class="cm-btn-dismiss" id="dismissBanner" aria-label="' + esc(L({sk:"Zatvoriť",en:"Dismiss"})) + '">×</button>'
+     + '</div>')
+
+    /* device consent cards */
+    + '<div class="cm-devices mt-3">' + cards + '</div>'
+
+    /* audit trail */
+    + '<div class="card mt-4">'
+    + '<div class="sec-head flex-between"><span>' + esc(L({sk:"Auditný záznam súhlasov",en:"Consent audit trail"})) + '</span>'
+    + '<span class="badge badge-blue">' + STATE.auditLog.length + ' ' + esc(L({sk:"záz.",en:"entries"})) + '</span></div>'
+    + '<div class="table-wrap" style="border:none;border-radius:0;box-shadow:none">'
+    + '<table class="data"><thead><tr>'
+    + '<th>' + esc(L({sk:"Dátum a čas",en:"Date & time"})) + '</th>'
+    + '<th>' + esc(L({sk:"Zariadenie",en:"Device"})) + '</th>'
+    + '<th>' + esc(L({sk:"Typ súhlasu",en:"Consent type"})) + '</th>'
+    + '<th>' + esc(L({sk:"Akcia",en:"Action"})) + '</th>'
+    + '<th>' + esc(L({sk:"IP (hash)",en:"IP (hash)"})) + '</th>'
+    + '</tr></thead><tbody>' + auditRows + '</tbody></table></div>'
+    + '<div class="cm-audit-footer">' + svgIcon("lock")
+    + '<span class="small muted">' + esc(L({sk:"Auditný záznam je nemenný — append-only (GDPR čl. 5(2)).",en:"Audit trail is immutable — append-only (GDPR Art. 5(2))."})) + '</span></div>'
+    + '</div>'
+
+    + '</div></section>'
+
+    /* modals */
+    + renderWithdrawAllModal()
+    + renderDisconnectModal();
+
+  attachEvents();
+}
+
+function renderDeviceCard(d) {
+  var rows = d.consents.map(function(c) {
+    var typeLabels = {data_storage:{sk:"Uloženie",en:"Storage"},physician_sharing:{sk:"Lekár",en:"Physician"},his_export:{sk:"FHIR",en:"FHIR"}};
+    var tsLine = c.required
+      ? '<span class="small" style="color:var(--terra);font-weight:600">' + esc(L({sk:"Povinné pre pripojené zariadenie",en:"Required for connected device"})) + '</span>'
+      : c.granted && c.grantedAt
+        ? '<span class="small muted">' + esc(L({sk:"Udelené",en:"Granted"})) + ' ' + esc(fmtDT(c.grantedAt)) + '</span>'
+        : '<span class="small muted">' + esc(L({sk:"Neaktívne",en:"Not active"})) + '</span>';
+
+    return '<div class="cm-consent-row' + (c.required ? " cm-row-required" : "") + '">'
+      + '<div class="cm-row-left">'
+      + '<span class="cm-type-ic cm-type-' + esc(c.type) + '">' + consentTypeIcon(c.type) + '</span>'
+      + '<div class="cm-row-info">'
+      + '<strong class="cm-row-label">' + esc(L(c.label)) + '</strong>'
+      + '<span class="small muted">' + esc(L(c.desc)) + '</span>'
+      + tsLine
+      + '</div></div>'
+      + '<div class="cm-row-right">'
+      + (c.required
+         ? '<span class="badge badge-blue">' + esc(L({sk:"Aktívne",en:"Active"})) + '</span>'
+         : '<label class="cm-toggle" title="' + esc(L({sk:"Prepnúť súhlas",en:"Toggle consent"})) + '">'
+           + '<input type="checkbox"' + (c.granted ? " checked" : "")
+           + ' data-device="' + esc(d.id) + '" data-type="' + esc(c.type) + '"'
+           + ' aria-label="' + esc(L(c.label) + " — " + d.brand + " " + d.model) + '">'
+           + '<span class="cm-toggle-track"></span></label>')
+      + '</div></div>';
+  }).join("");
+
+  var deviceIcon = deviceSvg(d.icon);
+  var hasAllNonRequired = d.consents.filter(function(c){return !c.required;}).every(function(c){return c.granted;});
+
+  return '<div class="card cm-device-card" id="cmdev-' + esc(d.id) + '">'
+    + '<div class="sec-head cm-device-head">'
+    + '<div class="flex-center gap-sm">'
+    + '<div class="wr-device-icon wr-icon-' + esc(d.category) + '" style="width:34px;height:34px;border-radius:9px;flex:0 0 auto">' + deviceIcon + '</div>'
+    + '<div><strong>' + esc(d.brand) + '</strong><span class="small muted" style="margin-left:6px">' + esc(d.model) + '</span></div>'
+    + '<span class="badge badge-green"><span class="dot"></span>' + esc(L({sk:"Aktívne",en:"Active"})) + '</span>'
+    + (d.category==="medical" ? '<span class="badge badge-blue">' + esc(L({sk:"Medicínske",en:"Medical"})) + '</span>' : "")
+    + '</div>'
+    + '<div class="flex-center gap-sm">'
+    + '<span class="small muted" style="font-weight:400">' + esc(L({sk:"Pripojené",en:"Connected"})) + ' ' + esc(fmtDT(d.connectedAt)) + '</span>'
+    + '<button class="btn btn-ghost btn-sm cm-disconnect-btn" data-device="' + esc(d.id) + '" style="color:var(--red);border-color:var(--line-2)">'
+    + svgIcon("x") + " " + esc(L({sk:"Odpojiť",en:"Disconnect"}))
+    + '</button></div></div>'
+    + '<div class="cm-rows">' + rows + '</div></div>';
+}
+
+function renderAuditRow(e) {
+  var typeMap = {
+    data_storage:      {sk:"Ukladanie meraní",en:"Store readings"},
+    physician_sharing: {sk:"Zdieľanie s lekárom",en:"Share with physician"},
+    his_export:        {sk:"Export do FHIR",en:"Export to FHIR"}
+  };
+  var actionBadge = e.action === "granted"
+    ? '<span class="badge badge-green">' + esc(L({sk:"Udelené",en:"Granted"})) + '</span>'
+    : '<span class="badge badge-amber">' + esc(L({sk:"Odvolané",en:"Withdrawn"})) + '</span>';
+
+  return '<tr>'
+    + '<td><span style="white-space:nowrap;font-size:.85rem">' + esc(fmtDT(e.ts)) + '</span></td>'
+    + '<td><span style="font-weight:600;font-size:.9rem">' + esc(L(e.device)) + '</span></td>'
+    + '<td><span style="font-size:.88rem">' + esc(L(typeMap[e.type] || {sk:e.type,en:e.type})) + '</span></td>'
+    + '<td>' + actionBadge + '</td>'
+    + '<td><code style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--ink-3)">' + esc(e.ipHash) + '</code></td>'
+    + '</tr>';
+}
+
+function renderWithdrawAllModal() {
+  return '<div class="cm-overlay" id="withdrawAllModal" role="dialog" aria-modal="true" aria-labelledby="waTitle" style="display:none">'
+    + '<div class="cm-modal">'
+    + '<div class="cm-modal-head"><span class="cm-modal-ic cm-modal-danger">' + svgIcon("alert") + '</span>'
+    + '<h3 id="waTitle">' + esc(L({sk:"Odvolať všetky súhlasy?",en:"Withdraw all consent?"})) + '</h3></div>'
+    + '<div class="cm-modal-body">'
+    + '<p>' + esc(L({sk:"Toto odvolá všetky aktívne súhlasy pre všetky " + STATE.devices.length + " pripojené zariadenia.",en:"This will withdraw all active consent for all " + STATE.devices.length + " connected devices."})) + '</p>'
+    + '<ul class="cm-consequence-list">'
+    + '<li>' + esc(L({sk:"Synchronizácia všetkých zariadení sa okamžite zastaví",en:"Sync of all devices stops immediately"})) + '</li>'
+    + '<li>' + esc(L({sk:"Merania bez FHIR exportu budú zmazané",en:"Readings not yet exported to FHIR will be deleted"})) + '</li>'
+    + '<li>' + esc(L({sk:"Merania s fhir_observation_id zostávajú v zdravotnom zázname",en:"Readings with fhir_observation_id remain in your health record"})) + '</li>'
+    + '<li>' + esc(L({sk:"Všetky OAuth tokeny budú okamžite odvolané",en:"All OAuth tokens will be immediately revoked"})) + '</li>'
+    + '</ul>'
+    + '<div class="field mt-2"><span>' + esc(L({sk:"Dôvod odvolania (voliteľné)",en:"Reason for withdrawal (optional)"})) + '</span>'
+    + '<select id="waReason">'
+    + '<option value="">' + esc(L({sk:"— zvolte dôvod —",en:"— select reason —"})) + '</option>'
+    + '<option value="privacy">' + esc(L({sk:"Ochrana súkromia",en:"Privacy concern"})) + '</option>'
+    + '<option value="no_longer_needed">' + esc(L({sk:"Zariadenie viac nepoužívam",en:"No longer using device"})) + '</option>'
+    + '<option value="other">' + esc(L({sk:"Iné",en:"Other"})) + '</option>'
+    + '</select></div></div>'
+    + '<div class="cm-modal-actions">'
+    + '<button class="btn btn-ghost" id="waCancel">' + esc(L({sk:"Zrušiť",en:"Cancel"})) + '</button>'
+    + '<button class="btn btn-emergency" id="waConfirm">' + svgIcon("trash") + " " + esc(L({sk:"Odvolať všetky súhlasy",en:"Withdraw all consent"})) + '</button>'
+    + '</div></div></div>';
+}
+
+function renderDisconnectModal() {
+  return '<div class="cm-overlay" id="disconnectModal" role="dialog" aria-modal="true" aria-labelledby="dcTitle" style="display:none">'
+    + '<div class="cm-modal">'
+    + '<div class="cm-modal-head"><span class="cm-modal-ic cm-modal-danger">' + svgIcon("alert") + '</span>'
+    + '<h3 id="dcTitle">' + esc(L({sk:"Odpojiť zariadenie?",en:"Disconnect device?"})) + '</h3></div>'
+    + '<div class="cm-modal-body">'
+    + '<p>' + esc(L({sk:"Odpojenie odvolá všetky súhlasy pre toto zariadenie a zmaže merania, ktoré neboli exportované do FHIR záznamu.",en:"Disconnecting withdraws all consent for this device and deletes readings not yet exported to the FHIR record."})) + '</p>'
+    + '<div class="field mt-2"><span>' + esc(L({sk:"Dôvod (voliteľné)",en:"Reason (optional)"})) + '</span>'
+    + '<select id="dcReason">'
+    + '<option value="">' + esc(L({sk:"— zvolte dôvod —",en:"— select reason —"})) + '</option>'
+    + '<option value="privacy">' + esc(L({sk:"Ochrana súkromia",en:"Privacy concern"})) + '</option>'
+    + '<option value="no_longer_needed">' + esc(L({sk:"Zariadenie viac nepoužívam",en:"No longer using device"})) + '</option>'
+    + '<option value="other">' + esc(L({sk:"Iné",en:"Other"})) + '</option>'
+    + '</select></div></div>'
+    + '<div class="cm-modal-actions">'
+    + '<button class="btn btn-ghost" id="dcCancel">' + esc(L({sk:"Zrušiť",en:"Cancel"})) + '</button>'
+    + '<button class="btn btn-emergency" id="dcConfirm">' + svgIcon("x") + " " + esc(L({sk:"Odpojiť zariadenie",en:"Disconnect device"})) + '</button>'
+    + '</div></div></div>';
+}
+
+/* ── Events ────────────────────────────────────────────────────────────── */
+function attachEvents() {
+  /* consent toggles */
+  main.querySelectorAll(".cm-toggle input").forEach(function(cb) {
+    cb.onchange = function() {
+      var dev = STATE.devices.find(function(d){return d.id===cb.dataset.device;});
+      if (!dev) return;
+      var con = dev.consents.find(function(c){return c.type===cb.dataset.type;});
+      if (!con) return;
+      con.granted = cb.checked;
+      con.grantedAt = cb.checked ? new Date().toISOString() : con.grantedAt;
+      STATE.auditLog.unshift({
+        ts: new Date().toISOString(),
+        device: {sk: dev.brand+" "+dev.model, en: dev.brand+" "+dev.model},
+        type: cb.dataset.type,
+        action: cb.checked ? "granted" : "withdrawn",
+        ipHash: "—"
+      });
+      render();
+    };
+  });
+
+  /* withdraw all */
+  var waBtn = document.getElementById("withdrawAllBtn");
+  if (waBtn) waBtn.onclick = function(){ document.getElementById("withdrawAllModal").style.display="flex"; };
+  var waCancel = document.getElementById("waCancel");
+  if (waCancel) waCancel.onclick = function(){ document.getElementById("withdrawAllModal").style.display="none"; };
+  var waConfirm = document.getElementById("waConfirm");
+  if (waConfirm) waConfirm.onclick = function(){
+    STATE.devices.forEach(function(d){
+      d.consents.forEach(function(c){
+        if (!c.required && c.granted) {
+          c.granted = false;
+          STATE.auditLog.unshift({ts:new Date().toISOString(), device:{sk:d.brand+" "+d.model,en:d.brand+" "+d.model}, type:c.type, action:"withdrawn", ipHash:"—"});
+        }
+      });
+    });
+    document.getElementById("withdrawAllModal").style.display="none";
+    render();
+    toast(L({sk:"Všetky súhlasy boli odvolané.",en:"All consent has been withdrawn."}));
+  };
+
+  /* disconnect */
+  main.querySelectorAll(".cm-disconnect-btn").forEach(function(btn){
+    btn.onclick = function(){ pendingDisconnectId = btn.dataset.device; document.getElementById("disconnectModal").style.display="flex"; };
+  });
+  var dcCancel = document.getElementById("dcCancel");
+  if (dcCancel) dcCancel.onclick = function(){ document.getElementById("disconnectModal").style.display="none"; pendingDisconnectId=null; };
+  var dcConfirm = document.getElementById("dcConfirm");
+  if (dcConfirm) dcConfirm.onclick = function(){
+    if (!pendingDisconnectId) return;
+    var d = STATE.devices.find(function(x){return x.id===pendingDisconnectId;});
+    if (d) {
+      d.consents.forEach(function(c){
+        if (c.granted) STATE.auditLog.unshift({ts:new Date().toISOString(), device:{sk:d.brand+" "+d.model,en:d.brand+" "+d.model}, type:c.type, action:"withdrawn", ipHash:"—"});
+      });
+    }
+    STATE.devices = STATE.devices.filter(function(x){return x.id!==pendingDisconnectId;});
+    pendingDisconnectId = null;
+    document.getElementById("disconnectModal").style.display="none";
+    render();
+    toast(L({sk:"Zariadenie bolo odpojené.",en:"Device has been disconnected."}));
+  };
+
+  /* dismiss banner */
+  var dismissBtn = document.getElementById("dismissBanner");
+  if (dismissBtn) dismissBtn.onclick = function(){ bannerDismissed=true; document.getElementById("gdprBanner").style.display="none"; };
+
+  /* modal backdrop */
+  ["withdrawAllModal","disconnectModal"].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.onclick = function(e){ if(e.target===e.currentTarget){e.currentTarget.style.display="none"; pendingDisconnectId=null;} };
+  });
+}
+
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+function toast(msg) {
+  var ex = document.getElementById("cmToast"); if(ex) ex.remove();
+  var t = document.createElement("div"); t.id="cmToast"; t.className="cm-toast";
+  t.textContent=msg; t.setAttribute("role","status"); t.setAttribute("aria-live","polite");
+  document.body.appendChild(t);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ t.classList.add("visible"); }); });
+  setTimeout(function(){ t.classList.remove("visible"); setTimeout(function(){ t.remove(); },400); },3500);
+}
+
+/* ── SVG icons ─────────────────────────────────────────────────────────── */
+var ICONS = {
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  x:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  lock:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  server:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+  user:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  doc:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+};
+function svgIcon(n) { return ICONS[n] || ""; }
+
+function consentTypeIcon(type) {
+  if (type==="data_storage")      return svgIcon("server");
+  if (type==="physician_sharing") return svgIcon("user");
+  if (type==="his_export")        return svgIcon("doc");
+  return svgIcon("shield");
+}
+
+var DEVICE_SVGS = {
+  glucose:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
+  watch:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><rect x="7" y="5" width="10" height="14" rx="3"/><path d="M9 5V3h6v2M9 19v2h6v-2"/><line x1="12" y1="9" x2="12" y2="12"/><line x1="12" y1="12" x2="14" y2="14"/></svg>',
+  heart:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+};
+function deviceSvg(k) { return DEVICE_SVGS[k] || DEVICE_SVGS.heart; }
+
+/* ── Watch language changes ─────────────────────────────────────────────── */
+new MutationObserver(function(){ render(); }).observe(document.documentElement, {attributes:true, attributeFilter:["lang"]});
+
+render();
+</script>
+
+<style>
+/* ── Consent management — component styles ─────────────────────────────── */
+.cm-page-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 20px; flex-wrap: wrap; margin-top: 24px;
+}
+.cm-page-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+
+.cm-btn-danger {
+  display: inline-flex; align-items: center; gap: .5em;
+  background: var(--surface); color: var(--red);
+  border: 1px solid var(--red); border-radius: var(--radius-sm);
+  font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .85rem;
+  padding: .55em 1em; cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.cm-btn-danger:hover { background: var(--red-50); }
+.cm-btn-danger svg { width: 14px !important; height: 14px !important; }
+
+/* GDPR banner */
+.cm-gdpr-banner {
+  background: var(--blue-50); border-color: var(--blue-100);
+  position: relative; padding-right: 50px;
+}
+.cm-gdpr-body { display: flex; align-items: flex-start; gap: 14px; }
+.cm-gdpr-ic { flex: 0 0 auto; color: var(--blue-600); display: flex; align-items: center; }
+.cm-gdpr-ic svg { width: 20px !important; height: 20px !important; }
+.cm-btn-dismiss {
+  position: absolute; top: 12px; right: 12px;
+  background: none; border: none; cursor: pointer; font-size: 1.2rem;
+  color: var(--ink-3); width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; line-height: 1; padding: 0;
+}
+.cm-btn-dismiss:hover { background: var(--warm-100); color: var(--ink); }
+
+/* Device cards */
+.cm-devices { display: flex; flex-direction: column; gap: 16px; }
+
+.cm-device-head {
+  display: flex; justify-content: space-between;
+  align-items: center; flex-wrap: wrap; gap: 10px;
+}
+.cm-device-head .cm-disconnect-btn svg {
+  width: 14px !important; height: 14px !important;
+}
+
+/* Consent rows */
+.cm-rows { display: flex; flex-direction: column; }
+.cm-consent-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 16px 22px; border-bottom: 1px solid var(--line);
+  transition: background .12s;
+}
+.cm-consent-row:last-child { border-bottom: none; }
+.cm-consent-row:hover:not(.cm-row-required) { background: var(--bg); }
+.cm-row-required { background: transparent; }
+
+.cm-row-left { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0; }
+.cm-row-right { flex: 0 0 auto; display: flex; align-items: center; }
+
+.cm-type-ic {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.cm-type-ic svg { width: 17px !important; height: 17px !important; }
+.cm-type-data_storage      { background: var(--blue-50);   color: var(--blue-700); }
+.cm-type-physician_sharing { background: var(--green-50);  color: var(--green); }
+.cm-type-his_export        { background: var(--terra-50);  color: var(--terra); }
+
+.cm-row-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cm-row-label { font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .95rem; }
+
+/* Toggle switch */
+.cm-toggle {
+  position: relative; display: inline-block;
+  width: 48px; height: 27px; cursor: pointer; flex: 0 0 auto;
+}
+.cm-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.cm-toggle-track {
+  position: absolute; inset: 0;
+  background: var(--warm-200); border-radius: 99px; transition: background .2s;
+}
+.cm-toggle-track::after {
+  content: ''; position: absolute; left: 3px; top: 3px;
+  width: 21px; height: 21px; background: #fff; border-radius: 50%;
+  transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+.cm-toggle input:checked + .cm-toggle-track { background: var(--green); }
+.cm-toggle input:checked + .cm-toggle-track::after { transform: translateX(21px); }
+.cm-toggle input:focus-visible + .cm-toggle-track {
+  outline: 2px solid var(--blue-500); outline-offset: 2px;
+}
+
+/* Audit trail */
+.cm-audit-footer {
+  padding: 10px 18px; display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border-top: 1px solid var(--line);
+}
+.cm-audit-footer svg { width: 13px !important; height: 13px !important; color: var(--ink-3); }
+
+/* Modal overlay */
+.cm-overlay {
+  position: fixed; inset: 0; background: rgba(20,35,60,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px; backdrop-filter: blur(3px);
+}
+.cm-modal {
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); width: 100%; max-width: 480px; overflow: hidden;
+}
+.cm-modal-head {
+  padding: 26px 26px 16px; display: flex; align-items: center; gap: 14px;
+}
+.cm-modal-ic {
+  width: 44px; height: 44px; border-radius: 12px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+}
+.cm-modal-ic svg { width: 22px !important; height: 22px !important; }
+.cm-modal-danger { background: var(--red-50); color: var(--red); }
+.cm-modal-head h3 { margin: 0; font-size: 1.2rem; }
+.cm-modal-body { padding: 0 26px 16px; }
+.cm-modal-body p { color: var(--ink-2); }
+
+.cm-consequence-list {
+  list-style: none; margin: 12px 0 0; padding: 0;
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden;
+}
+.cm-consequence-list li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: .88rem; color: var(--ink-2); padding: 10px 14px;
+  border-bottom: 1px solid var(--line); background: var(--bg);
+}
+.cm-consequence-list li:last-child { border-bottom: none; }
+.cm-consequence-list li::before {
+  content: '·'; color: var(--red); font-weight: 900;
+  font-size: 1.4rem; line-height: 1.1; flex: 0 0 auto;
+}
+
+.cm-modal-actions {
+  padding: 16px 26px; display: flex; justify-content: flex-end; gap: 10px;
+  background: var(--bg-2); border-top: 1px solid var(--line);
+}
+.cm-modal-actions .btn-emergency { display: inline-flex; align-items: center; gap: .45em; }
+.cm-modal-actions .btn-emergency svg { width: 14px !important; height: 14px !important; }
+
+/* Toast */
+.cm-toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--green); color: #fff;
+  padding: 12px 22px; border-radius: var(--radius-sm);
+  font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .9rem;
+  box-shadow: var(--shadow-lg); z-index: 2000;
+  opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none;
+}
+.cm-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Responsive */
+@media (max-width: 660px) {
+  .cm-page-head { align-items: flex-start; }
+  .cm-consent-row { flex-wrap: nowrap; padding: 12px 16px; }
+  .cm-row-left { gap: 10px; }
+  .cm-type-ic { width: 30px; height: 30px; }
+  .cm-device-head { padding: 12px 16px; }
+  .cm-modal { max-width: 100%; }
+}
+</style>
+</body>
+</html>

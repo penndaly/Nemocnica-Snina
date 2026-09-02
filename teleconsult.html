@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video konzultácia — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="room-body">
+
+<!-- Prototype state bar (hidden in production) -->
+<div class="proto-bar" role="toolbar" aria-label="Prototype state">
+  <span class="proto-label">Prototype view:</span>
+  <button class="proto-btn active" onclick="setState('waiting')">Čakáreň</button>
+  <button class="proto-btn" onclick="setState('active')">Aktívny hovor</button>
+  <button class="proto-btn" onclick="setState('postcall')">Po konzultácii</button>
+  <span class="proto-sep"></span>
+  <button class="proto-btn" onclick="toggleView()" id="viewBtn">Pohľad: Pacient</button>
+</div>
+
+<div class="room" id="room" data-state="waiting" data-view="patient">
+
+  <!-- Top bar -->
+  <div class="room-bar">
+    <div class="room-bar-brand">
+      <span class="room-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>
+      <span class="room-brand-name">Nemocnica Snina</span>
+      <span class="room-brand-sep">·</span>
+      <span class="room-brand-sub" id="roomSubtitle">Telezdravotníctvo</span>
+    </div>
+    <div class="room-session" id="sessionInfo">
+      <span class="room-dot" id="statusDot"></span>
+      <span id="sessionLabel">Čakáreň — MUDr. Horváth Martin</span>
+    </div>
+    <div class="room-timer" id="timerWrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span id="timerDisplay">00:00</span>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div class="room-stage" id="roomStage">
+
+    <!-- Main video tile (doctor / patient swap by view) -->
+    <div class="video-tile video-main" id="mainTile">
+      <div class="tile-avatar" id="mainAvatar">MH</div>
+      <div class="tile-label" id="mainLabel">MUDr. Horváth Martin</div>
+      <div class="tile-role-badge" id="mainRole">Lekár</div>
+    </div>
+
+    <!-- PiP tile -->
+    <div class="video-tile video-pip" id="pipTile">
+      <div class="tile-avatar pip-av" id="pipAvatar">JN</div>
+      <div class="tile-pip-label" id="pipLabel">Vy</div>
+    </div>
+
+    <!-- Doctor side panel (intakes / patient notes) -->
+    <div class="room-side-panel" id="sidePanel">
+      <div class="side-panel-inner">
+        <p class="side-section-title">Pacient</p>
+        <div class="side-patient-card">
+          <div class="tile-avatar" style="width:36px;height:36px;font-size:.85rem;flex:0 0 auto">JN</div>
+          <div><strong style="color:#fff">Ján Novák</strong><br><span style="color:#8fa6bf;font-size:.8rem">840315/xxxx · VšZP</span></div>
+        </div>
+        <p class="side-section-title" style="margin-top:16px">Vstupný dotazník</p>
+        <div class="side-intake-item"><span class="side-intake-lbl">Dôvod návštevy</span><span class="side-intake-val">Kontrola — arteriálna hypertenzia</span></div>
+        <div class="side-intake-item"><span class="side-intake-lbl">Aktuálne lieky</span><span class="side-intake-val">Amlodipín 5mg, Ramipril 10mg</span></div>
+        <div class="side-intake-item"><span class="side-intake-lbl">Príznaky</span><span class="side-intake-val">Občasná bolesť hlavy, bez opuchov</span></div>
+        <div class="side-intake-item"><span class="side-intake-lbl">TK (posledné meranie)</span><span class="side-intake-val">138/88 mmHg</span></div>
+        <p class="side-section-title" style="margin-top:16px">Akcie</p>
+        <button class="btn btn-primary btn-sm side-btn">Vystaviť e-recept</button>
+        <button class="btn btn-ghost btn-sm side-btn" style="margin-top:6px;border-color:rgba(255,255,255,.2);color:#c2d2e4">Navrhnúť kontrolu</button>
+      </div>
+    </div>
+
+    <!-- Waiting overlay -->
+    <div class="room-overlay" id="waitingOverlay">
+      <div class="waiting-card">
+        <div class="waiting-pulse"><div class="tile-avatar waiting-av" id="waitingAv">MH</div></div>
+        <h2 id="waitingTitle" style="color:#fff;margin-bottom:.4rem"></h2>
+        <p id="waitingBody" style="color:#8fa6bf;max-width:34ch;text-align:center;margin:0 auto"></p>
+        <div class="waiting-dots"><span></span><span></span><span></span></div>
+        <div class="waiting-appt card card-pad" id="waitingAppt"></div>
+      <button class="btn btn-primary admit-btn" id="admitBtn" onclick="setState('active')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="admitBtnLbl">Prijať pacienta</span>
+      </button>
+    </div>
+  </div>
+
+    <!-- Post-call overlay -->
+    <div class="room-overlay" id="postcallOverlay">
+      <div class="postcall-card card card-pad">
+        <div class="postcall-check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 id="postcallTitle" style="margin-bottom:.3rem"></h2>
+        <p id="postcallSub" class="muted"></p>
+        <div class="postcall-items" id="postcallItems"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px" id="postcallBtns"></div>
+      </div>
+    </div>
+
+  </div><!-- /room-stage -->
+
+  <!-- Controls -->
+  <div class="room-controls">
+    <button class="ctrl-btn" id="btnMic" title="Mikrofón" onclick="toggleCtrl(this,'mic')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <span class="ctrl-lbl">Mikrofón</span>
+    </button>
+    <button class="ctrl-btn" id="btnCam" title="Kamera" onclick="toggleCtrl(this,'cam')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <span class="ctrl-lbl">Kamera</span>
+    </button>
+    <button class="ctrl-btn" id="btnShare" title="Zdieľať obrazovku">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      <span class="ctrl-lbl">Obrazovka</span>
+    </button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="btnChat" title="Správy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="ctrl-lbl">Správy</span>
+    </button>
+    <button class="ctrl-btn ctrl-end" id="btnEnd" title="Ukončiť hovor" onclick="setState('postcall')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 2 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+      <span class="ctrl-lbl">Ukončiť</span>
+    </button>
+  </div>
+
+</div><!-- /room -->
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+// Persist session state across refreshes
+const SS = sessionStorage;
+let timerInterval = null;
+let isDoctor = SS.getItem("th_view") === "doctor";
+const initialState = SS.getItem("th_room_state") || "waiting";
+
+function startTimer() {
+  if (!SS.getItem("th_start")) SS.setItem("th_start", Date.now());
+  timerInterval = setInterval(() => {
+    const e = Date.now() - parseInt(SS.getItem("th_start"));
+    const m = Math.floor(e/60000).toString().padStart(2,"0");
+    const s = Math.floor((e%60000)/1000).toString().padStart(2,"0");
+    document.getElementById("timerDisplay").textContent = m+":"+s;
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerInterval); SS.removeItem("th_start"); document.getElementById("timerDisplay").textContent = "00:00"; }
+
+function setState(s) {
+  SS.setItem("th_room_state", s);
+  const room = document.getElementById("room");
+  room.dataset.state = s;
+  const lbl = document.getElementById("sessionLabel");
+  const dot = document.getElementById("statusDot");
+  if (s === "waiting") {
+    lbl.textContent = L({sk:"Čakáreň — MUDr. Horváth Martin",en:"Waiting room — Dr. Horváth Martin"});
+    dot.className = "room-dot dot-waiting"; stopTimer();
+    document.getElementById("waitingTitle").textContent = isDoctor ? L({sk:"Čakáte na pacienta",en:"Waiting for patient"}) : L({sk:"Čakáte na lekára",en:"Waiting for your physician"});
+    document.getElementById("waitingBody").textContent = isDoctor ? L({sk:"Pacient JN je v čakárni. Stlačte tlačidlo nižšie na prijatie.",en:"Patient JN is in the waiting room. Press the button below to admit them."}) : L({sk:"MUDr. Horváth Martin sa pripojí o chvíľu. Skontrolujte kameru a mikrofón.",en:"Dr. Horváth Martin will join shortly. Please check your camera and microphone."});
+    const admitLbl = document.getElementById("admitBtnLbl");
+    if (admitLbl) admitLbl.textContent = L({sk:"Prijať pacienta",en:"Admit patient"});
+    document.getElementById("waitingAppt").innerHTML = `<p class="small" style="margin:0;color:var(--ink-2)"><strong>${L({sk:"Váš termín",en:"Your appointment"})}</strong><br>${L({sk:"Dnes o 10:30 · Interná ambulancia",en:"Today at 10:30 · Internal medicine clinic"})}</p>`;
+    document.getElementById("waitingAv").textContent = isDoctor ? "JN" : "MH";
+  } else if (s === "active") {
+    lbl.textContent = L({sk:"Aktívna konzultácia",en:"Active consultation"});
+    dot.className = "room-dot dot-active"; startTimer();
+  } else if (s === "postcall") {
+    lbl.textContent = L({sk:"Konzultácia ukončená",en:"Consultation ended"});
+    dot.className = "room-dot dot-postcall"; stopTimer();
+    document.getElementById("postcallTitle").textContent = isDoctor ? L({sk:"Záver konzultácie",en:"Post-call summary"}) : L({sk:"Konzultácia ukončená",en:"Consultation complete"});
+    document.getElementById("postcallSub").textContent = isDoctor ? L({sk:"Zadajte klinickú poznámku a uložte záznam do HIS.",en:"Enter the clinical note and save the record to HIS."}) : L({sk:"Záver bol odoslaný do vašej zdravotnej dokumentácie.",en:"The consultation summary has been added to your medical record."});
+    if (isDoctor) {
+      document.getElementById("postcallItems").innerHTML = `
+        <div class="doctor-note-wrap">
+          <label style="display:block;font-size:.78rem;font-weight:700;color:var(--ink-2);margin-bottom:6px;text-align:left;text-transform:uppercase;letter-spacing:.06em">${L({sk:"Klinická poznámka",en:"Clinical note"})}</label>
+          <textarea id="clinicalNote" class="doctor-note-area">${L({sk:"Kontrola arteriálnej hypertenzie. Stabilizovaný stav. Odporúčaná kontrola za 3 mesiace.",en:"Arterial hypertension follow-up. Condition stable. Follow-up recommended in 3 months."})}</textarea>
+          <div class="doctor-note-actions">
+            <button class="btn btn-primary" onclick="saveToHis()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+              ${L({sk:"Uložiť do HIS",en:"Save to HIS"})}
+            </button>
+            <button class="btn btn-ghost" onclick="issueRx()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/></svg>
+              ${L({sk:"Vystaviť e-Recept",en:"Issue e-Prescription"})}
+            </button>
+          </div>
+        </div>`;
+      document.getElementById("postcallBtns").innerHTML = "";
+    } else {
+      const items = [
+        {c:"green",t:{sk:"Záver konzultácie",en:"Consultation summary"},v:{sk:"Stabilizovaný stav, pokračovanie v liečbe.",en:"Stable condition, continue current treatment."}},
+        {c:"green",t:{sk:"e-Recept vystavený",en:"e-Prescription issued"},v:{sk:"Amlodipín 10mg — vydajte v lekárni",en:"Amlodipín 10mg — collect at any pharmacy"}},
+        {c:"blue",t:{sk:"Odporúčaná kontrola",en:"Recommended follow-up"},v:{sk:"Za 3 mesiace — objednajte sa online",en:"In 3 months — book online"}}
+      ];
+      document.getElementById("postcallItems").innerHTML = items.map(i=>`
+        <div class="postcall-item">
+          <span class="badge badge-${i.c}" style="flex:0 0 auto">${i.t[getLang()]||i.t.sk}</span>
+          ${i.v?`<span class="small muted">${i.v[getLang()]||i.v.sk}</span>`:""}
+        </div>`).join("");
+      document.getElementById("postcallBtns").innerHTML = `<a href="portal.html" class="btn btn-primary">${L({sk:"Zobraziť v portáli",en:"View in portal"})}</a><a href="objednanie.html" class="btn btn-ghost">${L({sk:"Objednať kontrolu",en:"Book follow-up"})}</a>`;
+    }
+  }
+  document.querySelectorAll(".proto-btn").forEach(b => { if (b.getAttribute("onclick")) b.classList.toggle("active", b.getAttribute("onclick").includes(`'${s}'`)); });
+}
+
+function toggleView() {
+  isDoctor = !isDoctor;
+  SS.setItem("th_view", isDoctor ? "doctor" : "patient");
+  document.getElementById("room").dataset.view = isDoctor ? "doctor" : "patient";
+  document.getElementById("viewBtn").textContent = L({sk:`Pohľad: ${isDoctor?"Lekár":"Pacient"}`,en:`View: ${isDoctor?"Doctor":"Patient"}`});
+  document.getElementById("mainAvatar").textContent = isDoctor ? "JN" : "MH";
+  document.getElementById("mainLabel").textContent = isDoctor ? "Ján Novák" : "MUDr. Horváth Martin";
+  document.getElementById("mainRole").textContent = isDoctor ? L({sk:"Pacient",en:"Patient"}) : L({sk:"Lekár",en:"Physician"});
+  document.getElementById("pipAvatar").textContent = isDoctor ? "MH" : "JN";
+  document.getElementById("pipLabel").textContent = L({sk:"Vy",en:"You"});
+  if (document.getElementById("room").dataset.state !== "active") setState(document.getElementById("room").dataset.state);
+}
+
+function toggleCtrl(btn) { btn.classList.toggle("ctrl-off"); }
+function saveToHis() {
+  const note = document.getElementById("clinicalNote"); if (note) note.disabled = true;
+  document.getElementById("postcallItems").innerHTML = [
+    {c:"green",t:{sk:"Záznam uložený do HIS",en:"Record saved to HIS"}},
+    {c:"blue",t:{sk:"e-Recept: Amlodipín 10 mg vystavený",en:"e-Prescription: Amlodipín 10 mg issued"}},
+    {c:"blue",t:{sk:"Kontrola navrhnutá o 3 mesiace",en:"Follow-up recommended in 3 months"}}
+  ].map(i=>`<div class="postcall-item"><span class="badge badge-${i.c}" style="flex:0 0 auto">${i.t[getLang()]||i.t.sk}</span></div>`).join("");
+  document.getElementById("postcallBtns").innerHTML = `<a href="admin.html" class="btn btn-primary">${L({sk:"Späť na plán",en:"Back to schedule"})}</a>`;
+}
+function issueRx() {
+  alert(L({sk:"e-Recept bol odoslaný do NCZI eZdravie.",en:"e-Prescription submitted to NCZI eZdravie."}));
+}
+
+// Apply persisted view
+if (isDoctor) {
+  document.getElementById("room").dataset.view = "doctor";
+  document.getElementById("viewBtn").textContent = L({sk:"Pohľad: Lekár",en:"View: Doctor"});
+  document.getElementById("mainAvatar").textContent = "JN";
+  document.getElementById("mainLabel").textContent = "Ján Novák";
+  document.getElementById("mainRole").textContent = L({sk:"Pacient",en:"Patient"});
+  document.getElementById("pipAvatar").textContent = "MH";
+}
+setState(initialState);
+</script>
+
+<style>
+/* ---- Page chrome ---- */
+.room-body { margin:0; background:#0d1f35; min-height:100vh; display:flex; flex-direction:column; }
+.proto-bar { background:#111d2c; border-bottom:1px solid rgba(255,255,255,.08); padding:8px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex-shrink:0; }
+.proto-label { font-family:'Mulish',sans-serif; font-size:.75rem; color:rgba(255,255,255,.35); font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
+.proto-btn { font-family:'Mulish',sans-serif; font-size:.78rem; font-weight:700; padding:4px 12px; border-radius:99px; border:1px solid rgba(255,255,255,.15); background:transparent; color:rgba(255,255,255,.5); cursor:pointer; }
+.proto-btn.active { background:var(--blue-700); border-color:var(--blue-700); color:#fff; }
+.proto-sep { flex:1; }
+
+/* ---- Room shell ---- */
+.room { flex:1; display:flex; flex-direction:column; }
+.room-bar { height:52px; background:rgba(0,0,0,.4); border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; padding:0 20px; gap:16px; flex-shrink:0; }
+.room-bar-brand { display:flex; align-items:center; gap:8px; }
+.room-mark { width:26px; height:26px; border-radius:7px; background:var(--blue-700); display:flex; align-items:center; justify-content:center; color:#fff; flex:0 0 auto; }
+.room-brand-name { font-family:'Mulish',sans-serif; font-weight:800; font-size:.88rem; color:#fff; }
+.room-brand-sep { color:rgba(255,255,255,.3); }
+.room-brand-sub { font-family:'Mulish',sans-serif; font-size:.82rem; color:rgba(255,255,255,.45); }
+.room-session { display:flex; align-items:center; gap:7px; margin-left:auto; font-family:'Mulish',sans-serif; font-size:.82rem; color:rgba(255,255,255,.6); }
+.room-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+.dot-waiting { background:var(--amber); animation:pulse 2s infinite; }
+.dot-active { background:var(--green); }
+.dot-postcall { background:var(--ink-3); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.room-timer { display:flex; align-items:center; gap:5px; font-family:'Mulish',sans-serif; font-size:.82rem; color:rgba(255,255,255,.45); flex-shrink:0; }
+[data-state="waiting"] .room-timer, [data-state="postcall"] .room-timer { opacity:.3; }
+
+/* ---- Stage ---- */
+.room-stage { flex:1; position:relative; overflow:hidden; background:#0d1f35; min-height:0; }
+
+/* Video tiles */
+.video-tile { position:absolute; border-radius:12px; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg,#1a3358,#0e1f35); overflow:hidden; }
+.video-main { inset:12px; bottom:12px; }
+.video-pip { width:160px; height:108px; bottom:24px; right:24px; border:2px solid rgba(255,255,255,.12); z-index:2; cursor:pointer; }
+.tile-avatar { width:72px; height:72px; border-radius:50%; background:var(--blue-700); color:#fff; font-family:'Mulish',sans-serif; font-weight:800; font-size:1.6rem; display:flex; align-items:center; justify-content:center; }
+.pip-av { width:36px; height:36px; font-size:.9rem; }
+.tile-label { position:absolute; bottom:14px; left:14px; font-family:'Mulish',sans-serif; font-size:.82rem; font-weight:700; color:#fff; background:rgba(0,0,0,.5); padding:3px 10px; border-radius:99px; }
+.tile-role-badge { position:absolute; top:12px; left:12px; font-family:'Mulish',sans-serif; font-size:.72rem; font-weight:700; color:#fff; background:rgba(30,82,144,.7); padding:2px 8px; border-radius:99px; text-transform:uppercase; letter-spacing:.06em; }
+.tile-pip-label { position:absolute; bottom:6px; left:8px; font-family:'Mulish',sans-serif; font-size:.7rem; color:rgba(255,255,255,.55); }
+[data-state="waiting"] .video-main, [data-state="waiting"] .video-pip,
+[data-state="postcall"] .video-main, [data-state="postcall"] .video-pip { opacity:.15; }
+
+/* Doctor side panel */
+.room-side-panel { position:absolute; top:0; right:0; width:260px; height:100%; background:rgba(10,22,40,.92); border-left:1px solid rgba(255,255,255,.08); display:none; flex-direction:column; z-index:3; overflow-y:auto; }
+[data-state="active"][data-view="doctor"] .room-side-panel { display:flex; }
+[data-state="active"][data-view="doctor"] .video-main { right:272px; }
+[data-state="active"][data-view="doctor"] .video-pip { right:280px; }
+.side-panel-inner { padding:16px; }
+.side-section-title { font-family:'Mulish',sans-serif; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:rgba(255,255,255,.35); margin:0 0 8px; }
+.side-patient-card { display:flex; gap:10px; align-items:center; background:rgba(255,255,255,.06); border-radius:10px; padding:10px; margin-bottom:4px; }
+.side-intake-item { border-bottom:1px solid rgba(255,255,255,.07); padding:7px 0; display:flex; flex-direction:column; gap:2px; }
+.side-intake-lbl { font-family:'Mulish',sans-serif; font-size:.72rem; color:rgba(255,255,255,.4); }
+.side-intake-val { font-family:'Mulish',sans-serif; font-size:.82rem; color:rgba(255,255,255,.8); }
+.side-btn { width:100%; justify-content:center; }
+
+/* Overlays */
+.room-overlay { position:absolute; inset:0; z-index:5; display:none; align-items:center; justify-content:center; background:rgba(10,22,40,.75); backdrop-filter:blur(4px); }
+[data-state="waiting"] #waitingOverlay { display:flex; }
+[data-state="postcall"] #postcallOverlay { display:flex; }
+.waiting-card { display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; }
+.waiting-pulse { padding:8px; border-radius:50%; background:rgba(37,99,168,.25); animation:pulse 2.2s infinite; }
+.waiting-av { width:80px; height:80px; font-size:1.8rem; }
+.waiting-dots { display:flex; gap:8px; }
+.waiting-dots span { width:8px; height:8px; border-radius:50%; background:var(--blue-500); animation:pulse 1.4s infinite; }
+.waiting-dots span:nth-child(2) { animation-delay:.2s; }
+.waiting-dots span:nth-child(3) { animation-delay:.4s; }
+.waiting-appt { background:var(--surface); border-radius:var(--radius); min-width:220px; padding:12px 16px; }
+.postcall-card { background:var(--surface); max-width:420px; width:90%; border-radius:var(--radius-lg); padding:32px; text-align:center; box-shadow:var(--shadow-lg); }
+.postcall-check-icon { width:56px; height:56px; border-radius:50%; background:var(--green-50); color:var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+.postcall-items { display:flex; flex-direction:column; gap:8px; margin-top:16px; text-align:left; }
+.postcall-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+.postcall-item:last-child { border-bottom:none; }
+
+/* Controls bar */
+.room-controls { height:72px; background:rgba(0,0,0,.45); border-top:1px solid rgba(255,255,255,.07); display:flex; align-items:center; justify-content:center; gap:12px; flex-shrink:0; }
+.ctrl-btn { width:48px; height:48px; border-radius:50%; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; transition:background .14s; }
+.ctrl-btn:hover { background:rgba(255,255,255,.16); }
+.ctrl-btn svg { width:20px; height:20px; }
+.ctrl-lbl { font-family:'Mulish',sans-serif; font-size:.58rem; color:rgba(255,255,255,.4); }
+.ctrl-btn.ctrl-off { background:rgba(192,57,43,.25); border-color:var(--red); color:var(--red); }
+.ctrl-btn.ctrl-end { background:var(--red); border-color:var(--red); }
+.ctrl-btn.ctrl-end:hover { background:#a93226; }
+.ctrl-sep { width:1px; height:28px; background:rgba(255,255,255,.1); }
+[data-state="waiting"] .room-controls, [data-state="postcall"] .room-controls { opacity:.4; pointer-events:none; }
+[data-state="waiting"] .room-controls, [data-state="postcall"] .room-controls { pointer-events:none; }
+/* Physician admit button */
+.admit-btn { display:none; align-items:center; gap:8px; margin-top:18px; font-size:.92rem; padding:11px 24px; }
+.room[data-view="doctor"] .admit-btn { display:inline-flex; }
+/* Doctor post-call note editor */
+.doctor-note-wrap { width:100%; text-align:left; margin-top:2px; }
+.doctor-note-area { width:100%; min-height:82px; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink); font-family:'Mulish',sans-serif; font-size:.88rem; line-height:1.55; resize:vertical; margin-bottom:10px; box-sizing:border-box; }
+.doctor-note-area:focus { outline:none; border-color:var(--blue-400,#60a5fa); box-shadow:0 0 0 3px var(--blue-50); }
+.doctor-note-area:disabled { opacity:.55; cursor:not-allowed; background:var(--warm-100); }
+.doctor-note-actions { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
+</body>
+</html>

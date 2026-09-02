@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telehealth — Nemocnica Snina</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header id="siteHeader"></header>
+<main>
+
+  <section class="page-hero">
+    <div class="container th-hero-grid">
+      <div>
+        <div class="breadcrumb"><a href="index.html" id="bcHome"></a><span>/</span><span id="bcHere"></span></div>
+        <p class="eyebrow terra" id="phEyebrow"></p>
+        <h1 id="phTitle"></h1>
+        <p class="lede" id="phSub" style="max-width:54ch"></p>
+        <div class="th-ctas mt-2" id="heroCtas"></div>
+      </div>
+      <div class="th-hero-card card" aria-hidden="true">
+        <div class="th-mock-bar">
+          <span class="th-mock-dot"></span><span class="th-mock-dot"></span><span class="th-mock-dot"></span>
+          <span class="th-mock-title">Nemocnica Snina · Telehealth</span>
+        </div>
+        <div class="th-mock-tiles">
+          <div class="th-mock-tile th-mock-doctor"><div class="th-mock-av">MH</div><div class="th-mock-lbl">MUDr. Horváth M.</div></div>
+          <div class="th-mock-tile th-mock-self"><div class="th-mock-av sm">JN</div></div>
+        </div>
+        <div class="th-mock-controls">
+          <span class="th-ctrl"></span><span class="th-ctrl"></span><span class="th-ctrl th-ctrl-end"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--bg-2)">
+    <div class="container">
+      <p class="eyebrow" id="howEyebrow"></p>
+      <h2 id="howTitle"></h2>
+      <div class="th-steps" id="howSteps"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow" id="clinicsEyebrow"></p>
+      <h2 id="clinicsTitle"></h2>
+      <p class="lede" id="clinicsSub" style="max-width:56ch;margin-bottom:2rem"></p>
+      <div class="grid grid-2" id="teleClinics"></div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--bg-2)">
+    <div class="container container-narrow">
+      <p class="eyebrow" id="reqEyebrow"></p>
+      <h2 id="reqTitle"></h2>
+      <div class="th-reqs" id="reqs"></div>
+      <div class="th-legal card card-pad mt-2" id="legalNote"></div>
+    </div>
+  </section>
+
+  <section class="section band-blue">
+    <div class="container cta-band">
+      <div>
+        <h2 id="ctaTitle"></h2>
+        <p style="color:#c2d2e4;max-width:50ch" id="ctaSub"></p>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap" id="ctaBtns"></div>
+    </div>
+  </section>
+
+</main>
+<footer id="siteFooter"></footer>
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+<script>
+Object.assign(ICON, {
+  video: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+  wifi:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
+  monitor: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  clipboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>`
+});
+
+Site.mount({ active: "" });
+document.getElementById("bcHome").textContent = t("backHome");
+document.getElementById("bcHere").textContent = "Telehealth";
+document.getElementById("phEyebrow").textContent = L({sk:"Telezdravotníctvo",en:"Telehealth"});
+document.getElementById("phTitle").innerHTML = L({sk:"Konzultácia s lekárom<br>odkiaľkoľvek",en:"Consult your physician<br>from anywhere"});
+document.getElementById("phSub").textContent = L({sk:"Absolvujte kontrolné vyšetrenie alebo konzultáciu s lekárom Nemocnice Snina cez video — bez cestovania, z pohodlia domova.",en:"Have your follow-up or specialist consultation with a Nemocnica Snina physician by secure video — no travel required."});
+document.getElementById("heroCtas").innerHTML =
+  `<a href="teleconsult.html" class="btn btn-primary btn-lg">${icon("video")} ${L({sk:"Vstúpiť do konzultácie",en:"Join consultation"})}</a>` +
+  `<a href="objednanie.html" class="btn btn-ghost btn-lg">${icon("calendar")} ${L({sk:"Objednať telehealth termín",en:"Book a telehealth appointment"})}</a>`;
+
+document.getElementById("howEyebrow").textContent = L({sk:"Ako to funguje",en:"How it works"});
+document.getElementById("howTitle").textContent = L({sk:"Tri kroky ku konzultácii",en:"Three steps to your consultation"});
+const HOW = [
+  {n:"01",ic:"calendar",t:{sk:"Objednajte sa online",en:"Book online"},b:{sk:"Vyberte ambulanciu s telehealth podporou a typ term\u00ednu \u201eVideo konzult\u00e1cia\u201c. Dostanete SMS potvrdenie a odkaz do \u010dak\u00e1rne.",en:"Choose a telehealth-enabled clinic and the Video consultation type. You'll receive SMS confirmation and a waiting-room link."}},
+  {n:"02",ic:"clipboard",t:{sk:"Vyplňte vstupný dotazník",en:"Complete intake form"},b:{sk:"Deň pred termínom skontrolujte kameru a mikrofón a vyplňte krátky dotazník o príznakoch, aby bol lekár pripravený.",en:"The day before, check your camera and mic, and fill in a short symptom questionnaire so your physician is prepared."}},
+  {n:"03",ic:"video",t:{sk:"Konzultujte",en:"Consult"},b:{sk:"Pripojte sa cez zabezpečený video-hovor. Lekár overí vašu totožnosť cez eID. Po konzultácii dostanete záver a prípadný e-recept.",en:"Join the secure video call. The physician verifies your identity via eID. You receive a written summary and any e-prescription afterwards."}}
+];
+document.getElementById("howSteps").innerHTML = HOW.map(s=>`
+  <div class="th-step">
+    <div class="th-step-icon">${icon(s.ic)}</div>
+    <div class="th-step-num">${s.n}</div>
+    <h3>${esc(L(s.t))}</h3>
+    <p class="muted">${esc(L(s.b))}</p>
+  </div>`).join("");
+
+// Eligible clinics — telehealth-capable (in production driven by clinics.telehealth:bool)
+const TH_IDS = new Set(["interná","angiology","fro","interne"]);
+document.getElementById("clinicsEyebrow").textContent = L({sk:"Dostupné ambulancie",en:"Available clinics"});
+document.getElementById("clinicsTitle").textContent = L({sk:"Kde je telehealth dostupný",en:"Where telehealth is available"});
+document.getElementById("clinicsSub").textContent = L({sk:"Videokonzultácia je dostupná pre kontrolné a sledovacie termíny v nasledujúcich ambulanciách.",en:"Video consultation is available for follow-up and monitoring appointments at these clinics."});
+const all = DB.list("clinics"); const th = all.filter(c=>TH_IDS.has(c.id)); const show = th.length ? th : all.slice(0,4);
+document.getElementById("teleClinics").innerHTML = show.map(c=>`
+  <div class="card card-pad th-clinic">
+    <div class="th-clinic-head">
+      <div class="th-icon-tile">${icon("video")}</div>
+      <div><p class="eyebrow" style="margin:0">${esc(L(c.specialty))}</p><h3 style="margin:0">${esc(L(c.name))}</h3></div>
+    </div>
+    <p class="muted small">${L({sk:"Dostupné pre kontrolné a sledovacie termíny.",en:"Available for follow-up and monitoring visits."})}</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+      <span class="chip th-chip-video">${icon("video")} ${L({sk:"Video konzultácia",en:"Video consultation"})}</span>
+      ${c.referral?`<span class="chip">${icon("doc")} ${t("referralReq")}</span>`:""}
+    </div>
+    <a href="objednanie.html?clinic=${esc(c.id)}&mode=telehealth" class="btn btn-primary btn-sm" style="margin-top:14px;align-self:flex-start">${icon("calendar")} ${L({sk:"Objednať",en:"Book"})}</a>
+  </div>`).join("");
+
+document.getElementById("reqEyebrow").textContent = L({sk:"Čo potrebujete",en:"What you need"});
+document.getElementById("reqTitle").textContent = L({sk:"Technické a klinické podmienky",en:"Technical & clinical requirements"});
+const REQS = [
+  {ic:"monitor",t:{sk:"Zariadenie",en:"Device"},b:{sk:"Počítač, tablet alebo smartphone s kamerou a mikrofónom. Odporúčame Chrome alebo Firefox (najnovšia verzia).",en:"Computer, tablet or smartphone with camera and microphone. Chrome or Firefox (latest version) recommended."}},
+  {ic:"wifi",t:{sk:"Pripojenie",en:"Connection"},b:{sk:"Stabilné internetové pripojenie min. 5 Mbit/s. Odporúčame Wi-Fi alebo káblovú sieť.",en:"Stable internet connection of at least 5 Mbit/s. Wi-Fi or wired connection recommended."}},
+  {ic:"shield",t:{sk:"eID overenie",en:"eID verification"},b:{sk:"Platný elektronický občiansky preukaz (eID) na overenie totožnosti pred konzultáciou cez Slovensko.sk.",en:"Valid electronic identity card (eID) for identity verification via Slovensko.sk before the consultation."}},
+  {ic:"clipboard",t:{sk:"Oprávnené diagnózy",en:"Eligible conditions"},b:{sk:"Kontrolné a sledovacie návštevy. Akútne stavy, prvé vyšetrenia a výkony vyžadujúce fyzický kontakt nie sú vhodné.",en:"Follow-up and monitoring visits. Acute conditions, first examinations, and procedures requiring physical contact are not eligible."}}
+];
+document.getElementById("reqs").innerHTML = REQS.map(r=>`
+  <div class="th-req">
+    <div class="th-req-icon">${icon(r.ic)}</div>
+    <div><h4 style="margin:0 0 3px">${esc(L(r.t))}</h4><p class="muted small" style="margin:0">${esc(L(r.b))}</p></div>
+  </div>`).join("");
+
+document.getElementById("legalNote").innerHTML = `<p class="small muted" style="margin:0">${icon("alert")} <strong>${L({sk:"Dôležité upozornenie:",en:"Important notice:"})}</strong> ${L({sk:"Telezdravotníctvo nenahrádza urgentné alebo záchranné služby. Pri akútnom ohrození zdravia volajte 112. Konzultácia cez video sa zaznamenáva do zdravotnej dokumentácie a spracovaniu osobných údajov podlieha GDPR a Zákon č. 18/2018 Z. z.",en:"Telehealth does not replace emergency or rescue services. In acute emergencies call 112. The video consultation is recorded in the medical record; personal data processing is subject to GDPR and Act No. 18/2018."})}</p>`;
+
+document.getElementById("ctaTitle").textContent = L({sk:"Pripravení začať?",en:"Ready to start?"});
+document.getElementById("ctaSub").textContent = L({sk:"Prihláste sa cez eID do pacientského portálu a vstúpte do plánovanej konzultácie, alebo si objednajte nový telehealth termín.",en:"Log in via eID to the patient portal and join your scheduled consultation, or book a new telehealth appointment."});
+document.getElementById("ctaBtns").innerHTML =
+  `<a href="portal.html" class="btn btn-primary btn-lg">${icon("user")} ${L({sk:"Pacientsky portál",en:"Patient portal"})}</a>` +
+  `<a href="objednanie.html" class="btn btn-ghost btn-lg" style="border-color:rgba(255,255,255,.3);color:#fff">${icon("calendar")} ${L({sk:"Objednať termín",en:"Book appointment"})}</a>`;
+</script>
+<style>
+.th-hero-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:48px; align-items:center; }
+.th-ctas { display:flex; gap:12px; flex-wrap:wrap; }
+.th-hero-card { background:var(--blue-900); border:none; padding:0; overflow:hidden; border-radius:var(--radius-lg); }
+.th-mock-bar { height:36px; background:rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; gap:6px; padding:0 14px; }
+.th-mock-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.2); }
+.th-mock-title { font-family:'Mulish',sans-serif; font-size:.75rem; color:rgba(255,255,255,.3); margin-left:8px; letter-spacing:.04em; }
+.th-mock-tiles { display:grid; grid-template-columns:1fr .4fr; gap:6px; padding:10px; height:200px; }
+.th-mock-tile { border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:10px; gap:6px; }
+.th-mock-doctor { background:linear-gradient(160deg,rgba(30,82,144,.5) 0%,rgba(20,55,95,.8) 100%); }
+.th-mock-self { background:rgba(255,255,255,.07); }
+.th-mock-av { font-family:'Mulish',sans-serif; font-weight:800; color:rgba(255,255,255,.7); font-size:1.6rem; }
+.th-mock-av.sm { font-size:.95rem; }
+.th-mock-lbl { font-family:'Mulish',sans-serif; font-size:.7rem; color:rgba(255,255,255,.45); letter-spacing:.03em; }
+.th-mock-controls { height:46px; background:rgba(0,0,0,.35); display:flex; justify-content:center; align-items:center; gap:10px; }
+.th-ctrl { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.18); display:block; }
+.th-ctrl-end { background:var(--red) !important; }
+.th-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-top:2rem; }
+.th-step { display:flex; flex-direction:column; gap:6px; }
+.th-step-icon { width:50px; height:50px; border-radius:12px; background:var(--blue-50); color:var(--blue-700); display:flex; align-items:center; justify-content:center; }
+.th-step-icon svg { width:24px; height:24px; }
+.th-step-num { font-family:'Newsreader',serif; font-size:2.2rem; font-weight:700; color:var(--blue-200); line-height:1; margin-top:4px; }
+.th-clinic { display:flex; flex-direction:column; }
+.th-clinic-head { display:flex; gap:12px; align-items:flex-start; margin-bottom:8px; }
+.th-icon-tile { width:42px; height:42px; border-radius:10px; background:var(--blue-50); color:var(--blue-700); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.th-icon-tile svg { width:20px; height:20px; }
+.th-chip-video { background:var(--blue-50); color:var(--blue-700); font-size:.78rem; }
+.th-chip-video svg { width:13px; height:13px; }
+.th-reqs { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:1.5rem; }
+.th-req { display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; }
+.th-req-icon { width:38px; height:38px; border-radius:9px; background:var(--blue-50); color:var(--blue-700); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.th-req-icon svg { width:18px; height:18px; }
+.th-legal { border-left:3px solid var(--amber); background:var(--amber-50); }
+.th-legal svg { color:var(--amber); width:16px; height:16px; vertical-align:middle; flex:0 0 auto; }
+@media (max-width:940px) { .th-hero-grid { grid-template-columns:1fr; } .th-hero-card { display:none; } }
+@media (max-width:780px) { .th-steps { grid-template-columns:1fr; } .th-reqs { grid-template-columns:1fr; } }
+@media (max-width:620px) { .th-ctas { flex-direction:column; } }
+</style>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
+</body>
+</html>
