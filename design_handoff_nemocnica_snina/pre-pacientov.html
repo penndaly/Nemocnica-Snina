@@ -117,10 +117,9 @@ document.getElementById("cennikTable").innerHTML = `
   <tbody>${PI.pricing.map(p => `<tr><td>${esc(L(p.category))}</td><td>${esc(L(p.item))}</td><td><b>${esc(p.price)}</b></td></tr>`).join("")}</tbody>`;
 
 document.getElementById("waitTitle").textContent = L({sk:"Čakacie lehoty na ambulancie",en:"Clinic waiting times"});
-document.getElementById("waitNote").textContent = L({sk:"Doteraz sme čakacie lehoty nezverejňovali priamo — pacienti museli hľadať na stránkach poisťovní (Dôvera, VšZP, Union). Tu je aktuálny odhad pre každú ambulanciu priamo na jednom mieste.",en:"Waiting times weren't published directly before — patients had to check insurer sites (Dôvera, VšZP, Union) separately. Here's a current estimate for every clinic, in one place."});
-document.getElementById("waitList").innerHTML = PI.waitingTimes.map(w => {
-  const badgeCls = w.level === "good" ? "badge-green" : w.level === "closed" ? "badge-red" : "badge-amber";
-  return `<div class="wait-row"><span class="wr-clinic">${esc(L(w.clinic))}</span><span class="badge ${badgeCls}">${esc(L(w.wait))}</span></div>`;
+document.getElementById("waitNote").textContent = L(PI.waitingTimeInfo.note);
+document.getElementById("waitList").innerHTML = PI.waitingTimeInfo.insurerLinks.map(link => {
+  return `<div class="wait-row"><span class="wr-clinic">${esc(link.name)}</span><a class="badge badge-blue" href="${esc(link.url)}" target="_blank" rel="noopener">${esc(L({sk:"Čakacie listiny →",en:"Waiting lists →"}))}</a></div>`;
 }).join("");
 
 document.getElementById("infoTitle").textContent = L({sk:"Informácie pred prijatím",en:"Before your admission"});
@@ -149,7 +148,7 @@ document.getElementById("surveySubmit").textContent = L({sk:"Odoslať dotazník"
 document.getElementById("surveyForm").onsubmit = e => { e.preventDefault(); document.getElementById("surveyConfirm").style.display = "block"; document.getElementById("surveyConfirm").textContent = L({sk:"Ďakujeme za spätnú väzbu.",en:"Thank you for your feedback."}); e.target.reset(); };
 
 document.getElementById("compTitle").textContent = L({sk:"Sťažnosti",en:"Complaints"});
-document.getElementById("compNote").textContent = L({sk:"Sťažnosti vybavujeme podľa zákona č. 9/2010 Z. z. o sťažnostiach. Odpoveď zašleme do 30 pracovných dní.",en:"Complaints are handled under Act No. 9/2010 on Complaints. We respond within 30 working days."});
+document.getElementById("compNote").textContent = L({sk:"Sťažnosti vybavujeme podľa zákona č. 9/2010 Z. z. o sťažnostiach. Vybavíme ju do 60 pracovných dní, v odôvodnených prípadoch predĺžiteľných o ďalších 30 pracovných dní.",en:"Complaints are handled under Act No. 9/2010 on Complaints. We resolve them within 60 working days, extendable by a further 30 working days in justified cases."});
 document.getElementById("compNameLbl").textContent = L({sk:"Meno a priezvisko",en:"Full name"});
 document.getElementById("compEmailLbl").textContent = L({sk:"E-mail na odpoveď",en:"Email for reply"});
 document.getElementById("compDeptLbl").textContent = L({sk:"Oddelenie / ambulancia (ak sa týka)",en:"Department / clinic (if applicable)"});

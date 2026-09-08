@@ -54,7 +54,8 @@ const STR = {
     open: { sk: "V prevádzke", en: "Open" },
     new: { sk: "Nová · prijíma pacientov", en: "New · accepting patients" },
     alert: { sk: "Dočasný režim", en: "Temporary measures" },
-    closed: { sk: "Mimo prevádzky", en: "Closed" }
+    closed: { sk: "Mimo prevádzky", en: "Closed" },
+    comingSoon: { sk: "Obsah sa pripravuje", en: "Content coming soon" }
   },
   accepting: { sk: "Prijíma nových pacientov", en: "Accepting new patients" },
   notAccepting: { sk: "Neprijíma nových pacientov", en: "Not accepting new patients" },
@@ -123,7 +124,7 @@ function fmtDate(iso) {
   return d.toLocaleDateString(lang === "sk" ? "sk-SK" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 function statusBadge(status) {
-  const map = { open: "badge-green", new: "badge-terra", alert: "badge-amber", closed: "badge-gray" };
+  const map = { open: "badge-green", new: "badge-terra", alert: "badge-amber", closed: "badge-gray", comingSoon: "badge-gray" };
   const cls = map[status] || "badge-gray";
   return `<span class="badge ${cls}"><span class="dot"></span>${esc(t("status." + status))}</span>`;
 }
