@@ -32,7 +32,8 @@
     "open": "V provozu",
     "new": "Nová · přijímá pacienty",
     "alert": "Dočasný režim",
-    "closed": "Mimo provoz"
+    "closed": "Mimo provoz",
+    "comingSoon": "Obsah se připravuje"
   },
   "accepting": "Přijímá nové pacienty",
   "notAccepting": "Nepřijímá nové pacienty",

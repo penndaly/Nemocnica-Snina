@@ -32,7 +32,8 @@
     "open": "Open",
     "new": "New · accepting patients",
     "alert": "Temporary measures",
-    "closed": "Closed"
+    "closed": "Closed",
+    "comingSoon": "Content coming soon"
   },
   "accepting": "Accepting new patients",
   "notAccepting": "Not accepting new patients",

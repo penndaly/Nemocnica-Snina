@@ -40,7 +40,7 @@
     },
     "doctor": {
       "type": "string",
-      "required": true
+      "description": "Absent for 'comingSoon' clinics — no physician assigned yet"
     },
     "nurse": {
       "type": "string"
@@ -63,7 +63,8 @@
         "open",
         "new",
         "alert",
-        "closed"
+        "closed",
+        "comingSoon"
       ],
       "required": true,
       "default": "open"

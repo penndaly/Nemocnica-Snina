@@ -37,11 +37,11 @@ The seed file already contains the **complete, real content** for every collecti
 | id | slug | |
 | name | loc | |
 | specialty | loc | |
-| doctor | string | one or more names |
+| doctor | string? | one or more names; absent for `comingSoon` clinics |
 | nurse | string? | |
 | location | loc | building/floor |
 | phone | string? | |
-| status | enum | `open` \| `new` \| `alert` \| `closed` |
+| status | enum | `open` \| `new` \| `alert` \| `closed` \| `comingSoon` |
 | bookable | bool | drives online-booking availability |
 | referral | bool | requires výmenný lístok |
 | acceptingNew | bool? | new clinics accepting patients |

@@ -33,7 +33,7 @@ export class BookingRulesService {
       );
     }
 
-    if (clinic.status === 'closed' || clinic.status === 'alert') {
+    if (clinic.status === 'closed' || clinic.status === 'alert' || clinic.status === 'comingSoon') {
       throw new BadRequestException(
         `Clinic ${clinic.id} is currently ${clinic.status} and cannot be booked`,
       );

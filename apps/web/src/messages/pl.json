@@ -32,7 +32,8 @@
     "open": "Czynna",
     "new": "Nowa · przyjmuje pacjentów",
     "alert": "Tryb tymczasowy",
-    "closed": "Nieczynna"
+    "closed": "Nieczynna",
+    "comingSoon": "Treść w przygotowaniu"
   },
   "accepting": "Przyjmuje nowych pacjentów",
   "notAccepting": "Nie przyjmuje nowych pacjentów",

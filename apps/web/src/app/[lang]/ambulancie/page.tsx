@@ -8,10 +8,11 @@ import type { SupportedLocale } from '@/i18n/config';
 import type { ClinicStatus } from '@ns/types';
 
 const statusBadge: Record<ClinicStatus, { cls: string; dot: boolean }> = {
-  open:   { cls: 'badge-green', dot: true },
-  new:    { cls: 'badge-terra', dot: true },
-  alert:  { cls: 'badge-amber', dot: false },
-  closed: { cls: 'badge-gray',  dot: false },
+  open:       { cls: 'badge-green', dot: true },
+  new:        { cls: 'badge-terra', dot: true },
+  alert:      { cls: 'badge-amber', dot: false },
+  closed:     { cls: 'badge-gray',  dot: false },
+  comingSoon: { cls: 'badge-gray',  dot: false },
 };
 
 export default async function ClinicsPage({ params }: { params: Promise<{ lang: string }> }) {
@@ -31,7 +32,7 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
 
           {/* Legend */}
           <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-            {(['open', 'new', 'alert', 'closed'] as ClinicStatus[]).map((s) => (
+            {(['open', 'new', 'alert', 'closed', 'comingSoon'] as ClinicStatus[]).map((s) => (
               <span key={s} className={`badge ${statusBadge[s].cls}`}>
                 {statusBadge[s].dot && <span className="dot" aria-hidden />}
                 {t(`status.${s}`)}
@@ -62,7 +63,7 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
                     </div>
                     <h3 style={{ marginBottom: '.4rem' }}>{localizeField(clinic.name, locale)}</h3>
                     <p style={{ fontSize: '.88rem', color: 'var(--ink-2)', marginBottom: '.75rem' }}>
-                      {clinic.doctor}
+                      {clinic.doctor || (locale === 'sk' ? 'Lekár bude oznámený' : 'Physician to be announced')}
                       {clinic.nurse && ` · ${clinic.nurse}`}
                     </p>
                     <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>

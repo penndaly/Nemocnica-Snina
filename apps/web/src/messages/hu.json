@@ -32,7 +32,8 @@
     "open": "Nyitva",
     "new": "Új · elfogad betegeket",
     "alert": "Ideiglenes mód",
-    "closed": "Zárva"
+    "closed": "Zárva",
+    "comingSoon": "Tartalom hamarosan"
   },
   "accepting": "Új betegeket fogad",
   "notAccepting": "Nem fogad új betegeket",
