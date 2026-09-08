@@ -27,6 +27,26 @@ jobs:
       - run: pnpm --filter=@ns/api exec prisma generate
       - run: pnpm typecheck
 
+  # ── Media manifest gate ─────────────────────────────────────
+  # IMG_1_PLACEHOLDER_PHOTOGRAPHY.md §7c: assets/img/index.json parses,
+  # every referenced file exists, every entry has sk+en alt text, no file
+  # exceeds its weight budget, no doc-* entry (physician portraits are
+  # real-photo-only, never a placeholder).
+  media:
+    name: Media manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npx ts-node --project scripts/tsconfig.json scripts/check-media.ts
+      - name: Production build guardrail unit test
+        run: node --test apps/web/scripts/__tests__/*.test.mjs
+
   # ── Lint ──────────────────────────────────────────────────
   lint:
     name: Lint

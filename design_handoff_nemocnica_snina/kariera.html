@@ -66,5 +66,7 @@ document.getElementById("wageCard").innerHTML = `
   <ul>${DB.get("careersInfo").benefits.map(b => `<li>${esc(L(b))}</li>`).join("")}</ul>
   <p class="small muted mb-0">${esc(L({sk:"Kontaktná osoba pre žiadosti",en:"Contact for applications"}))}: <b>${esc(L(DB.get("careersInfo").contact))}</b> · ${esc(DB.get("careersInfo").phone)} · <a href="mailto:${esc(H.email)}">${esc(H.email)}</a></p>`;
 </script>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
 </body>
 </html>
