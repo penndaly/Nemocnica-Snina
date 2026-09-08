@@ -16,7 +16,7 @@
  *   2. Thursday slot, 09:00 → angiology (window 13:00–14:00) → 400
  *   3. Thursday slot, 13:20 → angiology (window 13:00–14:00), no referral consent → 400
  *   4. Any slot → diabetologicka (status:closed, bookable:false) → 400
- *   5. Any slot → ortopedicka (status:closed, bookable:false — new clinic, content pending) → 400
+ *   5. Any slot → ortopedicka (status:comingSoon, bookable:false — new clinic, content pending) → 400
  *   6. Monday slot → hematologicka (bookingDays=[1,2,3,4], bookable:true), but
  *      Friday → 400 (closed Fridays)
  *   7. Invalid RC → 400 (regardless of clinic/date)
@@ -241,7 +241,7 @@ describe('POST /api/booking — server-side rule enforcement', () => {
     expect(res.body.message).toMatch(/bookable|closed/i);
   });
 
-  it('5. rejects any slot for ortopedicka (status:closed, bookable:false — new clinic, content pending)', async () => {
+  it('5. rejects any slot for ortopedicka (status:comingSoon, bookable:false — new clinic, content pending)', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/booking')
       .send({
@@ -258,7 +258,7 @@ describe('POST /api/booking — server-side rule enforcement', () => {
         referralConsent: true,
       });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/bookable|closed/i);
+    expect(res.body.message).toMatch(/bookable|comingSoon/i);
   });
 
   it('6. rejects Friday slot for hematologicka (bookingDays=[1,2,3,4], Fri=5)', async () => {
