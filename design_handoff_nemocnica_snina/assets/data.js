@@ -428,7 +428,7 @@ const SEED = {
     {
       id: "lekaren",
       name: { sk: "Nemocničná lekáreň", en: "Hospital Pharmacy" },
-      phone: "057 / 7871 232",
+      phone: "057 / 7871 233",
       kind: { sk: "Výdaj liekov · v areáli nemocnice", en: "Dispensing · within the hospital complex" },
       desc: { sk: "Lekáreň v areáli nemocnice s otváracími hodinami zosúladenými s ambulanciami.", en: "A pharmacy within the hospital complex, with opening hours aligned to the clinics." },
       features: { sk: ["Výdaj na recept aj voľnopredajný", "Hodiny zosúladené s ambulanciami"], en: ["Prescription & OTC dispensing", "Hours aligned with clinics"] }
