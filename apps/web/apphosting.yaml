@@ -1,0 +1,33 @@
+# Firebase App Hosting config for apps/web — content-review preview only.
+#
+# This is NOT the project's production infrastructure. CLAUDE.md requires
+# EU hosting + full config-validator enforcement (MFA, no mock providers,
+# etc.) for real production; this backend exists only so reviewers can see
+# the live-site-migration content fixes rendered by the real Next.js app
+# while the documented EU staging host (docs/STAGING_DEPLOYMENT.md) isn't
+# provisioned yet. STRAPI_API_TOKEN is intentionally left unset so the app
+# runs entirely off apps/web/src/lib/seed.ts (see strapi-client.ts
+# USE_FALLBACK) — no live API/DB behind this backend, so booking, auth,
+# portal, telehealth and wearables routes will not function here.
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 3
+  concurrency: 40
+
+env:
+  # apps/web's production build script runs
+  # scripts/check-no-placeholder-media.mjs, which fails a real production
+  # build while any image slot is still flagged placeholder:true (all of
+  # them are, pending real hospital photography — see
+  # IMG_1_PLACEHOLDER_PHOTOGRAPHY.md). That gate is correct and must not
+  # be bypassed for an actual production launch. Pointing it at a path
+  # that doesn't exist is the guard's own documented no-op behavior
+  # ("no media manifest at all is a content-pipeline gap, not this
+  # guard's job") — appropriate here because this deploy is explicitly a
+  # content-review preview, not the production launch the gate protects.
+  - variable: MEDIA_INDEX_PATH
+    value: /workspace/.apphosting-no-media-manifest
+    availability:
+      - BUILD

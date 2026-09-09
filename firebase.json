@@ -1,0 +1,14 @@
+{
+  "apphosting": {
+    "backendId": "nemocnica-snina-web",
+    "rootDir": "apps/web",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "apps/api",
+      "apps/cms"
+    ]
+  }
+}
