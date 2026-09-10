@@ -179,6 +179,47 @@ export interface Disclosure {
   pdfUrl?: string;
 }
 
+export type EducationCategory =
+  | 'predoperacne'
+  | 'chronicke'
+  | 'materska'
+  | 'dieta'
+  | 'fyziatria';
+
+/**
+ * Patient education article (/[lang]/edukacia). Clinical content — machine
+ * translations (cs/pl/hu/uk) go through the same review_status draft gate as
+ * departments/clinics/services (see apps/cms/src/index.js CLINICAL_COLLECTIONS).
+ * `body` is only present for articles the handoff ships as a full article
+ * (assets/data.js educationLibrary[].articles[].full === true); the rest are
+ * excerpt-only "coming soon" stubs and have no detail route.
+ */
+export interface EducationArticle {
+  id: string;
+  slug: string;
+  category: EducationCategory;
+  title: Loc;
+  excerpt: Loc;
+  body?: Loc;
+  readingMinutes?: number;
+  updatedAt?: string;
+}
+
+/**
+ * Career listing (/[lang]/kariera). Matches assets/data.js `jobs` — the
+ * prototype's apply flow is a `mailto:` link, not an upload form (see
+ * SPRINT_ROUTE_1A Task 2b, held pending DPO sign-off), so this type carries
+ * only what the source data actually has.
+ */
+export interface JobPosting {
+  id: string;
+  slug: string;
+  title: Loc;
+  desc: Loc;
+  dept?: string;
+  clinic?: string;
+}
+
 // ─── Operational (PostgreSQL, not CMS) ───────────────────
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -312,4 +353,5 @@ export interface Seed {
   facilities: Facility[];
   news: NewsItem[];
   disclosures: Disclosure[];
+  educationArticles: EducationArticle[];
 }

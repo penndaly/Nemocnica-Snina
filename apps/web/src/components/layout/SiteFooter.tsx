@@ -17,6 +17,7 @@ export function SiteFooter() {
     { href: `/${locale}/ambulancie`, label: t('nav.clinics') },
     { href: `/${locale}/lekari`, label: t('nav.doctors') },
     { href: `/${locale}/diagnostika`, label: t('nav.diagnostics') },
+    { href: `/${locale}/edukacia`, label: t('footer.education') },
   ];
 
   const col3 = [

@@ -5,7 +5,7 @@
 import { test, expect } from '@playwright/test';
 
 const LOCALES = ['sk', 'cs', 'pl', 'hu', 'uk', 'en'] as const;
-const PUBLIC_ROUTES = ['/', '/oddelenia', '/ambulancie', '/lekari', '/kontakt'];
+const PUBLIC_ROUTES = ['/', '/oddelenia', '/ambulancie', '/lekari', '/kontakt', '/edukacia'];
 
 for (const locale of LOCALES) {
   test(`I1 [${locale}]: home page returns 200 and contains brand name`, async ({ page }) => {

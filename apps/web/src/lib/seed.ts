@@ -424,4 +424,202 @@ export const SEED: Seed = {
     { id: 'ZML-2024-039', type: { sk: 'Zmluva', en: 'Contract' }, partner: 'Rekonštrukcia operačných sál — STAVON s.r.o.', value: '318 000,00 €', date: '2024-02-28' },
     { id: 'FAK-2024-281', type: { sk: 'Faktúra', en: 'Invoice' }, partner: 'B. Braun Medical s.r.o. — spotrebný materiál', value: '6 740,50 €', date: '2024-09-30' },
   ],
+
+  // Flattened from design_handoff_nemocnica_snina/assets/data.js `educationLibrary`
+  // (nested category -> articles) into a flat list keyed by category id. Only
+  // `priprava` and `hypertenzia` ship as full articles in the handoff (`full: true`
+  // with body copy in edukacia.html's EDU_CONTENT); every other article is an
+  // excerpt-only "coming soon" stub with no body and therefore no detail route.
+  educationArticles: [
+    {
+      id: 'priprava', slug: 'priprava', category: 'predoperacne', readingMinutes: 3,
+      title: { sk: 'Príprava pred operáciou', en: 'Preparing for your operation' },
+      excerpt: {
+        sk: 'Čo si priniesť, ako dlho lačnieť a čo očakávať v deň zákroku.',
+        en: 'What to bring, how long to fast, and what to expect on the day of your procedure.',
+      },
+      body: {
+        sk: `<h4>Pred príchodom do nemocnice</h4>
+      <ul><li>Prineste si preukaz poistenca, občiansky preukaz a odporúčanie lekára.</li>
+      <li>Zoznam všetkých liekov, ktoré užívate, vrátane voľnopredajných a výživových doplnkov.</li>
+      <li>Pohodlné oblečenie a hygienické potreby na dobu hospitalizácie.</li></ul>
+      <h4>Lačnenie pred zákrokom</h4>
+      <p>Ak vám lekár neurčí inak, prestaňte jesť tuhú stravu najmenej 6 hodín pred plánovaným časom operácie a čisté tekutiny najmenej 2 hodiny vopred. Nedodržanie lačnenia môže viesť k odloženiu zákroku z bezpečnostných dôvodov.</p>
+      <h4>Pravidelne užívané lieky</h4>
+      <p>Niektoré lieky (najmä antikoagulanciá ako warfarín) je potrebné vysadiť alebo upraviť podľa pokynov anestéziológa. Dávkovanie nikdy nemeňte bez konzultácie.</p>
+      <h4>V deň zákroku</h4>
+      <p>Príďte v stanovenom čase na centrálnu recepciu, ktorá vás nasmeruje na predoperačné vyšetrenie. Počítajte s časom na administratívu a záverečný pohovor s anestéziológom.</p>`,
+        en: `<h4>Before you arrive</h4>
+      <ul><li>Bring your insurance card, ID, and your physician's referral.</li>
+      <li>A list of every medication you take, including over-the-counter drugs and supplements.</li>
+      <li>Comfortable clothing and toiletries for your stay.</li></ul>
+      <h4>Fasting before your procedure</h4>
+      <p>Unless your doctor says otherwise, stop eating solid food at least 6 hours before your scheduled surgery time, and clear fluids at least 2 hours before. Not fasting can mean your procedure is postponed for safety.</p>
+      <h4>Regular medications</h4>
+      <p>Some medications (particularly anticoagulants such as warfarin) need to be paused or adjusted on your anesthesiologist's instructions. Never change your dose without checking first.</p>
+      <h4>On the day</h4>
+      <p>Arrive at the scheduled time at central reception, which will direct you to pre-operative assessment. Allow time for paperwork and a final conversation with your anesthesiologist.</p>`,
+      },
+    },
+    {
+      id: 'lokalna', slug: 'lokalna', category: 'predoperacne',
+      title: { sk: 'Miestna anestézia — čo očakávať', en: 'Local anesthesia — what to expect' },
+      excerpt: {
+        sk: 'Ako prebieha miestne znecitlivenie a na čo sa pripraviť pred a po zákroku.',
+        en: 'How local numbing works and what to prepare for before and after the procedure.',
+      },
+    },
+    {
+      id: 'celkova', slug: 'celkova', category: 'predoperacne',
+      title: { sk: 'Celková anestézia — čo očakávať', en: 'General anesthesia — what to expect' },
+      excerpt: {
+        sk: 'Priebeh celkovej anestézie, nutné lačnenie a zotavenie po prebudení.',
+        en: 'The course of general anesthesia, required fasting, and recovery after waking.',
+      },
+    },
+    {
+      id: 'hypertenzia', slug: 'hypertenzia', category: 'chronicke', readingMinutes: 2,
+      title: { sk: 'Artériová hypertenzia', en: 'Arterial hypertension' },
+      excerpt: {
+        sk: 'Čo je artériová hypertenzia, ako merať tlak doma a kedy vyhľadať pomoc ihneď.',
+        en: 'What arterial hypertension is, how to measure blood pressure at home, and when to seek help immediately.',
+      },
+      body: {
+        sk: `<h4>Čo je artériová hypertenzia</h4>
+      <p>Artériová hypertenzia je dlhodobo zvýšený krvný tlak (nad 140/90 mmHg pri opakovanom meraní). Neliečená zvyšuje riziko cievnej mozgovej príhody, infarktu myokardu a poškodenia obličiek.</p>
+      <h4>Meranie tlaku doma</h4>
+      <ul><li>Merajte v pokoji, po 5 minútach sedenia, ráno aj večer.</li>
+      <li>Zaznamenávajte hodnoty a prineste si ich na kontrolu k lekárovi.</li></ul>
+      <h4>Životospráva</h4>
+      <ul><li>Obmedzte príjem soli na menej ako 5 g denne.</li>
+      <li>Pravidelný pohyb — aspoň 150 minút týždenne strednej intenzity.</li>
+      <li>Obmedzenie alkoholu a ukončenie fajčenia.</li></ul>
+      <h4>Kedy vyhľadať pomoc ihneď</h4>
+      <p>Pri hodnotách nad 180/120 mmHg spolu s bolesťou hlavy, bolesťou na hrudi, dýchavičnosťou alebo poruchou videnia okamžite volajte 112.</p>`,
+        en: `<h4>What arterial hypertension is</h4>
+      <p>Arterial hypertension is persistently elevated blood pressure (above 140/90 mmHg on repeated measurement). Left untreated it raises the risk of stroke, heart attack and kidney damage.</p>
+      <h4>Measuring at home</h4>
+      <ul><li>Measure at rest, after sitting for 5 minutes, morning and evening.</li>
+      <li>Keep a log and bring it to your check-up.</li></ul>
+      <h4>Lifestyle</h4>
+      <ul><li>Limit salt intake to under 5g a day.</li>
+      <li>Regular activity — at least 150 minutes a week of moderate intensity.</li>
+      <li>Limit alcohol and stop smoking.</li></ul>
+      <h4>When to seek help immediately</h4>
+      <p>If your reading is above 180/120 mmHg together with headache, chest pain, shortness of breath, or vision changes, call 112 immediately.</p>`,
+      },
+    },
+    {
+      id: 'cdiff', slug: 'cdiff', category: 'chronicke',
+      title: { sk: 'Infekcia Clostridioides difficile', en: 'Clostridioides difficile infection' },
+      excerpt: {
+        sk: 'Prenos, izolačné opatrenia a hygiena rúk pri liečbe C. difficile.',
+        en: 'Transmission, isolation precautions and hand hygiene while treating C. difficile.',
+      },
+    },
+    {
+      id: 'warfarin', slug: 'warfarin', category: 'chronicke',
+      title: { sk: 'Užívanie warfarínu', en: 'Taking warfarin' },
+      excerpt: {
+        sk: 'Pravidelné kontroly INR, liekové a potravinové interakcie.',
+        en: 'Regular INR monitoring, drug and dietary interactions.',
+      },
+    },
+    {
+      id: 'heparin', slug: 'heparin', category: 'chronicke',
+      title: { sk: 'Aplikácia nízkomolekulárneho heparínu', en: 'Administering low-molecular-weight heparin' },
+      excerpt: {
+        sk: 'Postup podania injekcie doma a bezpečná likvidácia striekačiek.',
+        en: 'How to self-inject at home and safely dispose of syringes.',
+      },
+    },
+    {
+      id: 'porod-info', slug: 'porod-info', category: 'materska',
+      title: { sk: 'Informácie o pôrode', en: 'About childbirth' },
+      excerpt: {
+        sk: 'Čo si zbaliť do pôrodnice a ako prebieha príjem na pôrodnú sálu.',
+        en: 'What to pack for the maternity ward and how admission to the delivery room works.',
+      },
+    },
+    {
+      id: 'novorodenec', slug: 'novorodenec', category: 'materska',
+      title: { sk: 'Starostlivosť o novorodenca', en: 'Newborn care' },
+      excerpt: {
+        sk: 'Dojčenie, kúpanie a starostlivosť o pupočný pahýľ v prvých dňoch.',
+        en: 'Feeding, bathing and umbilical-cord care in the first days.',
+      },
+    },
+    {
+      id: 'diastaza', slug: 'diastaza', category: 'materska',
+      title: { sk: 'Diastáza brušných svalov po pôrode', en: 'Postpartum abdominal diastasis' },
+      excerpt: {
+        sk: 'Rozpoznanie diastázy a bezpečné cvičenia po pôrode.',
+        en: 'Recognising diastasis and safe postpartum exercises.',
+      },
+    },
+    {
+      id: 'dieta9', slug: 'dieta9', category: 'dieta',
+      title: { sk: 'Diabetická diéta č. 9', en: 'Diabetic diet No. 9' },
+      excerpt: {
+        sk: 'Zásady sacharidových jednotiek a plán stravovania pri diabete.',
+        en: 'Carbohydrate-unit principles and a meal plan for diabetes.',
+      },
+    },
+    {
+      id: 'dieta5', slug: 'dieta5', category: 'dieta',
+      title: { sk: 'Diéta so zníženým obsahom zvyškov č. 5', en: 'Residue-restricted diet No. 5' },
+      excerpt: {
+        sk: 'Potraviny vhodné pri ochoreniach tráviaceho traktu s nízkym obsahom vlákniny.',
+        en: 'Low-fibre foods suited to digestive-tract conditions.',
+      },
+    },
+    {
+      id: 'dieta4', slug: 'dieta4', category: 'dieta',
+      title: { sk: 'Diéta so zníženým obsahom tuku č. 4', en: 'Fat-restricted diet No. 4' },
+      excerpt: {
+        sk: 'Odporúčania pri ochoreniach pečene, žlčníka a pankreasu.',
+        en: 'Guidance for liver, gallbladder and pancreatic conditions.',
+      },
+    },
+    {
+      id: 'dieta6', slug: 'dieta6', category: 'dieta',
+      title: { sk: 'Diéta so zníženým obsahom bielkovín č. 6', en: 'Protein-restricted diet No. 6' },
+      excerpt: {
+        sk: 'Plán stravovania pri ochoreniach obličiek.',
+        en: 'A meal plan for kidney disease.',
+      },
+    },
+    {
+      id: 'bezlepok', slug: 'bezlepok', category: 'dieta',
+      title: { sk: 'Bezlepková diéta', en: 'Gluten-free diet' },
+      excerpt: {
+        sk: 'Potraviny bez lepku a čítanie etikiet pri celiakii.',
+        en: 'Gluten-free foods and label-reading for celiac disease.',
+      },
+    },
+    {
+      id: 'lymfodrenaz', slug: 'lymfodrenaz', category: 'fyziatria',
+      title: { sk: 'Lymfodrenáž', en: 'Lymphatic drainage' },
+      excerpt: {
+        sk: 'Ako prebieha manuálna lymfodrenáž a kedy je indikovaná.',
+        en: 'How manual lymphatic drainage works and when it\'s indicated.',
+      },
+    },
+    {
+      id: 'dlaha', slug: 'dlaha', category: 'fyziatria',
+      title: { sk: 'Motorová dlaha', en: 'Motor splint therapy' },
+      excerpt: {
+        sk: 'Používanie motorovej dlahy na obnovu pohybu kĺbu po operácii.',
+        en: 'Using a motor splint to restore joint movement after surgery.',
+      },
+    },
+    {
+      id: 'ultrazvuk-terapia', slug: 'ultrazvuk-terapia', category: 'fyziatria',
+      title: { sk: 'Ultrazvuková terapia', en: 'Ultrasound therapy' },
+      excerpt: {
+        sk: 'Účinky terapeutického ultrazvuku pri bolestiach kĺbov a mäkkých tkanív.',
+        en: 'The effects of therapeutic ultrasound for joint and soft-tissue pain.',
+      },
+    },
+  ],
 };

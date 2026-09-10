@@ -9,7 +9,7 @@
  * (apps/cms) mirrors it for enforcement at the CMS layer, and the
  * /api/cms/translations approve path calls it. No bypass.
  */
-export const CLINICAL_COLLECTIONS = ['departments', 'clinics', 'physicians', 'services', 'facilities', 'news'] as const;
+export const CLINICAL_COLLECTIONS = ['departments', 'clinics', 'physicians', 'services', 'facilities', 'news', 'education-articles'] as const;
 export const MACHINE_TRANSLATED_LOCALES = ['cs', 'pl', 'hu', 'uk'] as const;
 
 /** Normalise a Strapi uid ("api::department.department") or plural/singular to a collection key. */
@@ -22,6 +22,7 @@ export function normaliseCollection(input: string): string {
     service: 'services', services: 'services',
     facility: 'facilities', facilities: 'facilities',
     'news-item': 'news', 'news-items': 'news', news: 'news',
+    'education-article': 'education-articles', 'education-articles': 'education-articles',
   };
   return map[raw] ?? raw;
 }

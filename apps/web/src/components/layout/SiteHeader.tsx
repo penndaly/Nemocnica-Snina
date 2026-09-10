@@ -41,6 +41,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
         { key: 'doctors', href: `/${locale}/lekari`, descKey: 'navGroups.care.doctors' },
         { key: 'diagnostics', href: `/${locale}/diagnostika`, descKey: 'navGroups.care.diagnostics' },
         { key: 'services', href: `/${locale}/sluzby`, descKey: 'navGroups.care.services' },
+        { key: 'education', href: `/${locale}/edukacia`, descKey: 'navGroups.care.education' },
       ],
     },
     {

@@ -16,7 +16,8 @@
     "telehealth": "Telehealth",
     "diagnostics": "Diagnostics",
     "news": "News",
-    "contact": "Contact"
+    "contact": "Contact",
+    "education": "Patient education"
   },
   "navGroups": {
     "hospitalLabel": "Hospital",
@@ -25,7 +26,8 @@
       "clinics": "Opening hours & booking",
       "doctors": "Physician directory",
       "diagnostics": "Labs, X-ray and CT",
-      "services": "Support & additional services"
+      "services": "Support & additional services",
+      "education": "Articles and patient guidance"
     },
     "visit": {
       "booking": "Book an appointment",
@@ -45,7 +47,8 @@
     "privacy": "Privacy policy (GDPR)",
     "accessibility": "Accessibility statement",
     "admin": "Content administration",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "education": "Patient education"
   },
   "status": {
     "open": "Open",

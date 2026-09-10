@@ -16,7 +16,8 @@
     "telehealth": "Telehealth",
     "diagnostics": "Diagnostika",
     "news": "Aktuality",
-    "contact": "Kontakt"
+    "contact": "Kontakt",
+    "education": "Edukácia pacientov"
   },
   "navGroups": {
     "hospitalLabel": "Nemocnica",
@@ -25,7 +26,8 @@
       "clinics": "Ordinačné hodiny a objednanie",
       "doctors": "Adresár lekárov",
       "diagnostics": "Laboratóriá, RTG a CT",
-      "services": "Podporné a doplnkové služby"
+      "services": "Podporné a doplnkové služby",
+      "education": "Články a rady pre pacientov"
     },
     "visit": {
       "booking": "Objednanie na vyšetrenie",
@@ -45,7 +47,8 @@
     "privacy": "Ochrana osobných údajov (GDPR)",
     "accessibility": "Vyhlásenie o prístupnosti",
     "admin": "Správa obsahu (admin)",
-    "rights": "Všetky práva vyhradené."
+    "rights": "Všetky práva vyhradené.",
+    "education": "Edukácia pacientov"
   },
   "status": {
     "open": "V prevádzke",

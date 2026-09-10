@@ -12,6 +12,7 @@
 import type {
   Department, Clinic, Physician, Service, Facility, NewsItem,
   Disclosure, Hospital, Pages, Locale, PhysicianProfile, Weekday,
+  EducationArticle, EducationCategory,
 } from '@ns/types';
 
 const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
@@ -343,4 +344,39 @@ export async function getTelehealthPage(locale: Locale = 'sk'): Promise<NonNulla
 export async function getTelehealthClinics(locale: Locale = 'sk'): Promise<Clinic[]> {
   const all = await getClinics(locale);
   return all.filter((c) => c.telehealth && c.bookable && c.status !== 'closed');
+}
+
+// ── Patient education library (/[lang]/edukacia) ──────────
+
+function mapEducationArticle(entry: Record<string, unknown>, locale: Locale): EducationArticle {
+  const a = entry['attributes'] as Record<string, unknown> ?? entry;
+  const article: EducationArticle = {
+    id: String(a['slug'] ?? entry['id']),
+    slug: String(a['slug'] ?? entry['id']),
+    category: (a['category'] as EducationCategory) ?? 'predoperacne',
+    title: { [locale]: String(a['title'] ?? '') },
+    excerpt: { [locale]: String(a['excerpt'] ?? '') },
+  };
+  if (a['body']) article.body = { [locale]: String(a['body']) };
+  if (a['readingMinutes']) article.readingMinutes = Number(a['readingMinutes']);
+  if (a['updatedAt']) article.updatedAt = String(a['updatedAt']);
+  return article;
+}
+
+export async function getEducationArticles(locale: Locale = 'sk'): Promise<EducationArticle[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.educationArticles; }
+  const data = await strapiGet<Record<string, unknown>[]>('education-articles?sort=category', locale);
+  return data.map((e) => mapEducationArticle(e, locale));
+}
+
+export async function getEducationArticleBySlug(slug: string, locale: Locale = 'sk'): Promise<EducationArticle | null> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.educationArticles.find((a) => a.slug === slug) ?? null; }
+  const data = await strapiGet<Record<string, unknown>[]>(`education-articles?filters[slug][$eq]=${slug}`, locale);
+  return data[0] ? mapEducationArticle(data[0], locale) : null;
+}
+
+/** Slugs of articles that ship with real body content — the only ones with a detail route. */
+export async function getEducationArticleSlugs(): Promise<string[]> {
+  const { SEED } = await import('./seed');
+  return SEED.educationArticles.filter((a) => a.body).map((a) => a.slug);
 }

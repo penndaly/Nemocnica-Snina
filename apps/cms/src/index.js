@@ -23,6 +23,7 @@ const CLINICAL_COLLECTIONS = [
   'api::service.service',
   'api::facility.facility',
   'api::news-item.news-item',
+  'api::education-article.education-article',
 ];
 
 module.exports = {
