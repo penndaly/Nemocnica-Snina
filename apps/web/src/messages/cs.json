@@ -18,6 +18,25 @@
     "news": "Aktuality",
     "contact": "Kontakt"
   },
+  "navGroups": {
+    "hospitalLabel": "Nemocnice",
+    "care": {
+      "departments": "Lůžková oddělení a návštěvní hodiny",
+      "clinics": "Ordinační hodiny a objednání",
+      "doctors": "Adresář lékařů",
+      "diagnostics": "Laboratoře, RTG a CT",
+      "services": "Podpůrné a doplňkové služby"
+    },
+    "visit": {
+      "booking": "Objednání na vyšetření",
+      "telehealth": "Videokonzultace s lékařem",
+      "portal": "Výsledky a mé objednávky"
+    },
+    "hospital": {
+      "news": "Oznámení a novinky",
+      "disclosures": "Smlouvy, faktury, objednávky"
+    }
+  },
   "footer": {
     "care": "Péče",
     "patients": "Pro pacienty",

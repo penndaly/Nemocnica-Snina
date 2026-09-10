@@ -125,7 +125,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       {/* ── Quick access ─────────────────────────────────── */}
       <section style={{ padding: '2.5rem 0', background: 'var(--bg-2)' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="grid-cards-3">
             {[
               { href: `/${locale}/oddelenia`, label: t('nav.departments'), icon: <BedDouble size={24} /> },
               { href: `/${locale}/ambulancie`, label: t('nav.clinics'), icon: <Phone size={24} /> },
@@ -168,7 +168,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
           <h2 style={{ marginBottom: '1.5rem' }}>
             {locale === 'sk' ? 'Lekári prijímajúci nových pacientov' : 'Physicians accepting new patients'}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="grid-cards-3">
             {acceptingPhysicians.map((physician) => {
               const initials = physician.name
                 .replace(/^(MUDr\.|Mgr\.|Bc\.)\s*/i, '')
@@ -217,7 +217,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
         <div className="container">
           <p className="eyebrow">{locale === 'sk' ? 'Naše oddelenia' : 'Our departments'}</p>
           <h2 style={{ marginBottom: '1.5rem' }}>{t('nav.departments')}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.2rem' }}>
+          <div className="grid-cards-3">
             {featuredDepts.map((dept) => (
               <Link
                 key={dept.id}

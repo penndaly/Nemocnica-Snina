@@ -388,7 +388,7 @@ export default function BookingPage() {
             {availableDates.length === 0 ? (
               <p style={{ color: 'var(--ink-3)' }}>{t('booking.noSlots')}</p>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '.6rem', marginTop: '1rem' }}>
+              <div className="grid-dates-4" style={{ marginTop: '1rem' }}>
                 {availableDates.map((d) => {
                   const date = new Date(d + 'T00:00:00');
                   const dayName = locale === 'sk' ? WEEKDAY_SK[date.getDay()] : WEEKDAY_EN[date.getDay()];

@@ -365,15 +365,15 @@
 
 /*
  * SiteHeader responsive nav swap (apps/web/src/components/layout/SiteHeader.tsx).
- * Mirrors design_handoff_nemocnica_snina/assets/styles.css's .nav-links/.nav-cta/
- * .nav-toggle rules at the same 940px breakpoint — these two classes were never
- * ported when the header was rewritten, so both the desktop nav *and* the mobile
- * hamburger rendered at once below 940px (and the hamburger never appeared at all).
+ * Sprint UI-1: the collapse breakpoint is 1100px, not 940px — the grouped
+ * 4-item nav (brand + 4 groups + 2 CTAs) doesn't fit below ~1090px, and a
+ * narrower breakpoint here previously let the bar overflow and the whole
+ * page scroll sideways in that range.
  */
 .show-mobile {
   display: none;
 }
-@media (max-width: 940px) {
+@media (max-width: 1100px) {
   .hidden-mobile {
     display: none !important;
   }
@@ -381,6 +381,40 @@
     display: inline-flex;
   }
 }
+
+/* Grouped nav — ported from design_handoff_nemocnica_snina/assets/styles.css. */
+.nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+.nav-group { position: relative; }
+.nav-top { display: inline-flex; align-items: center; gap: 4px; font-family: 'Mulish', sans-serif; font-weight: 600; font-size: .98rem; color: var(--ink-2); padding: .6em .85em; border-radius: 8px; background: none; border: none; cursor: pointer; white-space: nowrap; transition: background .14s, color .14s; }
+.nav-top svg { width: 16px; height: 16px; transform: rotate(90deg); transition: transform .16s; color: var(--ink-3); }
+.nav-top:hover, .nav-top:focus-visible { background: var(--warm-100); color: var(--ink); }
+.nav-top.active { color: var(--blue-700); background: var(--blue-50); }
+.nav-panel { position: absolute; top: calc(100% + 8px); left: -8px; min-width: 310px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 8px; display: grid; gap: 2px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .14s, transform .14s, visibility .14s; z-index: 120; }
+.nav-group:hover .nav-panel, .nav-group:focus-within .nav-panel, .nav-panel.open { opacity: 1; visibility: visible; transform: none; }
+.nav-group:hover .nav-top svg, .nav-group:focus-within .nav-top svg, .nav-top[aria-expanded="true"] svg { transform: rotate(-90deg); }
+.nav-panel a { display: block; padding: 10px 12px; border-radius: 9px; }
+.nav-panel a b { display: block; font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .95rem; color: var(--ink); }
+.nav-panel a span { display: block; font-size: .83rem; color: var(--ink-3); margin-top: 2px; }
+.nav-panel a:hover, .nav-panel a:focus-visible { background: var(--warm-100); }
+.nav-panel a.active { background: var(--blue-50); }
+.nav-panel a.active b { color: var(--blue-700); }
+.mm-head { font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 14px 6px 4px; }
+.mobile-menu { display: flex; flex-direction: column; }
+.mobile-menu .mm-head:first-child { margin-top: 4px; }
+.mobile-menu a { padding: 12px 6px; font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--line); text-decoration: none; display: block; }
+.mobile-menu a:last-of-type { border-bottom: none; }
+
+/* Fixed 3/4-column grids that never collapsed below their intrinsic content
+ * width — found via a real 320px-viewport scrollWidth check while verifying
+ * Sprint UI-1's "no horizontal scroll" requirement (page.tsx's homepage
+ * sections, objednanie's date picker), pre-existing and unrelated to the
+ * hero/nav work itself, but the same class of bug the sprint is checking
+ * for, so fixed here rather than left as a known-broken exception. */
+.grid-cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 900px) { .grid-cards-3 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .grid-cards-3 { grid-template-columns: 1fr; } }
+.grid-dates-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
+@media (max-width: 480px) { .grid-dates-4 { grid-template-columns: repeat(2, 1fr); } }
 
 /* High-contrast mode support */
 @media (prefers-contrast: more) {

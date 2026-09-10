@@ -18,6 +18,25 @@
     "news": "Aktualności",
     "contact": "Kontakt"
   },
+  "navGroups": {
+    "hospitalLabel": "Szpital",
+    "care": {
+      "departments": "Oddziały szpitalne i godziny odwiedzin",
+      "clinics": "Godziny przyjęć i rejestracja",
+      "doctors": "Katalog lekarzy",
+      "diagnostics": "Laboratoria, RTG i CT",
+      "services": "Usługi wspierające i dodatkowe"
+    },
+    "visit": {
+      "booking": "Umów wizytę",
+      "telehealth": "Konsultacja wideo z lekarzem",
+      "portal": "Wyniki i moje wizyty"
+    },
+    "hospital": {
+      "news": "Ogłoszenia i aktualności",
+      "disclosures": "Umowy, faktury, zamówienia"
+    }
+  },
   "footer": {
     "care": "Opieka",
     "patients": "Dla pacjentów",

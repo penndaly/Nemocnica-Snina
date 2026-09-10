@@ -18,6 +18,25 @@
     "news": "Hírek",
     "contact": "Kapcsolat"
   },
+  "navGroups": {
+    "hospitalLabel": "Kórház",
+    "care": {
+      "departments": "Fekvőbeteg-osztályok és látogatási idő",
+      "clinics": "Rendelési idő és időpontfoglalás",
+      "doctors": "Orvosok jegyzéke",
+      "diagnostics": "Laboratóriumok, röntgen és CT",
+      "services": "Támogató és kiegészítő szolgáltatások"
+    },
+    "visit": {
+      "booking": "Időpontfoglalás vizsgálatra",
+      "telehealth": "Videókonzultáció orvossal",
+      "portal": "Eredmények és foglalásaim"
+    },
+    "hospital": {
+      "news": "Közlemények és hírek",
+      "disclosures": "Szerződések, számlák, megrendelések"
+    }
+  },
   "footer": {
     "care": "Ellátás",
     "patients": "Betegeknek",

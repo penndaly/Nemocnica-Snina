@@ -18,6 +18,25 @@
     "news": "News",
     "contact": "Contact"
   },
+  "navGroups": {
+    "hospitalLabel": "Hospital",
+    "care": {
+      "departments": "Inpatient wards & visiting hours",
+      "clinics": "Opening hours & booking",
+      "doctors": "Physician directory",
+      "diagnostics": "Labs, X-ray and CT",
+      "services": "Support & additional services"
+    },
+    "visit": {
+      "booking": "Book an appointment",
+      "telehealth": "Video consultation with a physician",
+      "portal": "Results & my appointments"
+    },
+    "hospital": {
+      "news": "Notices & news",
+      "disclosures": "Contracts, invoices, orders"
+    }
+  },
   "footer": {
     "care": "Care",
     "patients": "For patients",

@@ -1,31 +1,141 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { Menu, X, Plus } from 'lucide-react';
+import { Menu, X, Plus, ChevronRight } from 'lucide-react';
 import type { SupportedLocale } from '@/i18n/config';
 
-interface NavItem {
+interface NavLeaf {
+  /** Key used for the leaf's own label translation (nav.<key> / a labelKey override below). */
   key: string;
   href: string;
+  /** navGroups.<group>.<key> description string. */
+  descKey: string;
+  /** Override the leaf label translation key (e.g. "book" instead of "nav.booking"). */
+  labelKey?: string;
+}
+
+interface NavGroup {
+  key: string;
+  labelKey: string;
+  /** Present only for the direct "contact" link — no panel. */
+  href?: string;
+  items?: NavLeaf[];
 }
 
 export function SiteHeader({ activePath = '' }: { activePath?: string }) {
   const t = useTranslations();
   const locale = useLocale() as SupportedLocale;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
 
-  const navItems: NavItem[] = [
-    { key: 'nav.departments', href: `/${locale}/oddelenia` },
-    { key: 'nav.clinics', href: `/${locale}/ambulancie` },
-    { key: 'nav.doctors', href: `/${locale}/lekari` },
-    { key: 'nav.services', href: `/${locale}/sluzby` },
-    { key: 'nav.telehealth', href: `/${locale}/telehealth` },
-    { key: 'nav.diagnostics', href: `/${locale}/diagnostika` },
-    { key: 'nav.news', href: `/${locale}/aktuality` },
-    { key: 'nav.contact', href: `/${locale}/kontakt` },
+  const navGroups: NavGroup[] = [
+    {
+      key: 'care',
+      labelKey: 'footer.care',
+      items: [
+        { key: 'departments', href: `/${locale}/oddelenia`, descKey: 'navGroups.care.departments' },
+        { key: 'clinics', href: `/${locale}/ambulancie`, descKey: 'navGroups.care.clinics' },
+        { key: 'doctors', href: `/${locale}/lekari`, descKey: 'navGroups.care.doctors' },
+        { key: 'diagnostics', href: `/${locale}/diagnostika`, descKey: 'navGroups.care.diagnostics' },
+        { key: 'services', href: `/${locale}/sluzby`, descKey: 'navGroups.care.services' },
+      ],
+    },
+    {
+      key: 'visit',
+      labelKey: 'footer.patients',
+      items: [
+        { key: 'booking', href: `/${locale}/objednanie`, descKey: 'navGroups.visit.booking', labelKey: 'book' },
+        { key: 'telehealth', href: `/${locale}/telehealth`, descKey: 'navGroups.visit.telehealth' },
+        { key: 'portal', href: `/${locale}/portal`, descKey: 'navGroups.visit.portal', labelKey: 'portal.title' },
+      ],
+    },
+    {
+      key: 'hospital',
+      labelKey: 'navGroups.hospitalLabel',
+      items: [
+        { key: 'news', href: `/${locale}/aktuality`, descKey: 'navGroups.hospital.news' },
+        { key: 'disclosures', href: `/${locale}/zverejnovanie`, descKey: 'navGroups.hospital.disclosures', labelKey: 'footer.disclosures' },
+      ],
+    },
+    { key: 'contact', labelKey: 'nav.contact', href: `/${locale}/kontakt` },
   ];
+
+  const leafLabel = (item: NavLeaf) => t(item.labelKey || `nav.${item.key}`);
+  const groupOf: Record<string, string> = {};
+  for (const g of navGroups) for (const it of g.items || []) groupOf[it.href] = g.key;
+  const activeGroupKey = Object.entries(groupOf).find(([href]) => activePath.startsWith(href))?.[1]
+    ?? (activePath.startsWith(`/${locale}/kontakt`) ? 'contact' : null);
+
+  // Close on outside click / focus leaving the nav, and on Escape.
+  useEffect(() => {
+    if (!openGroup) return;
+    function onPointerDown(e: PointerEvent) {
+      if (navRef.current && e.target instanceof Node && !navRef.current.contains(e.target)) {
+        setOpenGroup(null);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setOpenGroup(null);
+        const btn = navRef.current?.querySelector<HTMLButtonElement>(`[data-group-button="${openGroup}"]`);
+        btn?.focus();
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openGroup]);
+
+  function toggleGroup(key: string) {
+    setOpenGroup((cur) => (cur === key ? null : key));
+  }
+
+  function onGroupButtonKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, key: string) {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setOpenGroup(key);
+      requestAnimationFrame(() => {
+        navRef.current?.querySelector<HTMLAnchorElement>(`[data-panel="${key}"] a`)?.focus();
+      });
+    }
+  }
+
+  function onPanelKeyDown(e: React.KeyboardEvent<HTMLDivElement>, key: string) {
+    const links = Array.from(
+      navRef.current?.querySelectorAll<HTMLAnchorElement>(`[data-panel="${key}"] a`) ?? [],
+    );
+    const idx = links.indexOf(document.activeElement as HTMLAnchorElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      links[(idx + 1) % links.length]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      links[(idx - 1 + links.length) % links.length]?.focus();
+    }
+  }
+
+  const mobileNavHtml = navGroups.map((g) =>
+    g.href ? (
+      <Link key={g.key} href={g.href} onClick={() => setMenuOpen(false)}>
+        {t(g.labelKey)}
+      </Link>
+    ) : (
+      <div key={g.key}>
+        <p className="mm-head">{t(g.labelKey)}</p>
+        {(g.items || []).map((it) => (
+          <Link key={it.key} href={it.href} onClick={() => setMenuOpen(false)}>
+            {leafLabel(it)}
+          </Link>
+        ))}
+      </div>
+    ),
+  );
 
   return (
     <header
@@ -96,36 +206,51 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           </div>
         </Link>
 
-        {/* Primary nav — hidden < 940px. flexWrap so 8 nowrap items wrapping onto a
-            second row (taller header) is preferred over forcing the page to scroll
-            horizontally — WCAG 1.4.10 Reflow — on viewports just above the breakpoint
-            or with enlarged text. */}
-        <nav
-          className="hidden-mobile"
-          aria-label="Hlavná navigácia"
-          style={{ display: 'flex', flexWrap: 'wrap', gap: '.2rem', flex: 1, minWidth: 0 }}
-        >
-          {navItems.map(({ key, href }) => {
-            const isActive = activePath.startsWith(href);
+        {/* Primary nav — grouped, hidden < 1100px (see globals.css). */}
+        <nav ref={navRef} className="hidden-mobile nav-links" aria-label="Hlavná navigácia" style={{ flex: 1, minWidth: 0 }}>
+          {navGroups.map((g) => {
+            if (g.href) {
+              return (
+                <Link key={g.key} href={g.href} className={`nav-top${activeGroupKey === g.key ? ' active' : ''}`}>
+                  {t(g.labelKey)}
+                </Link>
+              );
+            }
+            const isOpen = openGroup === g.key;
             return (
-              <Link
-                key={key}
-                href={href}
-                style={{
-                  fontFamily: 'Mulish, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '.92rem',
-                  color: isActive ? 'var(--blue-700)' : 'var(--ink-2)',
-                  background: isActive ? 'var(--blue-50)' : 'transparent',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '.45em .7em',
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                  transition: 'background .14s, color .14s',
-                }}
-              >
-                {t(key)}
-              </Link>
+              <div key={g.key} className="nav-group">
+                <button
+                  type="button"
+                  data-group-button={g.key}
+                  className={`nav-top${activeGroupKey === g.key ? ' active' : ''}`}
+                  aria-expanded={isOpen}
+                  aria-haspopup="true"
+                  onClick={() => toggleGroup(g.key)}
+                  onKeyDown={(e) => onGroupButtonKeyDown(e, g.key)}
+                >
+                  {t(g.labelKey)}
+                  <ChevronRight size={16} aria-hidden />
+                </button>
+                <div
+                  data-panel={g.key}
+                  className={`nav-panel${isOpen ? ' open' : ''}`}
+                  role="menu"
+                  onKeyDown={(e) => onPanelKeyDown(e, g.key)}
+                >
+                  {(g.items || []).map((it) => (
+                    <Link
+                      key={it.key}
+                      href={it.href}
+                      role="menuitem"
+                      className={activePath.startsWith(it.href) ? 'active' : ''}
+                      onClick={() => setOpenGroup(null)}
+                    >
+                      <b>{leafLabel(it)}</b>
+                      <span>{t(it.descKey)}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             );
           })}
         </nav>
@@ -143,7 +268,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           </Link>
         </div>
 
-        {/* Hamburger — visible < 940px */}
+        {/* Hamburger — visible < 1100px */}
         <button
           className="show-mobile"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -169,6 +294,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           id="mobile-menu"
           role="navigation"
           aria-label="Mobilná navigácia"
+          className="mobile-menu open"
           style={{
             position: 'absolute',
             top: 'var(--header-h)',
@@ -178,33 +304,14 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
             borderBottom: '1px solid var(--line)',
             boxShadow: 'var(--shadow)',
             padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '.3rem',
           }}
         >
-          {navItems.map(({ key, href }) => (
-            <Link
-              key={key}
-              href={href}
-              onClick={() => setMenuOpen(false)}
-              style={{
-                fontWeight: 600,
-                fontSize: '1rem',
-                color: 'var(--ink)',
-                padding: '.65rem .9rem',
-                borderRadius: 'var(--radius-sm)',
-                textDecoration: 'none',
-              }}
-            >
-              {t(key)}
-            </Link>
-          ))}
+          {mobileNavHtml}
           <div style={{ borderTop: '1px solid var(--line)', marginTop: '.5rem', paddingTop: '.75rem', display: 'flex', gap: '.6rem' }}>
-            <Link href={`/${locale}/portal`} className="btn btn-ghost btn-sm" style={{ flex: 1 }}>
+            <Link href={`/${locale}/portal`} className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setMenuOpen(false)}>
               {t('portal.title')}
             </Link>
-            <Link href={`/${locale}/objednanie`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
+            <Link href={`/${locale}/objednanie`} className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => setMenuOpen(false)}>
               {t('book')}
             </Link>
           </div>
