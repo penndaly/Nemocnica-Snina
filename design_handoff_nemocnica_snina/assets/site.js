@@ -54,7 +54,8 @@ const STR = {
     open: { sk: "V prevádzke", en: "Open" },
     new: { sk: "Nová · prijíma pacientov", en: "New · accepting patients" },
     alert: { sk: "Dočasný režim", en: "Temporary measures" },
-    closed: { sk: "Mimo prevádzky", en: "Closed" }
+    closed: { sk: "Mimo prevádzky", en: "Closed" },
+    comingSoon: { sk: "Obsah sa pripravuje", en: "Content coming soon" }
   },
   accepting: { sk: "Prijíma nových pacientov", en: "Accepting new patients" },
   notAccepting: { sk: "Neprijíma nových pacientov", en: "Not accepting new patients" },
@@ -123,7 +124,7 @@ function fmtDate(iso) {
   return d.toLocaleDateString(lang === "sk" ? "sk-SK" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 function statusBadge(status) {
-  const map = { open: "badge-green", new: "badge-terra", alert: "badge-amber", closed: "badge-gray" };
+  const map = { open: "badge-green", new: "badge-terra", alert: "badge-amber", closed: "badge-gray", comingSoon: "badge-gray" };
   const cls = map[status] || "badge-gray";
   return `<span class="badge ${cls}"><span class="dot"></span>${esc(t("status." + status))}</span>`;
 }
@@ -137,19 +138,44 @@ const Site = {
     document.documentElement.lang = lang;
     const H = DB.get("hospital");
 
-    const navItems = [
-      ["departments", "oddelenia.html"],
-      ["clinics", "ambulancie.html"],
-      ["doctors", "lekari.html"],
-      ["services", "sluzby.html"],
-      ["diagnostics", "diagnostika.html"],
-      ["patients", "pre-pacientov.html"],
-      ["about", "o-nemocnici.html"],
-      ["news", "aktuality.html"],
-      ["contact", "kontakt.html"]
+    /* Grouped primary navigation — four top-level items so the bar never wraps.
+       Each group opens a panel; `active` is a leaf key and lights its group. */
+    const navGroups = [
+      { key: "care", label: { sk: "Starostlivosť", en: "Care" }, items: [
+        ["departments", "oddelenia.html", { sk: "Lôžkové oddelenia a návštevné hodiny", en: "Inpatient wards & visiting hours" }],
+        ["clinics", "ambulancie.html", { sk: "Ordinačné hodiny a objednanie", en: "Opening hours & booking" }],
+        ["doctors", "lekari.html", { sk: "Adresár lekárov", en: "Physician directory" }],
+        ["diagnostics", "diagnostika.html", { sk: "Laboratóriá, RTG a CT", en: "Labs, X-ray and CT" }],
+        ["services", "sluzby.html", { sk: "Podporné a doplnkové služby", en: "Support & additional services" }]
+      ] },
+      { key: "visit", label: { sk: "Pre pacientov", en: "For patients" }, items: [
+        ["patients", "pre-pacientov.html", { sk: "Pred návštevou, cenník, sťažnosti", en: "Before your visit, pricing, complaints" }],
+        ["booking", "objednanie.html", { sk: "Objednanie na vyšetrenie", en: "Book an appointment" }, "book"],
+        ["portalNav", "portal.html", { sk: "Výsledky a moje objednávky", en: "Results & my appointments" }, "portal"]
+      ] },
+      { key: "hospital", label: { sk: "Nemocnica", en: "Hospital" }, items: [
+        ["about", "o-nemocnici.html", { sk: "História, vedenie, investície", en: "History, leadership, investment" }],
+        ["news", "aktuality.html", { sk: "Oznamy a novinky", en: "Notices & news" }],
+        ["disclosures", "zverejnovanie.html", { sk: "Zmluvy, faktúry, objednávky", en: "Contracts, invoices, orders" }, "footer.disclosures"]
+      ] },
+      { key: "contact", label: { sk: "Kontakt", en: "Contact" }, href: "kontakt.html" }
     ];
-    const navHtml = navItems.map(([k, href]) =>
-      `<a href="${href}" class="${active === k ? "active" : ""}">${esc(t("nav." + k))}</a>`).join("");
+    const leafLabel = (it) => esc(t(it[3] || "nav." + it[0]));
+    const groupOf = {};
+    navGroups.forEach((g) => (g.items || []).forEach((it) => (groupOf[it[0]] = g.key)));
+    const activeGroup = groupOf[active] || (active === "contact" ? "contact" : null);
+
+    const navHtml = navGroups.map((g) => {
+      if (g.href) return `<a class="nav-top${activeGroup === g.key ? " active" : ""}" href="${g.href}">${esc(L(g.label))}</a>`;
+      return `<div class="nav-group">
+          <button type="button" class="nav-top${activeGroup === g.key ? " active" : ""}" aria-expanded="false" aria-haspopup="true">${esc(L(g.label))}${icon("chevron")}</button>
+          <div class="nav-panel" role="menu">${g.items.map((it) => `<a href="${it[1]}" role="menuitem" class="${active === it[0] ? "active" : ""}"><b>${leafLabel(it)}</b><span>${esc(L(it[2]))}</span></a>`).join("")}</div>
+        </div>`;
+    }).join("");
+
+    const mobileNavHtml = navGroups.map((g) => g.href
+      ? `<a href="${g.href}">${esc(L(g.label))}</a>`
+      : `<p class="mm-head">${esc(L(g.label))}</p>` + g.items.map((it) => `<a href="${it[1]}">${leafLabel(it)}</a>`).join("")).join("");
 
     const header = document.getElementById("siteHeader");
     if (header) {
@@ -182,8 +208,7 @@ const Site = {
           </div>
         </div>
         <div class="mobile-menu" id="mobileMenu">
-          ${navItems.map(([k, href]) => `<a href="${href}">${esc(t("nav." + k))}</a>`).join("")}
-          <a href="portal.html">${esc(t("portal"))}</a>
+          ${mobileNavHtml}
           <a href="objednanie.html" class="btn btn-primary mt-2">${icon("calendar")} ${esc(t("book"))}</a>
         </div>`;
     }

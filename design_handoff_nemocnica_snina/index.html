@@ -43,6 +43,13 @@
     </div>
   </section>
 
+  <!-- AT A GLANCE -->
+  <section class="section-sm">
+    <div class="container">
+      <div class="stat-strip" id="statStrip"></div>
+    </div>
+  </section>
+
   <!-- ACCEPTING NEW PATIENTS -->
   <section class="section band-warm">
     <div class="container">
@@ -141,6 +148,21 @@ document.getElementById("quickAccess").innerHTML = quick.map(([ic,key,desc,href]
     <span class="qa-arrow">${icon("chevron")}</span>
   </a>`).join("");
 
+// At a glance
+const deps = DB.list("departments"), clis = (DB.list("clinics") || []).filter(c => c.status !== "comingSoon" && c.status !== "soon");
+const bedTotal = deps.reduce((s,d) => s + (Number(d.beds)||0), 0);
+document.getElementById("statStrip").innerHTML = [
+  ["building","blue", deps.length, {sk:"lôžkových oddelení",en:"inpatient departments"}],
+  ["stethoscope","terra", clis.length, {sk:"ambulancií",en:"outpatient clinics"}],
+  ["activity","green", bedTotal, {sk:"lôžok pre pacientov",en:"patient beds"}],
+  ["clock","amber", "24/7", {sk:"centrálna recepcia",en:"central reception"}]
+].map(([ic,tone,val,lbl]) => `
+  <div class="stat">
+    <span class="stat-icon tone-${tone}">${icon(ic) || icon("activity")}</span>
+    <b class="stat-num">${esc(String(val))}</b>
+    <span class="stat-lbl">${esc(L(lbl))}</span>
+  </div>`).join("");
+
 // Accepting new patients
 document.getElementById("anpEyebrow").textContent = L({sk:"Otvorené dvere",en:"Open doors"});
 document.getElementById("anpTitle").textContent = L({sk:"Lekári prijímajúci nových pacientov",en:"Physicians accepting new patients"});
@@ -221,6 +243,18 @@ function truncate(s,n){ return s.length>n ? s.slice(0,n).trim()+"…" : s; }
 .ec-row svg { width:16px;height:16px;color:var(--ink-3); }
 .ec-row b { color: var(--ink); }
 
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 22px 20px;display:flex;flex-direction:column;gap:6px;}
+.stat-icon{display:inline-flex;width:44px;height:44px;border-radius:12px;align-items:center;justify-content:center;margin-bottom:8px;}
+.stat-icon svg{width:24px;height:24px;}
+.tone-blue{background:var(--blue-50);color:var(--blue-700);}
+.tone-terra{background:var(--terra-50);color:var(--terra);}
+.tone-green{background:var(--green-50);color:var(--green);}
+.tone-amber{background:var(--amber-50);color:var(--amber);}
+.stat-num{font-family:'Newsreader',serif;font-weight:700;font-size:2.1rem;line-height:1;color:var(--ink);}
+.stat-lbl{font-size:.92rem;color:var(--ink-2);}
+@media (max-width:860px){.stat-strip{grid-template-columns:repeat(2,1fr);}}
+
 .qa { position:relative; display:block; }
 .qa-icon { display:inline-flex; width:48px;height:48px;border-radius:12px;background:var(--blue-50);color:var(--blue-700);align-items:center;justify-content:center;margin-bottom:14px; }
 .qa-icon svg{width:26px;height:26px;}
@@ -241,5 +275,8 @@ function truncate(s,n){ return s.length>n ? s.slice(0,n).trim()+"…" : s; }
 .aps-icon svg{width:25px;height:25px;}
 @media (max-width: 940px){ .hero-grid{grid-template-columns:1fr;gap:32px;} .news-aps{grid-template-columns:1fr;} }
 </style>
+<script src="assets/image-slot.js"></script>
+<script src="assets/media.js"></script>
+<script src="assets/placeholder-art.js"></script>
 </body>
 </html>
