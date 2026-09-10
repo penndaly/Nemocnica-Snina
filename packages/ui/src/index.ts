@@ -4,4 +4,8 @@ export { Card } from './components/Card';
 export { Avatar } from './components/Avatar';
 export { Chip } from './components/Chip';
 export { ImagePlaceholder } from './components/ImagePlaceholder';
+export { HospitalImage } from './components/HospitalImage';
+export type { HospitalImageProps } from './components/HospitalImage';
+export { sceneFor, sceneDataUri, monogram } from './placeholder-art';
+export type { SceneName } from './placeholder-art';
 export { cn } from './lib/cn';
