@@ -312,7 +312,7 @@ table.data tbody tr:hover { background: var(--blue-50); }
 .hero-media image-slot { display:block; width:100%; height:100%; }
 .hero-scrim { position:absolute; inset:0; z-index:1; background:linear-gradient(90deg, rgba(16,44,76,.93) 0%, rgba(16,44,76,.90) 46%, rgba(16,44,76,.60) 72%, rgba(16,44,76,.22) 100%); }
 /* keep hero copy inside the dark half of the scrim so contrast holds */
-@media (min-width:1101px){ .has-hero-media > .container > *:not(.hero-grid):not(.stepper) { max-width:min(64ch, 62%); } }
+@media (min-width:781px){ .has-hero-media > .container > *:not(.hero-grid):not(.stepper) { max-width:min(64ch, 62%); } }
 .has-hero-media h1, .has-hero-media h2 { color:#fff; }
 .has-hero-media .lede, .has-hero-media p { color:#dbe6f2; }
 .has-hero-media .eyebrow, .has-hero-media .eyebrow.terra { color:#f0b48a; }

@@ -67,9 +67,15 @@ Exact values, do not re-derive:
   display:flex; align-items:center; border-bottom:none`
 - `.hero-scrim` — `linear-gradient(90deg, rgba(16,44,76,.93) 0%, rgba(16,44,76,.90) 46%,
   rgba(16,44,76,.60) 72%, rgba(16,44,76,.22) 100%)`
-- `@media (min-width:1101px)` — hero copy capped at `min(64ch, 62%)` so text never crosses
+- `@media (min-width:781px)` — hero copy capped at `min(64ch, 62%)` so text never crosses
   into the light half of the scrim. **This cap is what keeps contrast ≥4.5:1** — do not drop
-  it when refactoring. Exempt full-width children (the booking stepper).
+  it when refactoring. Exempt full-width children (the booking stepper). **781px, not some
+  rounder number**: it must start exactly where the horizontal scrim gradient below turns
+  on. An earlier draft had this at 1101px, aligned with the nav-collapse breakpoint instead
+  of the scrim — that left 781–1100px with the horizontal (fades-to-transparent) gradient
+  active and no cap, measured at 1.45:1 against the 4.5:1 requirement. The copy-cap
+  breakpoint and the vertical-scrim breakpoint below are complementary and must always move
+  together; there must never be a viewport band with a horizontal gradient and no cap.
 - `@media (max-width:780px)` — `min-height:0; padding:44px 0`, scrim switches to vertical
   `linear-gradient(180deg, rgba(16,44,76,.9), rgba(16,44,76,.86))`
 - Overlay ink: `h1/h2 #fff`, `lede/p #dbe6f2`, `eyebrow #f0b48a`, breadcrumb `#a8bdd4`
