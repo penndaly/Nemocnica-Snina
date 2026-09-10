@@ -8,7 +8,7 @@ things a future change is likely to break without realizing it.
 `packages/ui/src/globals.css`'s `.has-hero-media` rule:
 
 ```css
-@media (min-width: 1101px) {
+@media (min-width: 781px) {
   .has-hero-media > .container > *:not(.hero-grid):not(.stepper) {
     max-width: min(64ch, 62%);
   }
@@ -23,24 +23,40 @@ against the **dark** (left) half of that gradient. Past roughly the 62% mark
 the scrim is too transparent and white-on-photo contrast can drop below
 4.5:1, depending on the underlying image.
 
+**Correction (2026-09-10, later same day):** this rule originally started at
+`min-width: 1101px` — ported verbatim, but from a *different* source rule
+than the one below it, without checking that the two lined up. The scrim
+only runs left-to-right above `max-width: 780px`; below that it switches to
+a vertical gradient with no transparent side. That left 781–1100px with the
+horizontal (fades-to-transparent) gradient active but **no copy-width cap**
+— measured at 1.45:1, well under the 4.5:1 floor, and exactly the failure
+mode this note warned about. Caught because a peer session doing the
+equivalent fix in the prototype's own spec noticed the same gap encoded
+there and traced it back here. **The two breakpoints (this one and the
+`max-width: 780px` gradient-direction switch two rules below) must always
+move together** — this is now true (`781px` / `780px`), but it's exactly
+the kind of pairing that's easy to silently re-break by editing one rule
+without the other.
+
 **Anyone changing the hero layout must re-run a contrast probe** (hero `h1`,
 `.lede`, `.breadcrumb`, `.chip` text, and on `/objednanie` every stepper
-label) at 1101px+ before shipping, specifically if:
+label) at 781px+ before shipping, specifically if:
 - the scrim gradient direction, stops, or opacity change;
 - a new full-width hero variant is added (the current exemption list is only
   `.hero-grid` — home's two-column layout, which is itself narrower than the
   viewport by design — and `.stepper`, the booking wizard's step indicator);
 - hero copy is allowed to grow past `min(64ch, 62%)` for any route.
 
-This wasn't machine-verified for Sprint UI-1 itself — the project's axe/
-Playwright a11y suite (`apps/web/e2e/a11y.spec.ts`) requires a live Postgres
-instance (`global-setup.ts` wipes test data via Prisma before every run),
-which wasn't available in the environment that built this sprint. The values
-above are an unmodified port of the prototype's own already-scrim-tuned
-numbers (`design_handoff_nemocnica_snina/assets/styles.css`), not new
-guesses — but "ported from a source that claims to hold 4.5:1" and
-"machine-verified to hold 4.5:1 in this codebase" are not the same claim.
-Whoever has a working Postgres instance next should run:
+This still wasn't machine-verified end-to-end for Sprint UI-1 — the
+project's axe/Playwright a11y suite (`apps/web/e2e/a11y.spec.ts`) requires a
+live Postgres instance (`global-setup.ts` wipes test data via Prisma before
+every run), which wasn't available in the environment that built this
+sprint. The 781/780px pairing above was confirmed by rendered DOM width at
+780/781/900/1100/1101px (the cap now visibly engages at exactly 781px,
+where it previously didn't engage until 1101px) — that confirms the cap
+*applies*, not that the resulting text-on-photo ratio *clears 4.5:1* for
+every hero image; that still needs the real contrast probe. Whoever has a
+working Postgres instance next should run:
 
 ```
 pnpm --filter @ns/web test:e2e -- a11y.spec.ts

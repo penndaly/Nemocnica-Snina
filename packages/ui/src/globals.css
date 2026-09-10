@@ -334,8 +334,15 @@
 .hero-scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(16,44,76,.93) 0%, rgba(16,44,76,.90) 46%, rgba(16,44,76,.60) 72%, rgba(16,44,76,.22) 100%); }
 /* Keep hero copy inside the dark half of the scrim so contrast holds — this
  * cap is load-bearing, not cosmetic. Exempt full-width children (home's
- * .hero-grid two-column layout, the booking .stepper). */
-@media (min-width: 1101px) { .has-hero-media > .container > *:not(.hero-grid):not(.stepper) { max-width: min(64ch, 62%); } }
+ * .hero-grid two-column layout, the booking .stepper).
+ * Starts at 781px, not 1100/1101 — it must pick up exactly where the
+ * left-to-right scrim gradient below turns on (the vertical-gradient
+ * switch below is `max-width: 780px`). The two breakpoints were ported
+ * from separate rules and didn't originally line up, leaving 781–1100px
+ * with the horizontal (fades-to-transparent) gradient but no copy-width
+ * cap — measured at 1.45:1, well under the 4.5:1 AA floor. These two
+ * breakpoints must always move together. */
+@media (min-width: 781px) { .has-hero-media > .container > *:not(.hero-grid):not(.stepper) { max-width: min(64ch, 62%); } }
 .has-hero-media h1, .has-hero-media h2 { color: #fff; }
 .has-hero-media .lede, .has-hero-media p { color: #dbe6f2; }
 .has-hero-media .eyebrow, .has-hero-media .eyebrow.terra { color: #f0b48a; }
