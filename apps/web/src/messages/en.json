@@ -36,6 +36,7 @@
     },
     "hospital": {
       "news": "Notices & news",
+      "careers": "Open positions",
       "disclosures": "Contracts, invoices, orders"
     }
   },
@@ -48,7 +49,8 @@
     "accessibility": "Accessibility statement",
     "admin": "Content administration",
     "rights": "All rights reserved.",
-    "education": "Patient education"
+    "education": "Patient education",
+    "careers": "Careers"
   },
   "status": {
     "open": "Open",

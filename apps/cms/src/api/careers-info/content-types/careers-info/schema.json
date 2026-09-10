@@ -1,0 +1,17 @@
+{
+  "kind": "singleType",
+  "collectionName": "careers_info",
+  "info": {
+    "singularName": "careers-info",
+    "pluralName": "careers-infos",
+    "displayName": "Careers Info",
+    "description": "Singleton — benefits list + HR contact for /kariera. From DATA_MODEL.md: careersInfo singleton."
+  },
+  "options": { "draftAndPublish": false },
+  "pluginsOptions": {},
+  "attributes": {
+    "contact": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "phone": { "type": "string", "required": true },
+    "benefits": { "type": "json", "pluginsOptions": { "i18n": { "localized": true } } }
+  }
+}

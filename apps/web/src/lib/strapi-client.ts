@@ -12,7 +12,7 @@
 import type {
   Department, Clinic, Physician, Service, Facility, NewsItem,
   Disclosure, Hospital, Pages, Locale, PhysicianProfile, Weekday,
-  EducationArticle, EducationCategory,
+  EducationArticle, EducationCategory, JobPosting, CareersInfo,
 } from '@ns/types';
 
 const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
@@ -379,4 +379,55 @@ export async function getEducationArticleBySlug(slug: string, locale: Locale = '
 export async function getEducationArticleSlugs(): Promise<string[]> {
   const { SEED } = await import('./seed');
   return SEED.educationArticles.filter((a) => a.body).map((a) => a.slug);
+}
+
+// ── Careers (/[lang]/kariera) ─────────────────────────────
+
+function mapJobPosting(entry: Record<string, unknown>, locale: Locale): JobPosting {
+  const a = entry['attributes'] as Record<string, unknown> ?? entry;
+  const posting: JobPosting = {
+    id: String(a['slug'] ?? entry['id']),
+    slug: String(a['slug'] ?? entry['id']),
+    title: { [locale]: String(a['title'] ?? '') },
+    desc: { [locale]: String(a['desc'] ?? '') },
+  };
+  const dept = (a['department'] as Record<string, unknown>)?.['data'] as Record<string, unknown> | undefined;
+  const clinic = (a['clinic'] as Record<string, unknown>)?.['data'] as Record<string, unknown> | undefined;
+  if (dept) posting.dept = String(dept['id']);
+  if (clinic) posting.clinic = String(clinic['id']);
+  return posting;
+}
+
+export async function getJobPostings(locale: Locale = 'sk'): Promise<JobPosting[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.jobPostings; }
+  const data = await strapiGet<Record<string, unknown>[]>('job-postings?sort=title', locale);
+  return data.map((e) => mapJobPosting(e, locale));
+}
+
+export async function getJobPostingBySlug(slug: string, locale: Locale = 'sk'): Promise<JobPosting | null> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.jobPostings.find((j) => j.slug === slug) ?? null; }
+  const data = await strapiGet<Record<string, unknown>[]>(`job-postings?filters[slug][$eq]=${slug}`, locale);
+  return data[0] ? mapJobPosting(data[0], locale) : null;
+}
+
+export async function getJobPostingSlugs(): Promise<string[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.jobPostings.map((j) => j.slug); }
+  const data = await strapiGet<Record<string, unknown>[]>('job-postings?fields[0]=slug&sort=title', 'sk');
+  return data
+    .map((e) => {
+      const a = (e['attributes'] as Record<string, unknown>) ?? e;
+      return String(a['slug'] ?? '');
+    })
+    .filter(Boolean);
+}
+
+export async function getCareersInfo(locale: Locale = 'sk'): Promise<CareersInfo> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.careersInfo; }
+  const entry = await strapiGet<Record<string, unknown>>('careers-info', locale);
+  const a = (entry['attributes'] as Record<string, unknown>) ?? entry;
+  return {
+    contact: { [locale]: String(a['contact'] ?? '') },
+    phone: String(a['phone'] ?? ''),
+    benefits: ((a['benefits'] as string[]) ?? []).map((b) => ({ [locale]: b })),
+  };
 }

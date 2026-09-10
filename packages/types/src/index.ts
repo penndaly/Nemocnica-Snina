@@ -220,6 +220,13 @@ export interface JobPosting {
   clinic?: string;
 }
 
+/** Careers page benefits list + HR contact — assets/data.js `careersInfo` singleton. */
+export interface CareersInfo {
+  contact: Loc;
+  phone: string;
+  benefits: Loc[];
+}
+
 // ─── Operational (PostgreSQL, not CMS) ───────────────────
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -354,4 +361,6 @@ export interface Seed {
   news: NewsItem[];
   disclosures: Disclosure[];
   educationArticles: EducationArticle[];
+  jobPostings: JobPosting[];
+  careersInfo: CareersInfo;
 }

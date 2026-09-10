@@ -27,6 +27,7 @@ export function SiteFooter() {
     { href: `/${locale}/portal`,      label: t('portal.title')},
     { href: `/${locale}/sluzby`,      label: t('nav.services') },
     { href: `/${locale}/aktuality`,   label: t('nav.news') },
+    { href: `/${locale}/kariera`,     label: t('footer.careers') },
   ];
 
   const col4 = [

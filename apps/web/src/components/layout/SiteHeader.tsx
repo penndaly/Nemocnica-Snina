@@ -58,6 +58,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
       labelKey: 'navGroups.hospitalLabel',
       items: [
         { key: 'news', href: `/${locale}/aktuality`, descKey: 'navGroups.hospital.news' },
+        { key: 'careers', href: `/${locale}/kariera`, descKey: 'navGroups.hospital.careers', labelKey: 'footer.careers' },
         { key: 'disclosures', href: `/${locale}/zverejnovanie`, descKey: 'navGroups.hospital.disclosures', labelKey: 'footer.disclosures' },
       ],
     },

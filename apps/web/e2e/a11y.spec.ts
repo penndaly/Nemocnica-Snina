@@ -19,6 +19,8 @@ const KEY_ROUTES = [
   '/sk/portal',
   '/sk/edukacia',
   '/sk/edukacia/priprava',
+  '/sk/kariera',
+  '/sk/kariera/j1',
 ];
 
 for (const route of KEY_ROUTES) {

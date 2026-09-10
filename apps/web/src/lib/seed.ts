@@ -622,4 +622,25 @@ export const SEED: Seed = {
       },
     },
   ],
+
+  // From design_handoff_nemocnica_snina/assets/data.js `jobs`. The prototype's
+  // apply flow is a `mailto:` link (kariera.html) — no CV upload form exists
+  // in the source, so this type carries only what the data actually has.
+  jobPostings: [
+    { id: 'j1', slug: 'j1', title: { sk: 'Lekár – pediater', en: 'Physician – Pediatrician' }, dept: 'pediatria', desc: { sk: 'Diagnostická a liečebno-preventívna starostlivosť o pacientov detského oddelenia. Vhodné aj pre absolventov. Výhodou je špecializácia v odbore pediatria.', en: 'Diagnostic and therapeutic-preventive care for pediatric ward patients. Open to recent graduates. Pediatric specialisation is an advantage.' } },
+    { id: 'j2', slug: 'j2', title: { sk: 'Lekár – internista', en: 'Physician – Internist' }, dept: 'interne', desc: { sk: 'Diagnostická a liečebno-preventívna starostlivosť o pacientov interného oddelenia. Výhodou je špecializácia v internej medicíne a postupová skúška — internistický kmeň.', en: 'Diagnostic and therapeutic-preventive care for internal medicine patients. Internal-medicine specialisation and the core-exam are an advantage.' } },
+    { id: 'j3', slug: 'j3', title: { sk: 'Lekár – anestéziológ a intenzivista', en: 'Physician – Anesthesiologist & Intensivist' }, dept: 'oaim', desc: { sk: 'Starostlivosť o pacientov OAIM. Ponúkame plný úväzok, čiastočný úväzok aj ústavnú pohotovostnú službu (ÚPS).', en: 'Care for OAIM patients. Full-time, part-time, and on-call service (ÚPS) all available.' } },
+    { id: 'j4', slug: 'j4', title: { sk: 'Lekár – gynekológ', en: 'Physician – Gynecologist' }, dept: 'gynekologia', desc: { sk: 'Diagnostická a liečebno-preventívna starostlivosť o pacientky gynekologicko-pôrodníckeho oddelenia. Špecializácia v gynekológii a pôrodníctve vítaná.', en: 'Diagnostic and therapeutic-preventive care for gynecology & obstetrics patients. Specialisation welcomed.' } },
+    { id: 'j5', slug: 'j5', title: { sk: 'Lekár – diabetológ', en: 'Physician – Diabetologist' }, clinic: 'diabetologicka', desc: { sk: 'Ambulantná starostlivosť v odbore diabetológia, poruchy látkovej premeny a výživy. Vyžaduje sa špecializácia alebo zaradenie v tomto odbore.', en: 'Outpatient care in diabetology and metabolic disorders. Specialisation or enrolment in this field is required.' } },
+  ],
+
+  careersInfo: {
+    contact: { sk: 'Erika Ferková · sekretariát konateľa', en: "Erika Ferková · Managing Director's Secretariat" },
+    phone: '057/7871 226',
+    benefits: [
+      { sk: 'Podpora zvyšovania kvalifikácie a špecializačného štúdia', en: 'Support for further education and specialisation training' },
+      { sk: 'Finančné benefity — príplatky, príspevky zo sociálneho fondu, motivačná zložka mzdy', en: 'Financial benefits — allowances, social-fund contributions, a motivational wage component' },
+      { sk: 'Možnosť osobného rastu v stabilnej a rozvíjajúcej sa organizácii', en: 'Room for personal growth in a stable, growing organisation' },
+    ],
+  },
 };

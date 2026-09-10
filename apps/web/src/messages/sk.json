@@ -36,6 +36,7 @@
     },
     "hospital": {
       "news": "Oznamy a novinky",
+      "careers": "Voľné pracovné miesta",
       "disclosures": "Zmluvy, faktúry, objednávky"
     }
   },
@@ -48,7 +49,8 @@
     "accessibility": "Vyhlásenie o prístupnosti",
     "admin": "Správa obsahu (admin)",
     "rights": "Všetky práva vyhradené.",
-    "education": "Edukácia pacientov"
+    "education": "Edukácia pacientov",
+    "careers": "Kariéra"
   },
   "status": {
     "open": "V prevádzke",
