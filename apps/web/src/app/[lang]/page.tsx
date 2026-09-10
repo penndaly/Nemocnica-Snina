@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { Phone, PhoneCall, ArrowRight, BedDouble, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { StructuredData } from '@/components/StructuredData';
 import { ApsCard } from '@/components/ApsCard';
@@ -51,93 +52,75 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
     <SiteLayout activePath={`/${locale}`}>
       <StructuredData locale={locale} page="home" />
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section
-        style={{
-          background: 'var(--bg)',
-          paddingTop: '3.5rem',
-          paddingBottom: '3.5rem',
-        }}
-      >
-        <div className="container">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.35fr .9fr',
-              gap: '3rem',
-              alignItems: 'start',
-            }}
-          >
-            {/* Left: copy */}
-            <div>
-              <p className="eyebrow terra">{localizeField(hero.badge, locale)}</p>
-              <h1 style={{ marginBottom: '1rem' }}>{localizeField(hero.title, locale)}</h1>
-              <p className="lede" style={{ marginBottom: '1.8rem' }}>
-                {localizeField(hero.subtitle, locale)}
-              </p>
-              <div style={{ display: 'flex', gap: '.8rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-                <Link href={`/${locale}/objednanie`} className="btn btn-primary btn-lg">
-                  {t('book')}
-                </Link>
-                <Link href={`/${locale}/lekari`} className="btn btn-ghost btn-lg">
-                  {t('nav.doctors')}
-                </Link>
-              </div>
-              {/* Trust chips */}
-              <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
-                <span className="chip">
-                  <BedDouble size={14} />
-                  {allDepts.reduce((acc, d) => acc + d.beds, 0)} {t('beds')}
-                </span>
-                <span className="chip">
-                  <Users size={14} />
-                  {allPhysicians.length} lekárov
-                </span>
-              </div>
-            </div>
+      <PageHero slot="home-campus" alt="" containerClassName="hero-grid">
+        {/* Left: copy */}
+        <div>
+          <p className="eyebrow terra">{localizeField(hero.badge, locale)}</p>
+          <h1 style={{ marginBottom: '1rem' }}>{localizeField(hero.title, locale)}</h1>
+          <p className="lede" style={{ marginBottom: '1.8rem' }}>
+            {localizeField(hero.subtitle, locale)}
+          </p>
+          <div style={{ display: 'flex', gap: '.8rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            <Link href={`/${locale}/objednanie`} className="btn btn-primary btn-lg">
+              {t('book')}
+            </Link>
+            <Link href={`/${locale}/lekari`} className="btn btn-ghost btn-lg">
+              {t('nav.doctors')}
+            </Link>
+          </div>
+          {/* Trust chips */}
+          <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
+            <span className="chip">
+              <BedDouble size={14} />
+              {allDepts.reduce((acc, d) => acc + d.beds, 0)} {t('beds')}
+            </span>
+            <span className="chip">
+              <Users size={14} />
+              {allPhysicians.length} lekárov
+            </span>
+          </div>
+        </div>
 
-            {/* Right: emergency card */}
-            <div
-              className="card card-pad"
-              style={{ borderTop: '5px solid var(--red)' }}
-              role="complementary"
-              aria-label="Pohotovosť"
-            >
-              <p className="eyebrow" style={{ color: 'var(--red)', marginBottom: '.8rem' }}>
-                {t('emergency')}
-              </p>
-              <a
-                href="tel:112"
-                className="btn btn-emergency btn-lg btn-block"
-                style={{ marginBottom: '1.2rem', fontSize: '1.3rem' }}
-                aria-label={t('callEmergency')}
-              >
-                <PhoneCall size={20} aria-hidden />
-                112
+        {/* Right: emergency card — needs its own ink even on the dark hero
+            ground, see .has-hero-media .card / .emergency-card resets */}
+        <div
+          className="card card-pad emergency-card"
+          style={{ borderTop: '5px solid var(--red)' }}
+          role="complementary"
+          aria-label="Pohotovosť"
+        >
+          <h3 style={{ marginBottom: '.8rem' }}>{t('emergency')}</h3>
+          <a
+            href="tel:112"
+            className="btn btn-emergency btn-lg btn-block"
+            style={{ marginBottom: '1.2rem', fontSize: '1.3rem' }}
+            aria-label={t('callEmergency')}
+          >
+            <PhoneCall size={20} aria-hidden />
+            112
+          </a>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.65rem', fontSize: '.9rem' }} className="small">
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '.5rem' }}>
+              <span>{t('central')}</span>
+              <a href={`tel:${hospital.phone.replace(/\s/g, '')}`} style={{ fontWeight: 700, color: 'var(--blue-700)' }}>
+                {hospital.phone}
               </a>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '.65rem', fontSize: '.9rem', color: 'var(--ink-2)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '.5rem' }}>
-                  <span>{t('central')}</span>
-                  <a href={`tel:${hospital.phone.replace(/\s/g, '')}`} style={{ fontWeight: 700, color: 'var(--blue-700)' }}>
-                    {hospital.phone}
-                  </a>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '.5rem' }}>
-                  <span>Recepcia</span>
-                  <a href={`tel:${hospital.reception.replace(/[\s/]/g, '')}`} style={{ fontWeight: 700, color: 'var(--blue-700)' }}>
-                    {hospital.reception}
-                  </a>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Lekáreň</span>
-                  <a href={`tel:${hospital.pharmacy.replace(/[\s/]/g, '')}`} style={{ fontWeight: 700, color: 'var(--blue-700)' }}>
-                    {hospital.pharmacy}
-                  </a>
-                </div>
-              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '.5rem' }}>
+              <span>Recepcia</span>
+              <a href={`tel:${hospital.reception.replace(/[\s/]/g, '')}`} style={{ fontWeight: 700, color: 'var(--blue-700)' }}>
+                {hospital.reception}
+              </a>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Lekáreň</span>
+              <a href={`tel:${hospital.pharmacy.replace(/[\s/]/g, '')}`} style={{ fontWeight: 700, color: 'var(--blue-700)' }}>
+                {hospital.pharmacy}
+              </a>
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* ── Quick access ─────────────────────────────────── */}
       <section style={{ padding: '2.5rem 0', background: 'var(--bg-2)' }}>

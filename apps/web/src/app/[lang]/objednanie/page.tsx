@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Check, ChevronRight, AlertTriangle, Clock, Video, Camera, CameraOff, ExternalLink } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -272,18 +273,24 @@ export default function BookingPage() {
   if (step === 1) {
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div data-step="1" style={{ padding: '2rem 0 4rem' }}>
-          <div className="container-narrow">
+        <div data-step="1">
+          <PageHero
+            slot="booking-hero"
+            alt=""
+            breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
+          >
             {isTelehealth && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.75rem' }}>
-                <Video size={18} color="var(--blue-700)" aria-hidden />
-                <span className="eyebrow" style={{ color: 'var(--blue-700)' }}>{t('booking.telehealthModeTitle')}</span>
+                <Video size={18} aria-hidden />
+                <span className="eyebrow">{t('booking.telehealthModeTitle')}</span>
               </div>
             )}
             <p className="eyebrow">{t('booking.title')}</p>
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step1')}</h1>
             <Stepper />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', marginTop: '1.5rem' }}>
+          </PageHero>
+          <div className="container-narrow" style={{ padding: '2rem 0 4rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
               {visibleClinics.map((clinic) => (
                 <button
                   key={clinic.id}
@@ -340,11 +347,17 @@ export default function BookingPage() {
 
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div data-step="2" style={{ padding: '2rem 0 4rem' }}>
-          <div className="container-narrow">
+        <div data-step="2">
+          <PageHero
+            slot="booking-hero"
+            alt=""
+            breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
+          >
             <p className="eyebrow">{localizeField(selectedClinic.name, locale)}</p>
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step2')}</h1>
             <Stepper />
+          </PageHero>
+          <div className="container-narrow" style={{ padding: '2rem 0 4rem' }}>
             <div
               style={{
                 background: 'var(--blue-50)',
@@ -420,11 +433,17 @@ export default function BookingPage() {
   if (step === 3) {
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div data-step="3" style={{ padding: '2rem 0 4rem' }}>
-          <div className="container-narrow">
+        <div data-step="3">
+          <PageHero
+            slot="booking-hero"
+            alt=""
+            breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
+          >
             <p className="eyebrow">{booking.date}</p>
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step3')}</h1>
             <Stepper />
+          </PageHero>
+          <div className="container-narrow" style={{ padding: '2rem 0 4rem' }}>
             {slots.length === 0 ? (
               <p style={{ color: 'var(--ink-3)', marginTop: '1.5rem' }}>{t('booking.noSlots')}</p>
             ) : (
@@ -509,11 +528,17 @@ export default function BookingPage() {
 
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div data-step="4" style={{ padding: '2rem 0 4rem' }}>
-          <div className="container-narrow">
+        <div data-step="4">
+          <PageHero
+            slot="booking-hero"
+            alt=""
+            breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
+          >
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step4')}</h1>
             <Stepper />
-            <form onSubmit={handleSubmitDetails} style={{ marginTop: '1.5rem' }} noValidate>
+          </PageHero>
+          <div className="container-narrow" style={{ padding: '2rem 0 4rem' }}>
+            <form onSubmit={handleSubmitDetails} noValidate>
               <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Name */}
                 <label className="field">
@@ -817,11 +842,17 @@ export default function BookingPage() {
     // Pre-confirm summary
     return (
       <SiteLayout activePath={`/${locale}/objednanie`}>
-        <div data-step="5" style={{ padding: '2rem 0 4rem' }}>
-          <div className="container-narrow">
+        <div data-step="5">
+          <PageHero
+            slot="booking-hero"
+            alt=""
+            breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
+          >
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step5')}</h1>
             <Stepper />
-            <div className="card card-pad" style={{ marginTop: '1.5rem' }}>
+          </PageHero>
+          <div className="container-narrow" style={{ padding: '2rem 0 4rem' }}>
+            <div className="card card-pad">
               <h3 style={{ marginBottom: '1rem' }}>{locale === 'sk' ? 'Zhrnutie objednávky' : 'Booking summary'}</h3>
               {[
                 { l: locale === 'sk' ? 'Ambulancia' : 'Clinic', v: localizeField(selectedClinic.name, locale) },

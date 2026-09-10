@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { NewsHashHighlight } from '@/components/NewsHashHighlight';
 import { getNewsItems } from '@/lib/strapi-client';
@@ -20,10 +21,16 @@ export default async function NewsPage({ params }: { params: Promise<{ lang: str
   return (
     <SiteLayout activePath={`/${locale}/aktuality`}>
       <NewsHashHighlight />
+      <PageHero
+        slot="news-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.news') }}
+      >
+        <p className="eyebrow">{t('nav.news')}</p>
+        <h1>{locale === 'sk' ? 'Aktuality' : 'News & announcements'}</h1>
+      </PageHero>
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container-narrow">
-          <p className="eyebrow">{t('nav.news')}</p>
-          <h1 style={{ marginBottom: '2rem' }}>{locale === 'sk' ? 'Aktuality' : 'News & announcements'}</h1>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {news.map((item) => (
               <article

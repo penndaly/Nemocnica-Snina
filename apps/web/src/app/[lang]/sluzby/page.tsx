@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {
   Scissors, Heart, Activity, Stethoscope, Zap, Shield, FlaskConical, ScanLine, Pill,
 } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getServices } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
@@ -30,12 +31,14 @@ export default async function ServicesPage({ params }: { params: Promise<{ lang:
   return (
     <SiteLayout activePath={`/${locale}/sluzby`}>
       {/* Page hero */}
-      <div style={{ padding: '2.5rem 0', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
-        <div className="container">
-          <p className="eyebrow">{t('nav.services')}</p>
-          <h1>{locale === 'sk' ? 'Služby a klinické postupy' : 'Services & clinical practices'}</h1>
-        </div>
-      </div>
+      <PageHero
+        slot="services-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.services') }}
+      >
+        <p className="eyebrow">{t('nav.services')}</p>
+        <h1>{locale === 'sk' ? 'Služby a klinické postupy' : 'Services & clinical practices'}</h1>
+      </PageHero>
 
       {/* Services grid */}
       <div style={{ padding: '3rem 0' }}>

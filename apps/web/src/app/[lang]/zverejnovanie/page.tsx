@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Download, Search } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { ScrollArea } from '@/components/ScrollArea';
 import { localizeField } from '@/lib/i18n-utils';
@@ -50,13 +51,16 @@ export default function DisclosuresPage() {
 
   return (
     <SiteLayout activePath={`/${locale}/zverejnovanie`}>
+      <PageHero
+        slot="disclosure-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('footer.disclosures') }}
+      >
+        <p className="eyebrow">{t('footer.legal')}</p>
+        <h1>{locale === 'sk' ? 'Zverejňovanie zmlúv a faktúr' : 'Contracts & invoices'}</h1>
+      </PageHero>
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          <p className="eyebrow">{t('footer.legal')}</p>
-          <h1 style={{ marginBottom: '1.5rem' }}>
-            {locale === 'sk' ? 'Zverejňovanie zmlúv a faktúr' : 'Contracts & invoices'}
-          </h1>
-
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: '1 1 260px' }}>

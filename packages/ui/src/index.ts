@@ -6,6 +6,8 @@ export { Chip } from './components/Chip';
 export { ImagePlaceholder } from './components/ImagePlaceholder';
 export { HospitalImage } from './components/HospitalImage';
 export type { HospitalImageProps } from './components/HospitalImage';
+export { PageHero } from './components/PageHero';
+export type { PageHeroProps, PageHeroBreadcrumb } from './components/PageHero';
 export { sceneFor, sceneDataUri, monogram } from './placeholder-art';
 export type { SceneName } from './placeholder-art';
 export { cn } from './lib/cn';

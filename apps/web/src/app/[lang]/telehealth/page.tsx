@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Video, Monitor, FileText, Check, ChevronRight } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getTelehealthPage, getTelehealthClinics } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
@@ -53,19 +54,15 @@ export default async function TelehealthPage({
   return (
     <SiteLayout activePath={`/${locale}/telehealth`}>
       {/* ── Hero ────────────────────────────────────────────── */}
-      <section
-        style={{
-          padding: '4rem 0 3rem',
-          background: 'linear-gradient(135deg, var(--blue-900) 0%, #1a3a6e 100%)',
-          color: '#fff',
-        }}
+      <PageHero
+        slot="telehealth-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: th('navLabel') }}
       >
-        <div className="container">
           <div
+            className="hero-grid"
             style={{
-              display: 'grid',
               gridTemplateColumns: '1.15fr .85fr',
-              gap: '3rem',
               alignItems: 'center',
             }}
           >
@@ -194,8 +191,7 @@ export default async function TelehealthPage({
               </div>
             </div>
           </div>
-        </div>
-      </section>
+      </PageHero>
 
       {/* ── Eligible clinics ────────────────────────────────── */}
       <section style={{ padding: '3.5rem 0', background: 'var(--bg-2)' }}>

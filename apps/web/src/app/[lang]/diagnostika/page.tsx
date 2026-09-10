@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Phone, Check } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getFacilities } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
@@ -13,12 +14,14 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ la
 
   return (
     <SiteLayout activePath={`/${locale}/diagnostika`}>
-      <div style={{ padding: '2.5rem 0', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
-        <div className="container">
-          <p className="eyebrow">{t('nav.diagnostics')}</p>
-          <h1>{locale === 'sk' ? 'Diagnostika a podporné pracoviská (SVaLZ)' : 'Diagnostics & support facilities'}</h1>
-        </div>
-      </div>
+      <PageHero
+        slot="diagnostics-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.diagnostics') }}
+      >
+        <p className="eyebrow">{t('nav.diagnostics')}</p>
+        <h1>{locale === 'sk' ? 'Diagnostika a podporné pracoviská (SVaLZ)' : 'Diagnostics & support facilities'}</h1>
+      </PageHero>
 
       <div style={{ padding: '3rem 0 4rem' }}>
         <div className="container-narrow">

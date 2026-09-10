@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Phone, MapPin, Clock, Info } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getClinics } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
@@ -22,13 +23,18 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
 
   return (
     <SiteLayout activePath={`/${locale}/ambulancie`}>
+      <PageHero
+        slot="clinics-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.clinics') }}
+      >
+        <p className="eyebrow">{t('nav.clinics')}</p>
+        <h1 style={{ marginBottom: '1rem' }}>
+          {locale === 'sk' ? 'Ambulancie' : 'Outpatient clinics'}
+        </h1>
+      </PageHero>
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          <p className="eyebrow">{t('nav.clinics')}</p>
-          <h1 style={{ marginBottom: '1rem' }}>
-            {locale === 'sk' ? 'Ambulancie' : 'Outpatient clinics'}
-          </h1>
-
           {/* Legend */}
           <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
             {(['open', 'new', 'alert', 'closed'] as ClinicStatus[]).map((s) => (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Search } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -43,13 +44,16 @@ export default function PhysiciansPage() {
 
   return (
     <SiteLayout activePath={`/${locale}/lekari`}>
+      <PageHero
+        slot="physicians-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.doctors') }}
+      >
+        <p className="eyebrow">{t('nav.doctors')}</p>
+        <h1>{locale === 'sk' ? 'Naši lekári' : 'Our physicians'}</h1>
+      </PageHero>
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          <p className="eyebrow">{t('nav.doctors')}</p>
-          <h1 style={{ marginBottom: '1.5rem' }}>
-            {locale === 'sk' ? 'Naši lekári' : 'Our physicians'}
-          </h1>
-
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: '1 1 300px' }}>

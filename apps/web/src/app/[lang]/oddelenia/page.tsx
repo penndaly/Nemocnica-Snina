@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { BedDouble, Users } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getDepartments } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
@@ -14,12 +15,16 @@ export default async function DepartmentsPage({ params }: { params: Promise<{ la
 
   return (
     <SiteLayout activePath={`/${locale}/oddelenia`}>
+      <PageHero
+        slot="departments-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.departments') }}
+      >
+        <p className="eyebrow">{t('nav.departments')}</p>
+        <h1>{locale === 'sk' ? 'Oddelenia nemocnice' : 'Hospital departments'}</h1>
+      </PageHero>
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          <p className="eyebrow">{t('nav.departments')}</p>
-          <h1 style={{ marginBottom: '2rem' }}>
-            {locale === 'sk' ? 'Oddelenia nemocnice' : 'Hospital departments'}
-          </h1>
           <div
             style={{
               display: 'grid',

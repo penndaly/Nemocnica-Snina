@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { BedDouble, Phone, Clock, Check } from 'lucide-react';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getDepartments, getDepartmentBySlug, getPhysicians } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
@@ -34,47 +35,49 @@ export default async function DepartmentDetailPage({
   return (
     <SiteLayout activePath={`/${locale}/oddelenia`}>
       {/* Page hero */}
-      <div style={{ background: 'var(--bg-2)', padding: '2.5rem 0', borderBottom: '1px solid var(--line)' }}>
-        <div className="container">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.2rem' }}>
-            <div
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--terra-50)',
-                color: 'var(--terra)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-              aria-hidden
-            >
-              <BedDouble size={28} />
-            </div>
-            <div>
-              <p className="eyebrow">{t('nav.departments')}</p>
-              <h1 style={{ marginBottom: '.5rem' }}>{localizeField(dept.name, locale)}</h1>
-              <p className="lede">{localizeField(dept.summary, locale)}</p>
-              <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.75rem' }}>
-                {dept.beds > 0 && (
-                  <span className="chip">
-                    <BedDouble size={13} />
-                    {dept.beds} {t('beds')}
-                  </span>
-                )}
-                {dept.phone && (
-                  <span className="chip">
-                    <Phone size={13} />
-                    {dept.phone}
-                  </span>
-                )}
-              </div>
+      <PageHero
+        slot={`dept-${dept.id}-hero`}
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: localizeField(dept.short, locale) }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.2rem' }}>
+          <div
+            style={{
+              width: 58,
+              height: 58,
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(255,255,255,.14)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+            aria-hidden
+          >
+            <BedDouble size={28} />
+          </div>
+          <div>
+            <p className="eyebrow">{t('nav.departments')}</p>
+            <h1 style={{ marginBottom: '.5rem' }}>{localizeField(dept.name, locale)}</h1>
+            <p className="lede">{localizeField(dept.summary, locale)}</p>
+            <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.75rem' }}>
+              {dept.beds > 0 && (
+                <span className="chip">
+                  <BedDouble size={13} />
+                  {dept.beds} {t('beds')}
+                </span>
+              )}
+              {dept.phone && (
+                <span className="chip">
+                  <Phone size={13} />
+                  {dept.phone}
+                </span>
+              )}
             </div>
           </div>
         </div>
-      </div>
+      </PageHero>
 
       {/* Body: 2 col */}
       <div style={{ padding: '2.5rem 0 4rem' }}>

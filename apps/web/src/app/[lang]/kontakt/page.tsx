@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { ApsCard } from '@/components/ApsCard';
 import { getHospitalInfo, getPageContent } from '@/lib/strapi-client';
@@ -21,13 +22,15 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
   return (
     <SiteLayout activePath={`/${locale}/kontakt`}>
       {/* Page hero — about */}
-      <div style={{ padding: '2.5rem 0', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
-        <div className="container-narrow">
-          <p className="eyebrow">{t('nav.contact')}</p>
-          <h1 style={{ marginBottom: '.75rem' }}>{localizeField(about.title, locale)}</h1>
-          <p className="lede">{localizeField(about.body, locale)}</p>
-        </div>
-      </div>
+      <PageHero
+        slot="contact-hero"
+        alt=""
+        breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.contact') }}
+      >
+        <p className="eyebrow">{t('nav.contact')}</p>
+        <h1 style={{ marginBottom: '.75rem' }}>{localizeField(about.title, locale)}</h1>
+        <p className="lede">{localizeField(about.body, locale)}</p>
+      </PageHero>
 
       {/* 2-col body */}
       <div style={{ padding: '2.5rem 0 4rem' }}>

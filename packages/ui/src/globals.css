@@ -313,6 +313,56 @@
   }
 }
 
+/* ── Page hero + hero image band ──────────────────────────────────────────
+ * Ported from design_handoff_nemocnica_snina/assets/styles.css (Sprint UI-1).
+ * .page-hero is the plain text-only header band every route already had;
+ * .has-hero-media (added by <PageHero> when it renders a hero image) layers
+ * a full-bleed image + scrim behind it. */
+.page-hero { padding: 52px 0 40px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+/* Home page's two-column hero (copy + emergency-card aside) — exempted from
+ * the 62% copy cap below since it's already width-constrained by its own grid. */
+.hero-grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 3rem; align-items: start; }
+@media (max-width: 780px) { .hero-grid { grid-template-columns: 1fr; } }
+.breadcrumb { font-size: .85rem; color: var(--ink-3); margin-bottom: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.breadcrumb a { color: var(--ink-2); font-weight: 600; }
+.breadcrumb span { color: var(--line-2); }
+
+.has-hero-media { position: relative; overflow: hidden; border-bottom: none; padding-top: 76px; padding-bottom: 76px; min-height: 400px; display: flex; align-items: center; }
+.has-hero-media > .container { position: relative; z-index: 2; width: 100%; }
+.hero-media { position: absolute; inset: 0; z-index: 0; }
+.hero-media img { display: block; width: 100%; height: 100%; }
+.hero-scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(16,44,76,.93) 0%, rgba(16,44,76,.90) 46%, rgba(16,44,76,.60) 72%, rgba(16,44,76,.22) 100%); }
+/* Keep hero copy inside the dark half of the scrim so contrast holds — this
+ * cap is load-bearing, not cosmetic. Exempt full-width children (home's
+ * .hero-grid two-column layout, the booking .stepper). */
+@media (min-width: 1101px) { .has-hero-media > .container > *:not(.hero-grid):not(.stepper) { max-width: min(64ch, 62%); } }
+.has-hero-media h1, .has-hero-media h2 { color: #fff; }
+.has-hero-media .lede, .has-hero-media p { color: #dbe6f2; }
+.has-hero-media .eyebrow, .has-hero-media .eyebrow.terra { color: #f0b48a; }
+.has-hero-media .breadcrumb { color: #a8bdd4; }
+.has-hero-media .breadcrumb a { color: #d6e2f0; }
+.has-hero-media .chip { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.28); color: #fff; }
+.has-hero-media .chip svg { color: #bcd3ea; }
+.has-hero-media .btn-ghost { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.42); color: #fff; }
+.has-hero-media .btn-ghost:hover { background: rgba(255,255,255,.22); }
+.has-hero-media .input, .has-hero-media input[type="search"], .has-hero-media input[type="text"] { background: rgba(255,255,255,.96); }
+.has-hero-media label, .has-hero-media .small { color: #dbe6f2; }
+/* Cards sitting inside a hero (e.g. home's emergency-card) keep their own ink
+ * — without this reset they inherit the light overlay colours and become
+ * unreadable on the card's own white background. */
+.has-hero-media .card p, .has-hero-media .card .small, .has-hero-media .card label { color: var(--ink-2); }
+.has-hero-media .card h1, .has-hero-media .card h2, .has-hero-media .card h3, .has-hero-media .card h4 { color: var(--ink); }
+.has-hero-media .card .muted { color: var(--ink-3); }
+.has-hero-media .emergency-card h3 { color: var(--red); }
+.has-hero-media .card .chip { background: var(--warm-100); border-color: var(--line); color: var(--ink-2); }
+/* Booking stepper on dark ground — apps/web's Stepper (objednanie/page.tsx)
+ * uses .stepper-step/.done/.active, not the prototype's .step/.step-num/
+ * .step-lbl; same dark-ground intent, applied to the real selectors. */
+.has-hero-media .stepper-step { color: #c3d5e8; border-color: rgba(255,255,255,.32); }
+.has-hero-media .stepper-step.active { color: #fff; border-color: #fff; }
+.has-hero-media .stepper-step.done { color: #dbe6f2; border-color: var(--green); }
+@media (max-width: 780px) { .has-hero-media { min-height: 0; padding-top: 44px; padding-bottom: 44px; } .hero-scrim { background: linear-gradient(180deg, rgba(16,44,76,.9) 0%, rgba(16,44,76,.86) 100%); } }
+
 /*
  * SiteHeader responsive nav swap (apps/web/src/components/layout/SiteHeader.tsx).
  * Mirrors design_handoff_nemocnica_snina/assets/styles.css's .nav-links/.nav-cta/
