@@ -63,7 +63,8 @@ export default function DisclosuresPage() {
         <div className="container">
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1 1 260px' }}>
+            {/* flex-basis 200px, not 260 — GRID_AUDIT_NARROW_VIEWPORT.md #3. */}
+            <div style={{ position: 'relative', flex: '1 1 200px' }}>
               <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)' }} aria-hidden />
               <input
                 type="search"

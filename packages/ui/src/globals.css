@@ -389,7 +389,11 @@
 .nav-top svg { width: 16px; height: 16px; transform: rotate(90deg); transition: transform .16s; color: var(--ink-3); }
 .nav-top:hover, .nav-top:focus-visible { background: var(--warm-100); color: var(--ink); }
 .nav-top.active { color: var(--blue-700); background: var(--blue-50); }
-.nav-panel { position: absolute; top: calc(100% + 8px); left: -8px; min-width: 310px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 8px; display: grid; gap: 2px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .14s, transform .14s, visibility .14s; z-index: 120; }
+/* min-width is safe today only because .nav-panel is display:none below
+ * 1100px (see the breakpoint above) — GRID_AUDIT_NARROW_VIEWPORT.md #5
+ * flagged it as a latent overflow the moment that changes. Capped so it
+ * can never exceed the viewport even if the panel is ever exposed narrower. */
+.nav-panel { position: absolute; top: calc(100% + 8px); left: -8px; min-width: min(310px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 8px; display: grid; gap: 2px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .14s, transform .14s, visibility .14s; z-index: 120; }
 .nav-group:hover .nav-panel, .nav-group:focus-within .nav-panel, .nav-panel.open { opacity: 1; visibility: visible; transform: none; }
 .nav-group:hover .nav-top svg, .nav-group:focus-within .nav-top svg, .nav-top[aria-expanded="true"] svg { transform: rotate(-90deg); }
 .nav-panel a { display: block; padding: 10px 12px; border-radius: 9px; }
@@ -414,7 +418,9 @@
 @media (max-width: 900px) { .grid-cards-3 { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .grid-cards-3 { grid-template-columns: 1fr; } }
 .grid-dates-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
-@media (max-width: 480px) { .grid-dates-4 { grid-template-columns: repeat(2, 1fr); } }
+/* 380px, not 480 — GRID_AUDIT_NARROW_VIEWPORT.md #4: at 320px a 4-col cell holds a
+ * day number + month abbreviation with no room to spare for a longer SK month name. */
+@media (max-width: 380px) { .grid-dates-4 { grid-template-columns: repeat(2, 1fr); } }
 
 /* High-contrast mode support */
 @media (prefers-contrast: more) {

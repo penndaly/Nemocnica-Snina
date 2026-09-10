@@ -56,7 +56,10 @@ export default function PhysiciansPage() {
         <div className="container">
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1 1 300px' }}>
+            {/* flex-basis 200px, not 300 — GRID_AUDIT_NARROW_VIEWPORT.md #3: at 320px
+                a wider basis leaves no room for the sibling accepting-only checkbox
+                in this flex-wrap toolbar. */}
+            <div style={{ position: 'relative', flex: '1 1 200px' }}>
               <Search
                 size={16}
                 style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)' }}
