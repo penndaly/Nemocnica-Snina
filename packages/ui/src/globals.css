@@ -346,7 +346,12 @@
 .has-hero-media h1, .has-hero-media h2 { color: #fff; }
 .has-hero-media .lede, .has-hero-media p { color: #dbe6f2; }
 .has-hero-media .eyebrow, .has-hero-media .eyebrow.terra { color: #f0b48a; }
-.has-hero-media .breadcrumb { color: #a8bdd4; }
+/* #a8bdd4 (the prototype's original value) measured 3.05:1 at 900px against a
+ * worst-case (near-white) underlying ground — real failure, not a false
+ * positive, since the placeholder-art scenes and likely real photography both
+ * have near-white regions. Matched to .lede's #dbe6f2, which clears 4.5:1
+ * with margin across the same tested range. */
+.has-hero-media .breadcrumb { color: #dbe6f2; }
 .has-hero-media .breadcrumb a { color: #d6e2f0; }
 .has-hero-media .chip { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.28); color: #fff; }
 .has-hero-media .chip svg { color: #bcd3ea; }
