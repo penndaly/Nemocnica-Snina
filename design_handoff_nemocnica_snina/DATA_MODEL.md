@@ -8,6 +8,15 @@ The seed file already contains the **complete, real content** for every collecti
 - `id`: stable slug (auto-generated from the primary bilingual name in the CMS; editable for `disclosures`).
 - `loc` = localized string `{sk,en,…}`; `locList` = `{sk:[],en:[],…}`.
 - References point to another collection's `id`.
+- **Media fields are not modelled in this file** — every hero/photo slot lives
+  in `assets/media.js`'s `PLAN`, keyed by slot id, not as a field on a
+  collection record. An unpopulated media field always renders branded
+  placeholder art (`assets/placeholder-art.js` in the prototype,
+  `packages/ui/src/placeholder-art.ts` in production — see
+  `PLACEHOLDER_ART.md`), so a record with no photo yet is a
+  **presentation-complete** state, not a broken or incomplete one. Don't
+  model a media field as required, and don't add null/loading/"missing
+  image" handling around it — the fallback already is the handling.
 
 ## Collections
 
