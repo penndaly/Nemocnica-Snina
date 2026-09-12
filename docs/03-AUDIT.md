@@ -128,3 +128,49 @@ and the nav leaves restored to the `visit` and `hospital` groups in
 `SiteHeader.tsx`. Scope (which of these, and how many other pages have the
 same gap) is being audited separately before this is sized — see whichever
 follow-up covers "ROUTE-1 scoping."
+
+Resolved 2026-09-10/12 for two of the (eventually four) missing pages —
+`edukacia` and `kariera` shipped in Sprint ROUTE-1a. `pre-pacientov`
+(ROUTE-1b) and `o-nemocnici` (ROUTE-1c) remain open.
+
+---
+
+## UI-2 — pre-existing 320px horizontal-scroll overflow (tracked, not fixed)
+
+Filed 2026-09-12, found while re-running Sprint ROUTE-1a's Task 3 no-scroll
+check. `documentElement.scrollWidth > innerWidth` at a 320px viewport on
+every route checked, **including routes that predate this sprint** — `/`,
+`/oddelenia` — not just the two new ROUTE-1a routes (`/edukacia`, `/kariera`).
+Confirmed via a standalone Playwright script (not committed) driving the dev
+server at the full `320,375,390,414,480,560,620,768,860,941,1024,1100,1280,1440`
+ladder from `SPRINT_UI_1A_CONTRAST_GRID.md`'s Task 2 Done-when: every width
+≥375px passes; only 320px fails, uniformly across old and new routes.
+
+This is a real defect (WCAG 2.1 AA 1.4.10 Reflow applies at 320px CSS width),
+but it's cross-route and pre-existing, not something ROUTE-1a introduced —
+patching it inside a route sprint would be scope creep and likely paper over
+the actual cause rather than fix it. Needs its own sprint (**UI-2**): find
+which shared component(s) force the overflow (likely candidates: `.container`
+padding/min-width, a fixed-width card or grid track, or the nav bar itself —
+not yet root-caused) and fix once, site-wide, rather than per-route.
+
+**Do not fix ad hoc inside a future route sprint.** If a new route sprint's
+no-scroll check also fails only at 320px and passes ≥375px, that's this same
+tracked defect, not a new one — note it and move on; if it fails at 375px+
+too, that's a new, route-specific bug and should be fixed in that sprint.
+
+---
+
+## ROUTE-1a — axe not run (staging-QA gap, not a false pass)
+
+Sprint ROUTE-1a (`edukacia`, `kariera`, 2026-09-10/12) verified both routes
+render correctly (list, filter, sk/en detail pages, relation lookups, and
+the no-horizontal-scroll ladder above ≥375px) against the local dev server,
+but **axe was not run** — no browser-based accessibility test harness is
+available in this execution environment (same limitation recorded above for
+Sprint UI-1a). This is not a claimed pass; it's an explicit gap.
+
+Tracked as **STG-2**: run the full `a11y.spec.ts` sweep (which already has
+`/sk/edukacia`, `/sk/edukacia/priprava`, `/sk/kariera`, `/sk/kariera/j1`
+added to `KEY_ROUTES`) against a real staging deploy before these routes are
+considered accessibility-verified, not just render-verified.
