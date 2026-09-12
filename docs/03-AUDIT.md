@@ -174,3 +174,10 @@ Tracked as **STG-2**: run the full `a11y.spec.ts` sweep (which already has
 `/sk/edukacia`, `/sk/edukacia/priprava`, `/sk/kariera`, `/sk/kariera/j1`
 added to `KEY_ROUTES`) against a real staging deploy before these routes are
 considered accessibility-verified, not just render-verified.
+
+**2026-09-12 update:** same gap applies to Sprint ROUTE-1b's
+`/sk/pre-pacientov` (added to `KEY_ROUTES` alongside the others) — axe still
+not run, for the same environment reason. No-horizontal-scroll re-checked
+at 375-1440px for `/sk/pre-pacientov` (the `visit` nav group grew one row);
+all pass — same UI-2 320px-only failure as every other route, not a new
+regression.
