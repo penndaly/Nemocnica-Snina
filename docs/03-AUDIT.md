@@ -484,3 +484,29 @@ E2E job's real `node dist/main`.
 **Open follow-up (STG-3):** the staging deploy's readiness poll must include
 `${STAGING_API_URL}/health`; a green deploy with a dead API is the worst
 possible signal.
+
+## STG-2 close-out — axe ran; ROUTE-1 pages had one serious violation each (fixed)
+
+2026-09-12. Once API-1 was fixed the CI E2E job got past API start and
+ran `a11y.spec.ts` on the ROUTE-1 routes for the first time. Result: 513
+passed, 6 failed — all six the same rule, `link-in-text-block` (serious),
+on `/sk/kariera` and `/sk/pre-pacientov` in every project. Inline links in
+running text (the HR mailto, the diagnostics link, the complaint-form
+mailto) were distinguishable from surrounding text by colour only
+(WCAG 1.4.1). The base `a { text-decoration: none }` made this true of
+every prose link on the site, so the fix is one global rule: links inside
+`p`/`li`/`td`/`dd`/`.lede` are underlined; `.btn`/`.chip` keep their own
+affordance. Method: `styled.spec.ts` asserts `text-decoration-line:
+underline` on the exact flagged element and `none` on a button; axe
+re-run locally on both routes and then on all 20 `KEY_ROUTES`: 20/20 pass.
+
+**Correction to the standing note that "no browser-based a11y harness is
+available in this environment":** it is. `@axe-core/playwright` + the
+installed Chromium run fine with the DB-free temp config used for
+`styled.spec.ts`. That note dates from before Playwright was proven here;
+from now on axe is part of the local ladder for any new route, not a
+staging-only gap.
+
+Two other E2E failures on the same run (`TH-6.2` admin telehealth config,
+`A4` admin sidebar) were reported flaky by Playwright's retry and passed on
+retry; not related, not investigated here.

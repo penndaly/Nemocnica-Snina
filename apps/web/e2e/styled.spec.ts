@@ -186,3 +186,14 @@ test('.spin busy-state animation resolves (UI-2a port; admin-only markup)', asyn
   });
   expect(anim).toBe('spin');
 });
+
+test('prose links are underlined, not colour-only (axe link-in-text-block; STG-2)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, '/sk/kariera');
+  // The HR contact mailto sits inside a <p> — the exact element axe flagged.
+  expect(await computed(page, 'p a[href^="mailto:"]', 'text-decoration-line')).toBe('underline');
+  await open(page, '/sk/pre-pacientov');
+  expect(await computed(page, 'p a', 'text-decoration-line')).toBe('underline');
+  // Buttons keep their own affordance.
+  expect(await computed(page, 'a.btn', 'text-decoration-line')).toBe('none');
+});

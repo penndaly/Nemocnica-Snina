@@ -109,6 +109,14 @@
   p { margin: 0 0 1rem; text-wrap: pretty; }
   a { color: var(--blue-700); text-decoration: none; }
   a:hover { color: var(--blue-600); }
+  /* WCAG 1.4.1 / axe `link-in-text-block` (serious): a link inside running
+   * text must be distinguishable without colour. Caught by the first CI axe
+   * run on /kariera and /pre-pacientov (STG-2 close-out, 2026-09-12); the
+   * rule is global because the gap is global — every prose link had it.
+   * Buttons/chips/cards are their own affordance and stay un-underlined. */
+  p a:not(.btn):not(.chip), li a:not(.btn):not(.chip), td a:not(.btn), dd a, .lede a {
+    text-decoration: underline; text-underline-offset: .15em; text-decoration-thickness: 1px;
+  }
   img { max-width: 100%; display: block; }
   svg { width: 1.15em; height: 1.15em; flex: 0 0 auto; }
 }
