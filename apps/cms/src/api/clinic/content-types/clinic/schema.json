@@ -10,7 +10,7 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginsOptions": {
+  "pluginOptions": {
     "i18n": {
       "localized": true
     }
@@ -19,7 +19,7 @@
     "name": {
       "type": "string",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -32,7 +32,7 @@
     "specialty": {
       "type": "string",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -48,7 +48,7 @@
     "location": {
       "type": "string",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -93,7 +93,7 @@
     },
     "schedule": {
       "type": "json",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -102,7 +102,7 @@
     "bookingRule": {
       "type": "text",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -110,7 +110,7 @@
     },
     "fee": {
       "type": "string",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -137,7 +137,7 @@
     },
     "telehealthRule": {
       "type": "text",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -152,7 +152,7 @@
         "rejected"
       ],
       "default": "needs_review",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -160,7 +160,7 @@
     },
     "reviewed_by": {
       "type": "string",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -168,7 +168,7 @@
     },
     "reviewed_at": {
       "type": "datetime",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -176,7 +176,7 @@
     },
     "review_notes": {
       "type": "text",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }

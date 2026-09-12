@@ -8,9 +8,9 @@
     "description": "Quality certification shown on /o-nemocnici — from DATA_MODEL.md aboutInfo.certifications. Certificate numbers and issuing bodies are load-bearing facts; keep them in sync with the hospital's own records."
   },
   "options": { "draftAndPublish": true },
-  "pluginsOptions": { "i18n": { "localized": true } },
+  "pluginOptions": { "i18n": { "localized": true } },
   "attributes": {
     "name": { "type": "string", "required": true },
-    "desc": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } }
+    "desc": { "type": "text", "required": true, "pluginOptions": { "i18n": { "localized": true } } }
   }
 }

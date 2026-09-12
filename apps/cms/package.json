@@ -8,6 +8,7 @@
     "start": "strapi start",
     "build": "strapi build",
     "strapi": "strapi",
+    "verify:i18n": "node scripts/verify-i18n-gate.js",
     "seed": "ts-node --project ../../tsconfig.base.json seed/import-seed.ts"
   },
   "engines": {

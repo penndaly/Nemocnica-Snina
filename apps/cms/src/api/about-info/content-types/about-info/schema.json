@@ -7,17 +7,85 @@
     "displayName": "About Info",
     "description": "Singleton — governance prose, supervisory board and published finances for /o-nemocnici. From DATA_MODEL.md: aboutInfo. Hospital identity (IČO/DIČ/address) lives on Hospital; the GDPR/DPO block lives on the contact page — neither is duplicated here."
   },
-  "options": { "draftAndPublish": false },
-  "pluginsOptions": {},
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
-    "owner": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "leadership": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "ethics": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "adverseEvents": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "antiCorruption": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "transfusionCommittee": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "rankings": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "board": { "type": "json", "description": "Supervisory board member names (string[]) — names are not translated." },
-    "financials": { "type": "json", "description": "{ revenue, assets, profit, year } — published figures as formatted strings, never numbers." }
+    "owner": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "leadership": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "ethics": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "adverseEvents": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "antiCorruption": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "transfusionCommittee": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "rankings": {
+      "type": "text",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "board": {
+      "type": "json",
+      "description": "Supervisory board member names (string[]) — names are not translated."
+    },
+    "financials": {
+      "type": "json",
+      "description": "{ revenue, assets, profit, year } — published figures as formatted strings, never numbers."
+    }
   }
 }

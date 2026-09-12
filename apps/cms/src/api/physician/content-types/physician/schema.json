@@ -9,7 +9,7 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginsOptions": {
+  "pluginOptions": {
     "i18n": {
       "localized": true
     }
@@ -26,7 +26,7 @@
     "role": {
       "type": "string",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -34,7 +34,7 @@
     },
     "bio": {
       "type": "text",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -88,7 +88,7 @@
         "rejected"
       ],
       "default": "needs_review",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -96,7 +96,7 @@
     },
     "reviewed_by": {
       "type": "string",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -104,7 +104,7 @@
     },
     "reviewed_at": {
       "type": "datetime",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -112,7 +112,7 @@
     },
     "review_notes": {
       "type": "text",
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }

@@ -3,7 +3,7 @@
 /**
  * Strapi bootstrap/register hooks.
  *
- *   1. Ensure all 6 i18n locales exist on first boot.
+ *   1. Ensure all 6 i18n locales exist on first boot, with `sk` as the default.
  *   2. Translation review gate (Sprint A3): machine-translated clinical content
  *      (cs/pl/hu/uk) is ALWAYS a draft. Publishing such an entry is BLOCKED
  *      unless review_status === 'approved'. SK/EN are human-authored and pass
@@ -33,13 +33,25 @@ module.exports = {
 
   async bootstrap({ strapi }) {
     // ── 1. Ensure locales ──────────────────────────────────────
+    // The i18n plugin seeds `en` as the store default on first boot and does
+    // NOT read `defaultLocale`/`locales` from config/plugins.js (verified
+    // against @strapi/plugin-i18n 4.25.0 — those keys are inert). So `sk`
+    // must be created here and explicitly made the default, or every entry
+    // created without a locale lands in `en` and `locale: 'sk'` writes fail.
+    // (CMS-1: this loop used to skip `sk` entirely — unnoticed because the
+    // `pluginsOptions` typo meant no collection was localized anyway.)
     const i18nService = strapi.plugin('i18n').service('locales');
-    for (const code of ['cs', 'pl', 'hu', 'uk', 'en']) {
+    const LOCALE_NAMES = { sk: 'Slovenčina', cs: 'Čeština', pl: 'Polski', hu: 'Magyar', uk: 'Українська', en: 'English' };
+    for (const code of ['sk', 'cs', 'pl', 'hu', 'uk', 'en']) {
       const existing = await i18nService.findByCode(code);
       if (!existing) {
-        await i18nService.create({ code, name: code.toUpperCase() });
+        await i18nService.create({ code, name: LOCALE_NAMES[code] });
         strapi.log.info(`i18n: created locale ${code}`);
       }
+    }
+    if ((await i18nService.getDefaultLocale()) !== 'sk') {
+      await i18nService.setDefaultLocale({ code: 'sk' });
+      strapi.log.info('i18n: default locale set to sk');
     }
 
     // ── 2. Translation review publish gate ─────────────────────

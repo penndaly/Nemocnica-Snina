@@ -1,10 +1,10 @@
 module.exports = ({ env }) => ({
   i18n: {
     enabled: true,
-    config: {
-      defaultLocale: 'sk',
-      locales: ['sk', 'cs', 'pl', 'hu', 'uk', 'en'],
-    },
+    // NOTE (CMS-1): @strapi/plugin-i18n 4.25 has no `defaultLocale`/`locales`
+    // config keys — those were here before and were silently ignored. Locales
+    // and the sk default are created by src/index.js bootstrap (the only
+    // mechanism that works), and verified by scripts/verify-i18n-gate.js.
   },
   upload: {
     config: {

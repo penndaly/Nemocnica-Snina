@@ -10,7 +10,7 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginsOptions": {
+  "pluginOptions": {
     "i18n": {
       "localized": true
     }
@@ -19,7 +19,7 @@
     "title": {
       "type": "string",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }
@@ -32,7 +32,7 @@
     "desc": {
       "type": "text",
       "required": true,
-      "pluginsOptions": {
+      "pluginOptions": {
         "i18n": {
           "localized": true
         }

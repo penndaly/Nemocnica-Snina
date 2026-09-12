@@ -7,20 +7,65 @@
     "displayName": "Hospital Info",
     "description": "Singleton — contact details, address, emergency numbers. From DATA_MODEL.md: hospital singleton."
   },
-  "options": { "draftAndPublish": false },
-  "pluginsOptions": {},
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
-    "name":       { "type": "string",  "required": true },
-    "tagline":    { "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
-    "address":    { "type": "string",  "required": true },
-    "ico":        { "type": "string" },
-    "dic":        { "type": "string" },
-    "phone":      { "type": "string",  "required": true },
-    "reception":  { "type": "string" },
-    "pharmacy":   { "type": "string" },
-    "emergency":  { "type": "string",  "default": "112" },
-    "email":      { "type": "email" },
-    "region":     { "type": "string",  "pluginsOptions": { "i18n": { "localized": true } } },
-    "mapEmbedUrl":{ "type": "string",  "description": "Google Maps embed URL for /kontakt" }
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "tagline": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "address": {
+      "type": "string",
+      "required": true
+    },
+    "ico": {
+      "type": "string"
+    },
+    "dic": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string",
+      "required": true
+    },
+    "reception": {
+      "type": "string"
+    },
+    "pharmacy": {
+      "type": "string"
+    },
+    "emergency": {
+      "type": "string",
+      "default": "112"
+    },
+    "email": {
+      "type": "email"
+    },
+    "region": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "mapEmbedUrl": {
+      "type": "string",
+      "description": "Google Maps embed URL for /kontakt"
+    }
   }
 }

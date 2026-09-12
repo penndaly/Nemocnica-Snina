@@ -7,11 +7,35 @@
     "displayName": "Careers Info",
     "description": "Singleton — benefits list + HR contact for /kariera. From DATA_MODEL.md: careersInfo singleton."
   },
-  "options": { "draftAndPublish": false },
-  "pluginsOptions": {},
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
-    "contact": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "phone": { "type": "string", "required": true },
-    "benefits": { "type": "json", "pluginsOptions": { "i18n": { "localized": true } } }
+    "contact": {
+      "type": "string",
+      "required": true,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "phone": {
+      "type": "string",
+      "required": true
+    },
+    "benefits": {
+      "type": "json",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    }
   }
 }

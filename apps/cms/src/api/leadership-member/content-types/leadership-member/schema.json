@@ -8,11 +8,11 @@
     "description": "Hospital management (konateľ, deputies, division heads) — from DATA_MODEL.md aboutInfo.leadershipTeam. Deliberately not a relation to Physician: these are management posts and only one holder also has a clinical role."
   },
   "options": { "draftAndPublish": true },
-  "pluginsOptions": { "i18n": { "localized": true } },
+  "pluginOptions": { "i18n": { "localized": true } },
   "attributes": {
     "name": { "type": "string", "required": true },
     "slug": { "type": "uid", "targetField": "name" },
-    "role": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "role": { "type": "string", "required": true, "pluginOptions": { "i18n": { "localized": true } } },
     "phone": { "type": "string" },
     "email": { "type": "email" }
   }

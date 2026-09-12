@@ -8,13 +8,13 @@
     "description": "Capital investment shown on /o-nemocnici — from DATA_MODEL.md aboutInfo.investments."
   },
   "options": { "draftAndPublish": true },
-  "pluginsOptions": { "i18n": { "localized": true } },
+  "pluginOptions": { "i18n": { "localized": true } },
   "attributes": {
     "amount": {
       "type": "string",
       "required": true,
       "description": "Formatted as published, e.g. \"340 000 €\" — not a number."
     },
-    "desc": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } }
+    "desc": { "type": "text", "required": true, "pluginOptions": { "i18n": { "localized": true } } }
   }
 }

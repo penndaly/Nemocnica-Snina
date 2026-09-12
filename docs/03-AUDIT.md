@@ -378,3 +378,57 @@ ROUTE-1b blind spot again. The durable check is a per-locale "last group
 right edge < first CTA left edge" assertion in `styled.spec.ts` at
 1101/1280/1440, which the Rusyn sprint adds (C4). Any seventh locale makes
 this worse; fix it first.
+
+### CMS-1 close-out (2026-09-12) — this is a behaviour change, not a typo fix
+
+Renaming `pluginsOptions` → `pluginOptions` in 20 schemas turns localization
+**on for every collection at once**. Before: 0 of 20 content types localized
+(every flag ignored; one row per entry, no `locale` column). After, verified
+by booting Strapi 4.25 against a scratch SQLite DB (`apps/cms/scripts/
+verify-i18n-gate.js`, `pnpm --filter nemocnica-snina-cms verify:i18n`):
+
+| content type | kind | localized fields after | review-gated |
+|---|---|---|---|
+| department | collection | name, short, leadRole, deputyRole, summary, desc, facilities, visiting + 4 review fields (12) | yes |
+| clinic | collection | name, specialty, location, schedule, bookingRule, fee, telehealthRule + 4 review (11) | yes |
+| physician | collection | role, bio + 4 review (6) | yes |
+| service | collection | name, desc + 4 review (6) | yes |
+| facility | collection | name, kind, desc, features + 4 review (8) | yes |
+| news-item | collection | tag, title, body + 4 review (7) | yes |
+| education-article | collection | title, excerpt, body + 4 review (7) | yes |
+| pages-content | single | 12 hero/about/gdpr/a11y/telehealth strings | no |
+| about-info | single | owner, leadership, ethics, adverseEvents, antiCorruption, transfusionCommittee, rankings (7) | no |
+| careers-info | single | contact, benefits (2) | no |
+| hospital | single | tagline, region (2) | no |
+| certification, clinic-waiting-time, disclosure, history-milestone, investment, job-posting, leadership-member, patient-testimonial, price-list-item | collection | 1–2 each | no |
+
+Three single types (about-info, careers-info, hospital) had field-level
+flags but no content-type-level flag; Strapi needs both, so the type-level
+flag was added — otherwise those fields would have stayed single-locale
+after the rename. Existing rows (there are none in a tracked DB; dev is
+SQLite) become the default locale.
+
+**What the boot also uncovered — two more things that had never run:**
+
+- **Default locale was `en`, not `sk`.** The plugin seeds `en` on first boot
+  and ignores `defaultLocale`/`locales` in `config/plugins.js` (those keys do
+  not exist in @strapi/plugin-i18n 4.25; removed with a note). The bootstrap
+  loop in `src/index.js` created `cs/pl/hu/uk/en` and **skipped `sk`**, so a
+  `locale: 'sk'` write would have failed and any entry created without a
+  locale would have landed in `en`. Bootstrap now creates all six with native
+  names and sets `sk` as default.
+- **The dev SQLite dialect name was wrong** (`better-sqlite3` → "Unknown
+  dialect"; Strapi's name is `sqlite`). Separate commit.
+
+**Publish gate exercised for the first time** (all 12 assertions pass):
+`sk` publishes without review; a `cs` department is forced to draft with
+`review_status=needs_review` on create; publishing it throws
+`Cannot publish cs content without review_status='approved'` and leaves it
+a draft; after approval it publishes; a non-clinical `cs` entry
+(history-milestone) passes through; and a **`rue` locale registers through
+the locales service** (the path the bootstrap uses — the admin UI's yup
+schema would reject it as not in the ISO list), with content creatable in
+it. That last assertion is what the Rusyn sprint's CMS half will rely on.
+
+Not covered: the Strapi admin UI itself was not opened (no `strapi build`
+here); CI does not run the CMS. `verify:i18n` is the standing check.

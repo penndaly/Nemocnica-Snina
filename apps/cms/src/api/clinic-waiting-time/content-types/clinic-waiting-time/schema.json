@@ -8,10 +8,10 @@
     "description": "Per-clinic waiting-time estimate — from DATA_MODEL.md patientInfo.waitingTimes. `clinic` is a display name, deliberately not a relation to Clinic (matches the source data)."
   },
   "options": { "draftAndPublish": true },
-  "pluginsOptions": { "i18n": { "localized": true } },
+  "pluginOptions": { "i18n": { "localized": true } },
   "attributes": {
-    "clinic": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
-    "wait": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "clinic": { "type": "string", "required": true, "pluginOptions": { "i18n": { "localized": true } } },
+    "wait": { "type": "string", "required": true, "pluginOptions": { "i18n": { "localized": true } } },
     "level": { "type": "enumeration", "enum": ["good", "ok", "closed"], "required": true }
   }
 }
