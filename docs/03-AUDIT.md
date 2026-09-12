@@ -329,3 +329,52 @@ method, not the outcome. "content present + scroll ladder" is a true
 statement about ROUTE-1b that would have shown the gap at the time;
 "renders correctly" hid it. Add a `styled.spec.ts` row for every class you
 port; the audit script will tell you when you forgot.
+
+---
+
+## CMS-1 — Strapi i18n is not enabled on any collection (`pluginsOptions` typo)
+
+Found 2026-09-12 while scoping the Rusyn locale. All 20
+`apps/cms/src/api/*/content-types/*/schema.json` files spell the i18n option
+`"pluginsOptions"` (0 files use `pluginOptions`). Strapi 4 reads
+`pluginOptions`, so `"i18n": { "localized": true }` is ignored everywhere and
+every collection is single-locale. The bootstrap creates the six locale rows
+and registers the review gate, but there has never been localized content
+for either to act on. Fix = rename the key in 20 files, boot Strapi against
+Postgres and confirm the `locale`/`localizations` columns appear; existing
+rows become `sk`. Needs Docker; not fixable in the scoping environment.
+Separately: Strapi 4.25.0's bundled ISO list has no `rue` (Rusyn) entry, so
+the Rusyn locale cannot be added from the admin UI; the bootstrap service
+path is the probable route and is unverified. See
+`design_handoff_nemocnica_snina/SPRINT_I18N_RUSYN.md`.
+
+## FONT-1 — `Newsreader` has no Cyrillic; `uk` headings already fall back to Georgia
+
+Found 2026-09-12. Google Fonts serves Newsreader with `latin`, `latin-ext`,
+`vietnamese` only (Mulish does ship `cyrillic`). Method: width comparison in
+Chromium — "Відділення лікарні" at 40px/600 measures 406.6px in the
+`Newsreader, Georgia, serif` stack vs 408.2px in plain Georgia, while Latin
+text measures 383px vs 445px. `document.fonts.check` is *not* a valid test
+here: it returns true when no declared face covers the text. Every heading on
+`/uk` renders in Georgia today, silently. Fix path and font choice are a call
+in `SPRINT_I18N_RUSYN.md` (C3).
+
+## UI-3 — grouped header nav collides with the CTA buttons (pre-existing; `uk` at every desktop width, `sk` at the 1101px boundary)
+
+Found 2026-09-12, screenshots taken. `.nav-links` has `flex:1; min-width:0`
+and its content overflows its box into the CTAs; the last group label
+("Контакти" / "Kontakt") overlaps "Портал пацієнта" / "Pacientsky portál".
+
+| locale | width | last `.nav-top` right | first CTA left | overlap |
+|---|---|---|---|---|
+| uk | 1101 | 900 | 729 | 171px |
+| uk | 1280 | 950 | 858 | 92px |
+| uk | 1440 | 1030 | 938 | 92px |
+| sk | 1101 | 819 | 781 | 38px |
+
+Not caught by the no-scroll ladder because the overflow is inside the
+header (`documentElement.scrollWidth` stays equal to the viewport) — the
+ROUTE-1b blind spot again. The durable check is a per-locale "last group
+right edge < first CTA left edge" assertion in `styled.spec.ts` at
+1101/1280/1440, which the Rusyn sprint adds (C4). Any seventh locale makes
+this worse; fix it first.
