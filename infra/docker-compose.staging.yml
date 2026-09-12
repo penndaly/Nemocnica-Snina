@@ -153,6 +153,12 @@ services:
       PORT: 3000
       JWT_SECRET: ${JWT_SECRET}
       OIDC_MOCK_ENABLED: "true"
+      # Runtime (not build-time) base for the Next.js server-side proxies
+      # (/api/aps, /api/portal/*, /api/telehealth/sessions/*). Without it they
+      # default to http://localhost:3001 — inside the web container, where
+      # nothing listens — and every proxy silently falls back / 502s.
+      # STG-3: was missing here (present in docker-compose.production.yml).
+      API_BASE_URL: http://api:4000
     depends_on:
       - api
 

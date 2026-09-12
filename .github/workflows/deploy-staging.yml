@@ -34,7 +34,23 @@ jobs:
         run: |
           if [ -z "${{ secrets.STAGING_HOST }}" ]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::STAGING_HOST is not set — skipping deploy. See docs/STAGING_DEPLOYMENT.md for the one-time host setup."
+            # STG-3: a skipped deploy is NOT a green deploy. The workflow still
+            # concludes "success" when this job is the only one that ran, so
+            # anyone reading the checks list sees green. Make the skip loud in
+            # the summary so it can't be mistaken for "staging was rolled".
+            echo "::warning::STAGING_HOST is not set — NOTHING WAS DEPLOYED. This workflow's green conclusion is the no-op guard, not a staging roll. See docs/STAGING_DEPLOYMENT.md for the one-time host setup."
+            {
+              echo "## Deploy — EU staging: SKIPPED"
+              echo
+              echo "\`STAGING_HOST\` is not configured. **No image was built and no host was rolled.**"
+              echo "Do not read this run's green conclusion as a staging verification of \`${{ github.sha }}\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ -z "${{ vars.STAGING_APP_URL }}" ] || [ -z "${{ vars.STAGING_API_URL }}" ]; then
+            # A host without the two URLs cannot be readiness-checked, and the
+            # web image would be built with an empty NEXT_PUBLIC_API_URL. Fail
+            # rather than deploy something the gate cannot verify.
+            echo "::error::STAGING_HOST is set but STAGING_APP_URL / STAGING_API_URL variables are missing — refusing to deploy an unverifiable build."
+            exit 1
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
@@ -150,12 +166,69 @@ jobs:
               -f infra/docker-compose.staging.yml exec -T api sh /tmp/provision-db.sh
             docker image prune -f
 
-      - name: Smoke-check the public URL
+      # ── Readiness gate (STG-3) ─────────────────────────────────────────
+      # Three rungs, each of which fails the deploy on its own. Before STG-3
+      # only the first existed, so a rolled host whose API process had died
+      # (API-1: a DI error on boot) would still have been reported green.
+      #
+      #   1. web:    GET $APP/sk                         → 200
+      #   2. api:    GET $API/api/health                 → 200  (liveness — the
+      #             Nest process is up and routing; a boot crash fails here)
+      #   3. smoke:  two requests that a booted-but-broken API cannot pass:
+      #        a. GET $API/api/booking/available-dates → GET $API/api/booking/slots
+      #           — the slots query is a Prisma call, so the DB URL, the
+      #           migration state and the BookingModule DI graph are all on
+      #           the line, not just "the port answers".
+      #        b. GET $APP/api/aps with `x-ns-upstream: api` — the Next.js
+      #           route handler proxies to the Nest APS endpoint and stamps
+      #           that header only when the upstream call succeeded. That
+      #           proves the web container can reach the API over the
+      #           compose network (API_BASE_URL), which /api/health from the
+      #           outside cannot.
+      #
+      # STAGING_API_URL is the API *origin* (the code appends /api/…), e.g.
+      # https://staging.example.eu/backend — see nginx.staging.conf.
+      - name: Readiness gate — web route
         run: |
           set -euo pipefail
           for i in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w '%{http_code}' "${{ vars.STAGING_APP_URL }}/sk" || true)
-            if [ "$code" = "200" ]; then echo "staging is up"; exit 0; fi
+            if [ "$code" = "200" ]; then echo "web is up (/sk → 200)"; exit 0; fi
             sleep 5
           done
-          echo "staging did not return 200 for /sk"; exit 1
+          echo "::error::web did not return 200 for /sk (last: $code)"; exit 1
+
+      - name: Readiness gate — API health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "${{ vars.STAGING_API_URL }}/api/health" || true)
+            if [ "$code" = "200" ]; then echo "api is up (/api/health → 200)"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::API did not return 200 for /api/health (last: $code) — the web route may be up but the API is not. Deploy FAILED."; exit 1
+
+      - name: Smoke — a DB-backed API route and a web→API proxy route
+        run: |
+          set -euo pipefail
+          API="${{ vars.STAGING_API_URL }}"
+          APP="${{ vars.STAGING_APP_URL }}"
+
+          # 3a. Booking: available dates (clinic config) → slots (Prisma query).
+          dates=$(curl -sf "$API/api/booking/available-dates?clinicId=urazova-chirurgia")
+          date=$(echo "$dates" | jq -r '.dates[0] // empty')
+          if [ -z "$date" ]; then
+            echo "::error::available-dates returned no dates for urazova-chirurgia: $dates"; exit 1
+          fi
+          slots_code=$(curl -s -o /tmp/slots.json -w '%{http_code}' "$API/api/booking/slots?clinicId=urazova-chirurgia&date=$date")
+          if [ "$slots_code" != "200" ] || ! jq -e 'type == "array"' /tmp/slots.json >/dev/null; then
+            echo "::error::booking/slots did not return a JSON array (HTTP $slots_code): $(cat /tmp/slots.json | head -c 400)"; exit 1
+          fi
+          echo "booking/slots → 200, $(jq length /tmp/slots.json) slot(s) for $date (DB query OK)"
+
+          # 3b. Web → API: the Next.js /api/aps handler must have reached Nest.
+          upstream=$(curl -s -D - -o /dev/null "$APP/api/aps" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-ns-upstream"{print $2}')
+          if [ "$upstream" != "api" ]; then
+            echo "::error::GET $APP/api/aps did not reach the API from inside the web container (x-ns-upstream='$upstream'). Check API_BASE_URL on the web service and the nginx /api → web routing."; exit 1
+          fi
+          echo "/api/aps served from the API through the web container (x-ns-upstream: api)"

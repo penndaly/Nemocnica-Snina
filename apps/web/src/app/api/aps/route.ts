@@ -70,6 +70,12 @@ export async function GET(): Promise<NextResponse> {
       headers: {
         // Allow CDN / browser to cache for up to 5 minutes; revalidate in background
         'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+        // STG-3: the deploy readiness gate asserts this header to prove the
+        // web container reached the API. The NestJS APS service has its own
+        // `source: 'fallback'` (PSK feed unset/unreachable) with an identical
+        // body shape, so the body alone cannot tell "API answered with its
+        // fallback" from "API unreachable, this handler's fallback".
+        'X-NS-Upstream': 'api',
       },
     });
   } catch (err) {
@@ -79,7 +85,7 @@ export async function GET(): Promise<NextResponse> {
       { ...FALLBACK, updatedAt: new Date().toISOString() },
       {
         status: 200,
-        headers: { 'Cache-Control': 'no-store' },
+        headers: { 'Cache-Control': 'no-store', 'X-NS-Upstream': 'fallback' },
       },
     );
   }

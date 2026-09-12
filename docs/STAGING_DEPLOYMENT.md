@@ -34,8 +34,8 @@ nginx with TLS, on a single hostname:
 |---|---|
 | `GET /sk` | 200 (web) |
 | `GET /admin` | 200 (admin portal) |
-| `GET /api/health` | 200 `{"status":"ok",...}` |
-| `GET /api/admin/health` unauthenticated | 401 (staff guard holds) |
+| `GET /api/health` | 200 `{"status":"ok",...}` — **path since STG-3: `/backend/api/health`** |
+| `GET /api/admin/health` unauthenticated | 401 (staff guard holds) — now `/backend/api/admin/health` |
 | `scripts/provision-db.sh` on an empty DB | baselines, then "Database schema is up to date!" |
 | re-running it | takes the `migrate deploy` path, no-ops |
 
@@ -70,8 +70,10 @@ scripted from here because they need an account and a payment method:
    ```
 
    Only **one** DNS record and **one** certificate are needed: the staging edge
-   serves the API on the `/api` path of the same hostname, unlike production's
-   separate `api.` subdomain.
+   serves the API on the `/backend` path of the same hostname, unlike
+   production's separate `api.` subdomain. (Not `/api`: the Next.js app owns
+   `/api/*` route handlers with the same prefixes as the NestJS controllers —
+   see the comment in `nginx.staging.conf` and STG-3 in `docs/03-AUDIT.md`.)
 4. **An SSH key** for CI to deploy with (`ssh-keygen -t ed25519`), with the
    public half in the host's `~/.ssh/authorized_keys`.
 
@@ -90,11 +92,18 @@ scripted from here because they need an account and a payment method:
 | Variable | Example |
 |---|---|
 | `STAGING_APP_URL` | `https://staging.nemocnicasnina.sk` |
-| `STAGING_API_URL` | `https://staging.nemocnicasnina.sk/api` (same host, `/api` path) |
+| `STAGING_API_URL` | `https://staging.nemocnicasnina.sk/backend` (same host, `/backend` path — nginx strips the prefix; the app appends `/api/…` itself, so this is the API **origin**, never `…/api`) |
 | `STAGING_FIREBASE_*` | the seven `NEXT_PUBLIC_FIREBASE_*` values, if analytics should run on staging |
 
-Until `STAGING_HOST` exists the deploy workflow **skips itself** with a notice
-rather than failing, so it is safe to merge now.
+Until `STAGING_HOST` exists the deploy workflow **skips itself** rather than
+failing, so it is safe to merge now. **A skipped run still concludes "success"**
+— the guard job is the only job that ran. Since STG-3 the guard writes a
+warning and a job summary saying *nothing was deployed*; read that, not the
+green tick. (Every "Deploy — EU staging" run from 2026-08-24 to 2026-09-12 was
+this skip. No host has ever been rolled.)
+
+If `STAGING_HOST` is set but either URL variable is missing, the guard now
+**fails** instead of building a web image with an empty `NEXT_PUBLIC_API_URL`.
 
 ### And on the host, once
 
@@ -122,8 +131,17 @@ On every merge to `main`:
 4. Run `scripts/provision-db.sh`, which baselines an empty database and
    otherwise runs `migrate deploy` (see the script for why `migrate deploy`
    alone cannot build the schema from scratch).
-5. Poll `${STAGING_APP_URL}/sk` until it returns 200, failing the job if it
-   never does.
+5. Readiness gate (STG-3, 2026-09-12) — each rung fails the job on its own:
+   1. `GET ${STAGING_APP_URL}/sk` → 200 (web).
+   2. `GET ${STAGING_API_URL}/api/health` → 200 (API liveness). Before STG-3
+      only rung 1 existed, so a rolled host whose API had crashed on boot
+      (API-1) would have been reported green.
+   3. Smoke, so a booted-but-broken API cannot pass either:
+      `GET /api/booking/available-dates` → `GET /api/booking/slots` (a real
+      Prisma query: DB URL, migrations and the BookingModule DI graph), and
+      `GET ${STAGING_APP_URL}/api/aps` must carry `x-ns-upstream: api`, which
+      the Next.js handler sets only when it reached NestJS from inside the
+      web container (`API_BASE_URL`).
 
 ### The one thing to remember about the web image
 
@@ -139,7 +157,7 @@ Rebuild per environment. The workflow does this with `--build-arg`.
 ```bash
 docker build -f infra/docker/Dockerfile.api -t nemocnica-api .
 docker build -f infra/docker/Dockerfile.web -t nemocnica-web \
-  --build-arg NEXT_PUBLIC_API_URL=https://staging.nemocnicasnina.sk/api .
+  --build-arg NEXT_PUBLIC_API_URL=https://staging.nemocnicasnina.sk/backend .
 
 docker compose --env-file infra/.env.staging \
   -f infra/docker-compose.staging.yml up -d
@@ -206,6 +224,8 @@ the existing `NODE_ENV === 'production'` checks.
 ## Checking it works
 
 - `https://<staging>/sk` — public site
+- `https://<staging>/backend/api/health` — API liveness (what the deploy gate polls)
+- `https://<staging>/api/aps` — must respond with `x-ns-upstream: api`
 - `https://<staging>/admin` — admin portal (staff login + MFA)
 - `https://<staging>/admin/health` — every integration should read **Mock**,
   and Postgres / Redis / RabbitMQ should read **V poriadku**

@@ -168,14 +168,39 @@ await check('APS feed: NestJS returns 200 with parseable schedule', async () => 
   return `source=${body.source ?? 'unknown'}, entries=${body.schedule.length}, updatedAt=${body.updatedAt ?? '?'}`;
 });
 
-await check('APS feed: Next.js /api/aps proxy returns 200 with parseable schedule', async () => {
+await check('APS feed: Next.js /api/aps proxy reached the API (x-ns-upstream: api)', async () => {
   const r = await fetch(`${APP}/api/aps`);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  // STG-3: the body is identical whether Nest answered with its own PSK
+  // fallback or the Next handler fell back because Nest was unreachable.
+  // Only the header distinguishes "web → API works" from "web cannot reach API".
+  const upstream = r.headers.get('x-ns-upstream');
+  if (upstream !== 'api') {
+    throw new Error(`web container did not reach the API (x-ns-upstream=${upstream ?? 'missing'}) — check API_BASE_URL on the web service`);
+  }
   const body = await r.json() as { source?: string; schedule?: unknown[]; isFallback?: boolean };
   if (!Array.isArray(body.schedule)) throw new Error('Response missing schedule array');
   if (body.schedule.length === 0) throw new Error('schedule array is empty');
-  const fallbackNote = body.isFallback ? ' (fallback)' : '';
-  return `source=${body.source ?? 'unknown'}${fallbackNote}, entries=${body.schedule.length}`;
+  const fallbackNote = body.isFallback ? ' (PSK fallback — API reached)' : '';
+  return `upstream=api, source=${body.source ?? 'unknown'}${fallbackNote}, entries=${body.schedule.length}`;
+});
+
+// ── 8b. Booking: a DB-backed route (STG-3) ───────────────────
+// /api/health is liveness only. available-dates → slots runs a real Prisma
+// query, so DATABASE_URL, migration state and the BookingModule DI graph all
+// have to be right — a booted-but-broken API cannot pass this.
+
+await check('Booking: available-dates → slots (Prisma query) returns an array', async () => {
+  const d = await fetch(`${API}/api/booking/available-dates?clinicId=urazova-chirurgia`);
+  if (!d.ok) throw new Error(`available-dates HTTP ${d.status}`);
+  const { dates } = await d.json() as { dates?: string[] };
+  const date = dates?.[0];
+  if (!date) throw new Error('available-dates returned no dates for urazova-chirurgia');
+  const s = await fetch(`${API}/api/booking/slots?clinicId=urazova-chirurgia&date=${date}`);
+  if (!s.ok) throw new Error(`slots HTTP ${s.status}: ${(await s.text()).slice(0, 300)}`);
+  const slots = await s.json() as unknown;
+  if (!Array.isArray(slots)) throw new Error('slots did not return a JSON array');
+  return `${slots.length} slot(s) for ${date}`;
 });
 
 // ── 9. Google Cloud Translation ──────────────────────────────

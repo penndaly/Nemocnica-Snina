@@ -197,6 +197,25 @@ inside a route sprint, per the standing call on this class of defect.
 
 ## ROUTE-1a — axe not run (staging-QA gap, not a false pass)
 
+> **⚠ This entry is WRONG, not merely superseded (marked 2026-09-12, STG-3).**
+> Its premise — "no browser-based accessibility test harness is available in
+> this execution environment" — was false when it was written. Chromium and
+> `@axe-core/playwright` ran here the whole time; the ROUTE-1a/1b/1c and
+> UI-1a claims of "cannot run axe locally" were never checked against the
+> installed tooling, and the first local axe run (STG-2, same day) found a
+> serious violation on two of the routes this entry deferred. Axe is a
+> mandatory local rung for every new route; see the STG-2 close-out below.
+> The text is kept unedited as the record of what was claimed.
+>
+> **A limit of the class-coverage audit, stated for the record:** the
+> STG-2 defect (colour-only prose links) was a *site-wide base-style*
+> problem — `a { text-decoration: none }` was defined and applied, just
+> wrong. `audit:classes` checks that every class *resolves* to a rule and
+> `styled.spec.ts` checks that a rule is *applied*; neither can tell a
+> correctly-applied wrong style from a right one. Only a rule-based checker
+> (axe) or a human sees that class. Do not read a green class-coverage run
+> as an accessibility result.
+
 Sprint ROUTE-1a (`edukacia`, `kariera`, 2026-09-10/12) verified both routes
 render correctly (list, filter, sk/en detail pages, relation lookups, and
 the no-horizontal-scroll ladder above ≥375px) against the local dev server,
@@ -453,6 +472,19 @@ requirement) had zero execution history. Fixed: `cms-verify` job runs
 `pnpm verify:i18n` (12 assertions against a scratch SQLite DB) on every
 push/PR, and the staging smoke gate now depends on it.
 
+**CI-1 install method (pinned 2026-09-12, at the user's direction):**
+`apps/cms` is deliberately **npm-managed** and is the one exemption from
+the "always pnpm" convention in `CLAUDE.md` (now recorded there too). The
+job runs `npm ci --workspaces=false` from `apps/cms/package-lock.json`
+because Strapi 4's packages depend on undeclared internal deps that pnpm's
+strict layout can't resolve — the first `cms-verify` boot under pnpm failed
+exactly there (`4111a9f`). Anyone who "fixes" the job back to pnpm silently
+stops the publish-gate verification from booting. **Open inconsistency:**
+`infra/docker/Dockerfile.cms` still installs with pnpm; its boot was
+verified on 2026-08-24 against an earlier lockfile and has not been rebuilt
+since the npm switch. Until it is rebuilt with `npm ci` (or re-verified as
+is), the staging Strapi image is not known to boot.
+
 **MT-1 — the DeepL note is now a guard.** `TranslationProviderService`
 carries the provider's supported-target set (DeepL's list; the mock uses
 the same one so dev is never more permissive than prod), refuses to
@@ -472,6 +504,16 @@ real boot fails. **The staging deploy on the same commit reported success**
 because it polls only the web route (`/sk`), not `/api/health` — so staging
 ran with a dead API and nobody was told. Two more main pushes (`e04b609`,
 `7f05626`) carried the same defect; E2E was red on all of them.
+
+> **Correction (STG-3, 2026-09-12): the sentence above about why the deploy
+> reported success is wrong.** The deploy workflow did not poll anything on
+> those commits. `STAGING_HOST` has never been configured, so the workflow's
+> "success" was its no-op guard job alone — `Build & push images` and
+> `Roll staging host` were both *skipped* on every run since the workflow
+> landed (2026-08-24). No host ever ran a dead API, because no host has
+> ever been rolled. The `/sk`-only poll was a real gap and is fixed by STG-3,
+> but it is not what produced the green tick. See STG-3 below for the run-
+> by-run backfill.
 
 Fixed: `AuthModule` imported. Regression: `src/__tests__/app-module-di.test.ts`
 compiles each new feature module with the same globals AppModule supplies
@@ -510,3 +552,129 @@ staging-only gap.
 Two other E2E failures on the same run (`TH-6.2` admin telehealth config,
 `A4` admin sidebar) were reported flaky by Playwright's retry and passed on
 retry; not related, not investigated here.
+
+---
+
+## STG-3 — deploy gate never checked the API; and the "green" staging deploys were skips
+
+2026-09-12, taken before UI-2b at the user's direction: a visual fix confirmed
+on staging is worth nothing if the staging signal is unverified.
+
+### What was wrong
+
+1. **The readiness poll covered only the web route.** `deploy-staging.yml`
+   polled `${STAGING_APP_URL}/sk` and nothing else. A rolled host whose
+   NestJS process died on boot (exactly API-1's failure mode) would have
+   reported a successful deploy.
+2. **Nothing exercised the API beyond liveness.** Even with `/api/health`
+   polled, a process that answers the port but cannot reach the DB or has a
+   broken DI graph would pass.
+3. **Found while fixing 1–2 — the staging edge shadowed every Next.js
+   `/api/*` route handler.** `nginx.staging.conf` sent `location /api/` to
+   NestJS. The web app owns `/api/aps`, `/api/portal/*`,
+   `/api/telehealth/sessions/*`, `/api/payments/receipt/*`, `/api/content`
+   — the server-side proxies that turn the httpOnly `ns_patient_session`
+   cookie into the `x-patient-session` header. NestJS uses the same prefixes
+   (`api/portal`, `api/telehealth/sessions`, `api/payments`, `api/aps`), so
+   they cannot be split by path. On a real staging host the portal,
+   wearables tab, APS card and telehealth flows would have 401'd or 404'd.
+   Never noticed because (see below) no staging host has ever existed.
+4. **Also found: the staging web container had no `API_BASE_URL`.** The
+   proxies default to `http://localhost:3001`, which inside the container is
+   nothing. `docker-compose.production.yml` sets it; the staging compose did
+   not.
+5. **Also found: the CI smoke job could never run.** `ci.yml`'s
+   `smoke-staging-guard` read `secrets.STAGING_APP_URL`, but the docs and
+   `deploy-staging.yml` define the URLs as repository *variables*. With the
+   host configured per the docs, the smoke job would have skipped forever.
+
+### What changed
+
+- `deploy-staging.yml`: three readiness rungs, each failing the deploy on
+  its own — `GET /sk` → 200; `GET ${STAGING_API_URL}/api/health` → 200;
+  smoke = `available-dates → slots` (a real Prisma query, so DB URL,
+  migration state and the BookingModule DI graph are all on the line) plus
+  `GET ${STAGING_APP_URL}/api/aps` carrying `x-ns-upstream: api`. The guard
+  now writes a `::warning` and a job summary saying **nothing was deployed**
+  when it skips, and *fails* if the host is set but either URL variable is
+  missing (a web image built with an empty `NEXT_PUBLIC_API_URL` is not
+  worth deploying).
+- `apps/web/src/app/api/aps/route.ts`: sets `X-NS-Upstream: api` on the
+  proxied path and `fallback` on the catch path. Needed because the NestJS
+  APS service has its own `source: 'fallback'` body (PSK feed unset) that is
+  byte-for-byte the shape of the handler's own fallback — the body cannot
+  distinguish "API answered with its fallback" from "API unreachable".
+- `nginx.staging.conf`: API moved to `location /backend/` with the prefix
+  stripped (`proxy_pass http://api:4000/`). `STAGING_API_URL` is now the API
+  *origin* (`https://<host>/backend`) as the code expects everywhere
+  (`${NEXT_PUBLIC_API_URL}/api/…`). The docs' previous example
+  `https://<host>/api` would have produced `/api/api/public/...` → 404 on
+  every browser call. `/api/*` now reaches the Next.js handlers.
+- `docker-compose.staging.yml`: `API_BASE_URL: http://api:4000` on `web`.
+- `ci.yml`: smoke guard and job read `vars.STAGING_*_URL`.
+- `scripts/smoke-test.mts`: the APS-proxy check requires
+  `x-ns-upstream: api`; new `available-dates → slots` check.
+- `docs/STAGING_DEPLOYMENT.md` updated to match.
+
+### Verification (method, not outcome)
+
+- Both workflows and the staging compose parse as YAML (`python3 -c
+  'yaml.safe_load'`). `actionlint` is not installed here; no host exists to
+  run the workflow against, so **the readiness gate is unexercised** until
+  a `STAGING_HOST` is configured. The first real run is the test.
+- `nginx -t` could not be run (Docker was down); the change is a one-line
+  `location` + `proxy_pass` swap using the documented trailing-slash
+  prefix-strip semantics, and is flagged here as syntax-unverified.
+- `pnpm --filter=@ns/web typecheck` — clean. Smoke script:
+  `pnpm exec tsc --noEmit --module nodenext --moduleResolution nodenext
+  --target es2022 --lib es2022,dom --types node --typeRoots
+  apps/api/node_modules/@types --strict scripts/smoke-test.mts` — the only
+  error is the pre-existing dynamic import of `@google-cloud/translate`
+  (line 211, not installed at the root; untouched by this change).
+
+### Backfill — the blast radius
+
+Checked with `gh run list` / `gh run view --json jobs` for every push to
+`main` since the content merge `a1a4f57`. **`STAGING_HOST` has never been
+set.** On every "Deploy — EU staging" run since the workflow landed
+(2026-08-24, 13 runs), the only job that ran was `Check staging is
+configured`; `Build & push images` and `Roll staging host` were **skipped**
+and the workflow concluded "success" in 6–10 seconds. So:
+
+| Push to `main` | Deploy workflow | What actually ran | CI conclusion (job that failed) |
+|---|---|---|---|
+| `a1a4f57` content merge | success | guard only — skipped | **failure** (Lint; E2E — API could not boot) |
+| `e04b609` rename review-gate constant | success | guard only — skipped | **failure** (Lint; E2E — API could not boot) |
+| `7f05626` CI cms-verify + MT guard | success | guard only — skipped | **failure** (Lint; CMS verify; E2E — API could not boot) |
+| `4111a9f` cms-verify via npm; Lint fix | success | guard only — skipped | **failure** (E2E — API could not boot) |
+| `c391d42` API-1 fix | success | guard only — skipped | **failure** (E2E — axe `link-in-text-block`, STG-2) |
+| `98443d0` prose links underlined | success | guard only — skipped | success |
+
+(`962b6c2`, `930f209`, `40f5c0e` were pushed together with `e04b609` and had
+no run of their own.)
+
+Two corrections to the record follow from this:
+
+1. **No commit ever reported a successful staging deploy with a dead API,
+   because no commit has ever been deployed to staging.** The API-1 entry's
+   explanation ("reported success because it polls only the web route") is
+   wrong and is marked so above. The `/sk`-only poll was real and would have
+   produced exactly that false green on a real host; it just never got the
+   chance.
+2. **The green signal that was actually acted on was worse than a weak
+   gate: it was a skip.** Four consecutive pushes had a **red CI** (Lint
+   failed on three of them, so Build didn't even run; E2E failed on all
+   four because the API could not boot) alongside a green deploy workflow.
+   Anyone reading the deploy tick as "staging verified" was reading a no-op.
+   The guard now says so in the run summary. The habit to keep: **a deploy
+   workflow's conclusion is not a deploy verification — read the jobs.**
+
+### Still open after STG-3
+
+- **A staging host.** Everything above is unexercised until one exists
+  (`docs/STAGING_DEPLOYMENT.md`, "What a human has to create").
+- `infra/docker/Dockerfile.cms` still installs with pnpm (CI-1 note above).
+- The Next.js `/api/*` ↔ NestJS `api/*` prefix collision is now routed
+  around on staging; production uses a separate `api.` hostname and was
+  never affected.
+

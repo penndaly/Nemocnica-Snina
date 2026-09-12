@@ -33,7 +33,8 @@ Production build of the Nemocnica Snina (Snina Hospital) platform: a bilingual�
 **Start infra:** `docker compose -f infra/docker-compose.yml up -d`
 **Start API:** `cd apps/api && pnpm dev`
 **Start web:** `cd apps/web && pnpm dev`
-**Package manager:** always `pnpm` — never `npm install` or `yarn`
+**Package manager:** always `pnpm` — never `npm install` or `yarn`.
+**One deliberate exemption: `apps/cms` (Strapi 4) is npm-managed** — install it with `npm ci --workspaces=false` from its own `apps/cms/package-lock.json`, as the CI `cms-verify` job does. Strapi 4 packages depend on undeclared internal deps (`@strapi/database` → `@strapi/utils` …) that pnpm's strict layout cannot resolve, so the CMS does not boot under pnpm. Do not "fix" the CMS job to pnpm; the publish-gate verification would silently stop booting. Known inconsistency: `infra/docker/Dockerfile.cms` still installs with pnpm and has not been rebuilt since the npm switch (2026-09-12) — see `docs/03-AUDIT.md` CI-1.
 
 ## Database migrations (Prisma)
 - Migrations live in `apps/api/prisma/migrations/`. Apply with `pnpm prisma migrate deploy`; never `prisma db push` against a tracked DB (it bypasses history and causes drift).

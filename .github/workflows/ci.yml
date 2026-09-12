@@ -52,8 +52,11 @@ jobs:
   # SQLite DB and runs 12 assertions (i18n live on 20/20 types, sk default,
   # gate blocks/allows, rue registers). ~1 min. Secrets are throwaway: the
   # scratch DB is created and deleted inside the job.
-  # Install note: apps/cms is installed with npm from its own package-lock
-  # (hoisted layout), NOT via the pnpm workspace. Strapi 4 packages require
+  # Install note: apps/cms is DELIBERATELY npm-managed — it is the one
+  # exemption from the "always pnpm" convention in CLAUDE.md (recorded there
+  # too, and in docs/03-AUDIT.md CI-1). Do not "fix" this job to pnpm; the
+  # gate would silently stop booting. It installs with npm from its own
+  # package-lock (hoisted layout), NOT via the pnpm workspace. Strapi 4 packages require
   # undeclared internal deps (@strapi/database → @strapi/utils …) that pnpm's
   # strict layout can't resolve — the first CI boot failed exactly there.
   # `--workspaces=false` stops npm from treating apps/cms as a member of the
@@ -238,7 +241,7 @@ jobs:
     steps:
       - id: check
         run: |
-          if [ -z "${{ secrets.STAGING_APP_URL }}" ]; then
+          if [ -z "${{ vars.STAGING_APP_URL }}" ]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
             echo "::notice::STAGING_APP_URL is not set — skipping integration smoke tests. See docs/STAGING_DEPLOYMENT.md for the one-time host setup."
           else
@@ -252,8 +255,11 @@ jobs:
     if: needs.smoke-staging-guard.outputs.configured == 'true'
     environment: staging
     env:
-      APP_BASE_URL:      ${{ secrets.STAGING_APP_URL }}
-      API_BASE_URL:      ${{ secrets.STAGING_API_URL }}
+      # STG-3: the URLs are repository *variables* (same source as
+      # deploy-staging.yml). They were read from secrets.* here, so this job
+      # could never run even after the host exists.
+      APP_BASE_URL:      ${{ vars.STAGING_APP_URL }}
+      API_BASE_URL:      ${{ vars.STAGING_API_URL }}
       STRAPI_URL:        ${{ secrets.STAGING_STRAPI_URL }}
       STRAPI_API_TOKEN:  ${{ secrets.STAGING_STRAPI_TOKEN }}
       SMOKE_ADMIN_JWT:   ${{ secrets.STAGING_ADMIN_JWT }}
