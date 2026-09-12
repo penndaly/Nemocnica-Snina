@@ -460,3 +460,27 @@ construct if `MT_TARGET_LOCALES` names an unsupported locale, and
 `translate()` throws `UnsupportedTranslationLocaleError` for one. Tests
 assert `rue` throws under both providers and at construction. Nothing calls
 `translate()` yet; when the MT loop lands it inherits the guard.
+
+## API-1 — API could not boot on main from the content merge (ROUTE-1b DI gap)
+
+Found 2026-09-12 from the CI E2E job on `a1a4f57`: `node dist/main` exited
+with *Nest can't resolve dependencies of the StaffJwtGuard (…JwtService…)*.
+`ComplaintsModule` (ROUTE-1b) guards its admin controller with
+`StaffJwtGuard` but never imported `AuthModule`, which provides
+`JwtService`. Typecheck, lint, build and every unit test passed; only a
+real boot fails. **The staging deploy on the same commit reported success**
+because it polls only the web route (`/sk`), not `/api/health` — so staging
+ran with a dead API and nobody was told. Two more main pushes (`e04b609`,
+`7f05626`) carried the same defect; E2E was red on all of them.
+
+Fixed: `AuthModule` imported. Regression: `src/__tests__/app-module-di.test.ts`
+compiles each new feature module with the same globals AppModule supplies
+(ConfigModule, @Global PrismaModule) and nothing else, so a missing import
+fails in ~30ms with no infra. Proven both ways (fails on the bug, passes on
+the fix). Compiling `AppModule` whole hangs in Jest (an async provider
+factory waits on a connection), so the whole-graph boot check remains the
+E2E job's real `node dist/main`.
+
+**Open follow-up (STG-3):** the staging deploy's readiness poll must include
+`${STAGING_API_URL}/health`; a green deploy with a dead API is the worst
+possible signal.
