@@ -13,6 +13,7 @@ import type {
   Department, Clinic, Physician, Service, Facility, NewsItem,
   Disclosure, Hospital, Pages, Locale, PhysicianProfile, Weekday,
   EducationArticle, EducationCategory, JobPosting, CareersInfo,
+  PriceListItem, ClinicWaitingTime, WaitingTimeLevel, PatientTestimonial,
 } from '@ns/types';
 
 const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
@@ -430,4 +431,47 @@ export async function getCareersInfo(locale: Locale = 'sk'): Promise<CareersInfo
     phone: String(a['phone'] ?? ''),
     benefits: ((a['benefits'] as string[]) ?? []).map((b) => ({ [locale]: b })),
   };
+}
+
+// ── For patients (/[lang]/pre-pacientov) ──────────────────
+
+export async function getPricing(locale: Locale = 'sk'): Promise<PriceListItem[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.pricing; }
+  const data = await strapiGet<Record<string, unknown>[]>('price-list-items?sort=category', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id: String(a['slug'] ?? e['id']),
+      category: { [locale]: String(a['category'] ?? '') },
+      item: { [locale]: String(a['item'] ?? '') },
+      price: String(a['price'] ?? ''),
+    };
+  });
+}
+
+export async function getWaitingTimes(locale: Locale = 'sk'): Promise<ClinicWaitingTime[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.waitingTimes; }
+  const data = await strapiGet<Record<string, unknown>[]>('clinic-waiting-times', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id: String(e['id']),
+      clinic: { [locale]: String(a['clinic'] ?? '') },
+      wait: { [locale]: String(a['wait'] ?? '') },
+      level: (a['level'] as WaitingTimeLevel) ?? 'ok',
+    };
+  });
+}
+
+export async function getTestimonials(locale: Locale = 'sk'): Promise<PatientTestimonial[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.testimonials; }
+  const data = await strapiGet<Record<string, unknown>[]>('patient-testimonials', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id: String(e['id']),
+      quote: { [locale]: String(a['quote'] ?? '') },
+      author: { [locale]: String(a['author'] ?? '') },
+    };
+  });
 }

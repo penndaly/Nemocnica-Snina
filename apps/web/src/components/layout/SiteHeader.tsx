@@ -48,6 +48,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
       key: 'visit',
       labelKey: 'footer.patients',
       items: [
+        { key: 'patients', href: `/${locale}/pre-pacientov`, descKey: 'navGroups.visit.patients' },
         { key: 'booking', href: `/${locale}/objednanie`, descKey: 'navGroups.visit.booking', labelKey: 'book' },
         { key: 'telehealth', href: `/${locale}/telehealth`, descKey: 'navGroups.visit.telehealth' },
         { key: 'portal', href: `/${locale}/portal`, descKey: 'navGroups.visit.portal', labelKey: 'portal.title' },

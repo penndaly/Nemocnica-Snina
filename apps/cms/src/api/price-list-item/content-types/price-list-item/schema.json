@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "price_list_items",
+  "info": {
+    "singularName": "price-list-item",
+    "pluralName": "price-list-items",
+    "displayName": "Price list item",
+    "description": "Self-pay pricing (cenník) — from DATA_MODEL.md patientInfo.pricing. Non-clinical."
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "category": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "item": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "slug": { "type": "uid", "targetField": "item" },
+    "price": { "type": "string", "required": true, "description": "Formatted price string as published, e.g. \"18,00 €\" — not a number." }
+  }
+}

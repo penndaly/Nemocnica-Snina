@@ -1,0 +1,16 @@
+{
+  "kind": "collectionType",
+  "collectionName": "patient_testimonials",
+  "info": {
+    "singularName": "patient-testimonial",
+    "pluralName": "patient-testimonials",
+    "displayName": "Patient testimonial",
+    "description": "Curated patient quote — from DATA_MODEL.md patientInfo.testimonials. Anonymised by design (author is a role/department, never a name)."
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "quote": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "author": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } }
+  }
+}

@@ -17,7 +17,8 @@
     "diagnostics": "Diagnostics",
     "news": "News",
     "contact": "Contact",
-    "education": "Patient education"
+    "education": "Patient education",
+    "patients": "For patients"
   },
   "navGroups": {
     "hospitalLabel": "Hospital",
@@ -30,6 +31,7 @@
       "education": "Articles and patient guidance"
     },
     "visit": {
+      "patients": "Pricing, waiting times, complaints",
       "booking": "Book an appointment",
       "telehealth": "Video consultation with a physician",
       "portal": "Results & my appointments"

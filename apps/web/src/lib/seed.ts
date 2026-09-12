@@ -643,4 +643,35 @@ export const SEED: Seed = {
       { sk: 'Možnosť osobného rastu v stabilnej a rozvíjajúcej sa organizácii', en: 'Room for personal growth in a stable, growing organisation' },
     ],
   },
+
+  // From design_handoff_nemocnica_snina/assets/data.js `patientInfo`. Prices
+  // are compiled from the hospital's SM-06 (valid from 1 Oct 2025), biochemistry
+  // and hematology price lists — formatted strings as published, not numbers.
+  pricing: [
+    { id: 'p1', category: { sk: 'Klinická biochémia', en: 'Clinical biochemistry' }, item: { sk: 'Základný biochemický panel (samoplatca)', en: 'Basic biochemistry panel (self-pay)' }, price: '18,00 €' },
+    { id: 'p2', category: { sk: 'Klinická biochémia', en: 'Clinical biochemistry' }, item: { sk: 'Lipidový profil', en: 'Lipid panel' }, price: '12,50 €' },
+    { id: 'p3', category: { sk: 'Hematológia', en: 'Hematology' }, item: { sk: 'Krvný obraz s diferenciálom', en: 'Complete blood count with differential' }, price: '9,00 €' },
+    { id: 'p4', category: { sk: 'Hematológia', en: 'Hematology' }, item: { sk: 'Koagulačné vyšetrenie', en: 'Coagulation panel' }, price: '14,00 €' },
+    { id: 'p5', category: { sk: 'Zobrazovacia diagnostika', en: 'Imaging' }, item: { sk: 'CT vyšetrenie (samoplatca, bez kontrastu)', en: 'CT scan (self-pay, without contrast)' }, price: '85,00 €' },
+    { id: 'p6', category: { sk: 'Zobrazovacia diagnostika', en: 'Imaging' }, item: { sk: 'Ultrazvukové vyšetrenie', en: 'Ultrasound scan' }, price: '25,00 €' },
+    { id: 'p7', category: { sk: 'Ústavná starostlivosť', en: 'Inpatient care' }, item: { sk: 'Nadštandardná izba (gynekologicko-pôrodnícke odd., za deň)', en: 'Premium room (gynecology & obstetrics, per day)' }, price: '8,00 €' },
+    { id: 'p8', category: { sk: 'Administratíva', en: 'Administrative' }, item: { sk: 'Poplatok LSPP (ambulantná pohotovostná služba)', en: 'LSPP fee (ambulatory emergency service)' }, price: '1,99 €' },
+  ],
+
+  // `clinic` is a display name, deliberately not a Clinic.id reference — see
+  // ClinicWaitingTime's doc comment in packages/types.
+  waitingTimes: [
+    { id: 'w1', clinic: { sk: 'Urologická ambulancia', en: 'Urology clinic' }, wait: { sk: 'do 1 týždňa — nová ambulancia', en: 'within 1 week — new clinic' }, level: 'good' },
+    { id: 'w2', clinic: { sk: 'Angiologická ambulancia', en: 'Angiology clinic' }, wait: { sk: '2–3 týždne · vyžaduje sa výmenný lístok', en: '2–3 weeks · referral required' }, level: 'ok' },
+    { id: 'w3', clinic: { sk: 'Hematologická ambulancia', en: 'Hematology clinic' }, wait: { sk: '1–2 týždne', en: '1–2 weeks' }, level: 'good' },
+    { id: 'w4', clinic: { sk: 'Diabetologická ambulancia', en: 'Diabetology clinic' }, wait: { sk: 'dočasne neprijíma nových pacientov', en: 'temporarily not accepting new patients' }, level: 'closed' },
+    { id: 'w5', clinic: { sk: 'Neurologická ambulancia', en: 'Neurology clinic' }, wait: { sk: 'dočasný režim — náhradný kontakt 0918 088 183', en: 'temporary measures — substitute contact 0918 088 183' }, level: 'closed' },
+    { id: 'w6', clinic: { sk: 'Fyziatricko-rehabilitačné oddelenie (FRO)', en: 'Physiatry & rehabilitation (FRO)' }, wait: { sk: 'do 2 týždňov · pilotné online objednávanie', en: 'up to 2 weeks · online-booking pilot' }, level: 'good' },
+  ],
+
+  testimonials: [
+    { id: 't1', quote: { sk: 'Personál gynekologicko-pôrodníckeho oddelenia bol počas pôrodu mimoriadne empatický a trpezlivý.', en: 'The staff on the maternity ward were extraordinarily empathetic and patient throughout my delivery.' }, author: { sk: 'Pacientka · Gynekologicko-pôrodnícke oddelenie', en: 'Patient · Gynecology & Obstetrics' } },
+    { id: 't2', quote: { sk: 'Rýchle a presné vyšetrenie, personál ma upokojil počas celého zákroku.', en: 'Fast, precise care — the staff kept me calm throughout the procedure.' }, author: { sk: 'Pacient · Chirurgicko-traumatologické oddelenie', en: 'Patient · Surgery & Traumatology' } },
+    { id: 't3', quote: { sk: 'Nová centrálna recepcia mi ušetrila veľa času, hneď som vedel, kam ísť.', en: 'The new central reception saved me a lot of time — I knew exactly where to go.' }, author: { sk: 'Pacient · Ambulantná starostlivosť', en: 'Patient · Outpatient care' } },
+  ],
 };

@@ -227,6 +227,43 @@ export interface CareersInfo {
   benefits: Loc[];
 }
 
+// ─── For patients (/[lang]/pre-pacientov) ─────────────────
+// From assets/data.js `patientInfo` singleton (pricing / waitingTimes /
+// testimonials) — split into 3 top-level Seed arrays rather than one nested
+// object, matching how every other multi-item singleton in this file
+// (departments, clinics, services…) is modelled.
+
+/** Self-pay price list row (cenník). */
+export interface PriceListItem {
+  id: string;
+  category: Loc;
+  item: Loc;
+  /** Formatted price string as published, e.g. "18,00 €" — not a number; never do arithmetic on it. */
+  price: string;
+}
+
+export type WaitingTimeLevel = 'good' | 'ok' | 'closed';
+
+/**
+ * Clinic waiting-time estimate. `clinic` is a display name (Loc), not a
+ * `Clinic.id` reference — matches assets/data.js, which duplicates the name
+ * rather than linking it. Don't "fix" this to a relation without checking
+ * the name still matches its Clinic record; the two are already free to
+ * drift text-wise in the source.
+ */
+export interface ClinicWaitingTime {
+  id: string;
+  clinic: Loc;
+  wait: Loc;
+  level: WaitingTimeLevel;
+}
+
+export interface PatientTestimonial {
+  id: string;
+  quote: Loc;
+  author: Loc;
+}
+
 // ─── Operational (PostgreSQL, not CMS) ───────────────────
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -363,4 +400,7 @@ export interface Seed {
   educationArticles: EducationArticle[];
   jobPostings: JobPosting[];
   careersInfo: CareersInfo;
+  pricing: PriceListItem[];
+  waitingTimes: ClinicWaitingTime[];
+  testimonials: PatientTestimonial[];
 }

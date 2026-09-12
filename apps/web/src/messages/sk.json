@@ -17,7 +17,8 @@
     "diagnostics": "Diagnostika",
     "news": "Aktuality",
     "contact": "Kontakt",
-    "education": "Edukácia pacientov"
+    "education": "Edukácia pacientov",
+    "patients": "Pre pacientov"
   },
   "navGroups": {
     "hospitalLabel": "Nemocnica",
@@ -30,6 +31,7 @@
       "education": "Články a rady pre pacientov"
     },
     "visit": {
+      "patients": "Ceny, čakacie lehoty, sťažnosti",
       "booking": "Objednanie na vyšetrenie",
       "telehealth": "Videokonzultácia s lekárom",
       "portal": "Výsledky a moje objednávky"

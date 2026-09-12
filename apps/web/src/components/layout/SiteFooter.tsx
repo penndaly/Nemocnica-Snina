@@ -21,6 +21,7 @@ export function SiteFooter() {
   ];
 
   const col3 = [
+    { href: `/${locale}/pre-pacientov`, label: t('nav.patients') },
     { href: `/${locale}/objednanie`,  label: t('book') },
     { href: `/${locale}/telehealth`,  label: t('nav.telehealth') },
     { href: `/${locale}/registracia`, label: locale === 'sk' ? 'Registrácia nového pacienta' : 'New patient registration' },
