@@ -674,4 +674,76 @@ export const SEED: Seed = {
     { id: 't2', quote: { sk: 'Rýchle a presné vyšetrenie, personál ma upokojil počas celého zákroku.', en: 'Fast, precise care — the staff kept me calm throughout the procedure.' }, author: { sk: 'Pacient · Chirurgicko-traumatologické oddelenie', en: 'Patient · Surgery & Traumatology' } },
     { id: 't3', quote: { sk: 'Nová centrálna recepcia mi ušetrila veľa času, hneď som vedel, kam ísť.', en: 'The new central reception saved me a lot of time — I knew exactly where to go.' }, author: { sk: 'Pacient · Ambulantná starostlivosť', en: 'Patient · Outpatient care' } },
   ],
+
+  // From design_handoff_nemocnica_snina/assets/data.js `aboutInfo`, as corrected
+  // against the live site by the content migration. Governance facts here are
+  // load-bearing (named committee chairs, the whistleblower email, the real ISO
+  // certificate number, the INEKO placement) — re-sync from data.js rather than
+  // editing values here in isolation.
+  aboutInfo: {
+    owner: {
+      sk: '100 % vlastníkom spoločnosti je Mesto Snina, v zastúpení primátorom Petrom Vološinom.',
+      en: 'The company is 100% owned by the City of Snina, represented by Mayor Peter Vološin.',
+    },
+    leadership: {
+      sk: 'Nemocnicu vedie MUDr. Andrej Kulan, ktorý zároveň pôsobí ako konateľ spoločnosti a primár chirurgicko-traumatologického oddelenia. Nemocnica aktívne žiada o zaradenie medzi urgentné príjmy 1. typu v rámci reformy Optimalizácie siete nemocníc (OSN).',
+      en: 'The hospital is led by MUDr. Andrej Kulan, who serves as both managing director and Head of Surgery & Traumatology. The hospital has petitioned for Type 1 urgent-care status under the national Hospital Network Optimisation (OSN) reform.',
+    },
+    ethics: {
+      sk: 'Etickú komisiu vedie MUDr. Norbert Orinín. Komisia posudzuje klinické štúdie a etické otázky starostlivosti a metodicky usmerňuje personál v otázkach informovaného súhlasu a dôstojnosti pacienta.',
+      en: 'The ethics committee is chaired by MUDr. Norbert Orinín. It reviews clinical studies and care-related ethics questions, and guides staff on informed consent and patient dignity.',
+    },
+    adverseEvents: {
+      sk: 'Nemocnica zverejňuje výročné prehľady nežiaducich udalostí (2016–2025) na stiahnutie, v záujme transparentnosti a v súlade s regulačnými požiadavkami. Pacienti a návštevy môžu udalosť nahlásiť cez sekretariát alebo formulár sťažností.',
+      en: 'The hospital publishes downloadable annual adverse-event reports (2016–2025) for transparency and regulatory compliance. Patients and visitors can report an event via the secretariat or the complaints form.',
+    },
+    antiCorruption: {
+      sk: 'Podozrenie na korupčné správanie možno nahlásiť dôverne e-mailom na sekretariat@nemocnicasnina.sk, nezávisle od bežného sťažnostného konania. Podnety sa posudzujú podľa zákona č. 307/2014 Z. z. o ochrane oznamovateľov; evidujú sa len podania s aktuálnymi, konkrétnymi a overiteľnými informáciami preukazujúcimi korupciu.',
+      en: 'Suspected corrupt conduct can be reported confidentially by email at sekretariat@nemocnicasnina.sk, independent of the standard complaints process. Reports are handled under Act No. 307/2014 Coll. on whistleblower protection; only submissions with current, specific, verifiable evidence of corruption are recorded.',
+    },
+    transfusionCommittee: {
+      sk: 'Transfúzna komisia, ktorú vedie MUDr. Norbert Orinín, dohliada na racionálnu a účelnú hemoterapiu a bezpečné používanie krvi a krvných derivátov naprieč oddeleniami, vrátane sledovania nežiaducich transfúznych reakcií.',
+      en: 'The transfusion committee, chaired by MUDr. Norbert Orinín, oversees rational and purposeful hemotherapy and the safe use of blood and blood products across departments, including monitoring adverse transfusion reactions.',
+    },
+    rankings: {
+      sk: 'Inštitút pre ekonomické a sociálne reformy (INEKO) v spolupráci s Transparency International Slovensko pravidelne hodnotí nemocnicu podľa kvality, efektívnosti a spokojnosti pacientov. V roku 2026 sa nemocnica umiestnila na 12. mieste zo 43 všeobecných nemocníc v hodnotení poistencov zdravotnej poisťovne Dôvera.',
+      en: 'The Institute for Economic and Social Reforms (INEKO), with Transparency International Slovakia, regularly ranks the hospital on quality, efficiency and patient satisfaction. In 2026 the hospital ranked 12th of 43 general hospitals in a Dôvera health-insurer patient-satisfaction survey.',
+    },
+    board: [
+      'Marek Gerboc', 'Mgr. Jana Karľová', 'JUDr. Tomáš Kirňák', 'Marián Lojan',
+      'Tomáš Potocký', 'Mgr. Mária Todáková', 'Ing. Michal Vohar', 'Ing. Dana Mariničová',
+    ],
+    financials: { revenue: '14 027 000 €', assets: '4 039 000 €', profit: '398 000 €', year: '2024' },
+  },
+
+  leadershipTeam: [
+    { id: 'kulan', name: 'MUDr. Andrej Kulan', role: { sk: 'Konateľ spoločnosti', en: 'Managing director' }, phone: '057/7871 226', email: 'sekretariat@nemocnicasnina.sk' },
+    { id: 'simonova', name: 'Ing. Iveta Šimonová', role: { sk: 'Vedúca ekonomicko-technického úseku', en: 'Head of Economic & Technical Division' }, phone: '057/7871 640', email: 'ekonom@nemocnicasnina.sk' },
+    { id: 'orinin', name: 'MUDr. Norbert Orinín', role: { sk: 'Námestník pre liečebno-preventívnu starostlivosť', en: 'Deputy Director for Medical Care' }, phone: '057/7871 242', email: 'nemocnica@nemocnicasnina.sk' },
+    { id: 'kapakova', name: 'PhDr. Jana Kapáková, MBA', role: { sk: 'Námestníčka pre ošetrovateľstvo', en: 'Deputy Director for Nursing' }, phone: '057/7871 245', email: 'namosetrovatelstvo@nemocnicasnina.sk' },
+  ],
+
+  history: [
+    { id: 'h1945', year: '1945', text: { sk: 'Vznik Ligy proti TBC a poradne pre matky — základ zdravotnej starostlivosti v regióne.', en: 'The League against TB and a maternal counselling centre are founded — the origin of regional healthcare.' } },
+    { id: 'h1948', year: '1948', text: { sk: 'Založený Okresný ústav národného zdravia (OÚNZ) pod vedením MUDr. Gabriela Hoffmanna.', en: 'The District Institute of National Health (OÚNZ) is founded, led by Dr. Gabriel Hoffmann.' } },
+    { id: 'h1951', year: '1951–1952', text: { sk: 'Otvorené samostatné detské a gynekologické oddelenie.', en: 'Independent pediatric and gynecological wards open.' } },
+    { id: 'h1963', year: '1963', text: { sk: 'Slávnostné otvorenie hlavnej nemocničnej budovy so 180 lôžkami.', en: 'The main 180-bed hospital building officially opens.' } },
+    { id: 'h1985', year: '1985', text: { sk: 'Vzniká samostatné oddelenie anestéziológie a resuscitácie (ARO).', en: 'An independent Anesthesiology & Resuscitation department (ARO) is established.' } },
+    { id: 'h1991', year: '1991', text: { sk: 'Nemocnica sa stáva samostatným právnym subjektom.', en: 'The hospital becomes an independent legal entity.' } },
+    { id: 'h2006', year: '2006', text: { sk: 'Transformácia na mestskú spoločnosť; vznik JIS na chirurgickom a internom oddelení; spustenie jednodňovej chirurgie.', en: 'Transformation into a municipal company; ICUs established on the surgical and internal-medicine wards; day-surgery launched.' } },
+    { id: 'h2007', year: '2007', text: { sk: 'Uvedenie mamografického pracoviska do prevádzky.', en: 'A mammography unit is commissioned.' } },
+    { id: 'h2008', year: '2008', text: { sk: 'Prvé pracovisko počítačovej tomografie (CT).', en: 'The first computed tomography (CT) workplace opens.' } },
+    { id: 'h2024', year: '2024', text: { sk: 'Spustenie centrálnej recepcie a nových ambulancií — urológia, angiológia.', en: 'Central reception launches, alongside new urology and angiology clinics.' } },
+    { id: 'h2025', year: '2025–2026', text: { sk: 'Komplexná modernizácia rádiológie z Plánu obnovy — nové CT, sonografia, C-rameno; rozšírenie o jednodňovú urologickú starostlivosť.', en: 'Comprehensive radiology modernisation via the Recovery & Resilience Plan — new CT, sonography, C-arm; expansion into one-day urological care.' } },
+  ],
+
+  investments: [
+    { id: 'i-radiologia', amount: '340 000 €', desc: { sk: 'Modernizácia rádiológie z Plánu obnovy a odolnosti SR — nové CT, sonografia, chirurgické C-rameno.', en: 'Radiology modernisation via the Recovery & Resilience Plan — new CT scanner, sonography, surgical C-arm.' } },
+    { id: 'i-endoskopia', amount: '50 000 €', desc: { sk: 'Mestská dotácia na nové gastroskopy a kolonoskopy.', en: 'Municipal subsidy for new gastroscopes and colonoscopes.' } },
+  ],
+
+  certifications: [
+    { id: 'iso-9001-2015', name: 'ISO 9001:2015', desc: { sk: 'Systém manažérstva kvality (SK08/0393, SGS Slovakia, akreditácia SNAS). Nadväzuje na certifikáciu ISO 9001:2008 (certifikovaní od októbra 2005).', en: 'Quality management system (certificate SK08/0393, SGS Slovakia, SNAS-accredited). Succeeds the ISO 9001:2008 certification (certified since October 2005).' } },
+    { id: 'iso-9001-2008', name: 'ISO 9001:2008', desc: { sk: 'Historická certifikácia systému manažérstva kvality, platná 2014–2017; nahradená ISO 9001:2015.', en: 'Historical quality-management-system certification, valid 2014–2017; superseded by ISO 9001:2015.' } },
+  ],
 };

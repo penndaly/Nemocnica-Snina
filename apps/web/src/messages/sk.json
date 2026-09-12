@@ -18,7 +18,8 @@
     "news": "Aktuality",
     "contact": "Kontakt",
     "education": "Edukácia pacientov",
-    "patients": "Pre pacientov"
+    "patients": "Pre pacientov",
+    "about": "O nemocnici"
   },
   "navGroups": {
     "hospitalLabel": "Nemocnica",
@@ -37,6 +38,7 @@
       "portal": "Výsledky a moje objednávky"
     },
     "hospital": {
+      "about": "História, vedenie a hospodárenie",
       "news": "Oznamy a novinky",
       "careers": "Voľné pracovné miesta",
       "disclosures": "Zmluvy, faktúry, objednávky"

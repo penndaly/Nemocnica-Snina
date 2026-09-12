@@ -159,6 +159,40 @@ no-scroll check also fails only at 320px and passes ≥375px, that's this same
 tracked defect, not a new one — note it and move on; if it fails at 375px+
 too, that's a new, route-specific bug and should be fixed in that sprint.
 
+### Full-ladder result (2026-09-12, close-out of the ROUTE-1 series)
+
+Ran the complete ladder once across every public route after the last of the
+four missing routes landed: **21 routes × 14 widths = 294 checks.**
+
+- **320px fails on all 21 routes** (scrollWidth 349–364 vs 320). Uniform
+  across routes that predate this work and routes added by ROUTE-1a/1b/1c
+  alike — so it is a shared-shell defect (the ~349px floor is the same
+  everywhere), not per-page. That ~29–44px is the thing UI-2 needs to find.
+- **Every route passes at 375px and above — except `/kontakt`.**
+
+### UI-2a — `/kontakt` overflows up to 480px (worse than the 320px case)
+
+`/sk/kontakt` reports a constant `scrollWidth` of **523px**, failing at 320,
+375, 390, 414 **and** 480px — i.e. it does not reflow on any common phone,
+where every other route only trips at 320px.
+
+Root cause, located: `apps/web/src/app/[lang]/kontakt/page.tsx:38` sets
+
+```
+style={{ display: 'grid', gridTemplateColumns: '1.3fr .85fr', … }}
+```
+
+as an **inline** style. Two `fr` tracks each still hold their min-content, so
+the body + sticky `<aside>` (the Quick-contact card, overflowing to x=521)
+cannot collapse to one column — and because the rule is inline, no media
+query can override it.
+
+Fix path already exists and needs no new CSS: `.detail-grid` / `.detail-sidebar`
+in `packages/ui/src/globals.css:306-311` do exactly this collapse at 940px and
+are already used correctly by `/oddelenia/[slug]`. Swapping kontakt's inline
+grid for those classes should resolve it. Left for UI-2 rather than patched
+inside a route sprint, per the standing call on this class of defect.
+
 ---
 
 ## ROUTE-1a — axe not run (staging-QA gap, not a false pass)
@@ -180,4 +214,38 @@ considered accessibility-verified, not just render-verified.
 not run, for the same environment reason. No-horizontal-scroll re-checked
 at 375-1440px for `/sk/pre-pacientov` (the `visit` nav group grew one row);
 all pass — same UI-2 320px-only failure as every other route, not a new
-regression.
+regression. ROUTE-1c's `/sk/o-nemocnici` carries the same axe gap.
+
+---
+
+## Unported CSS primitives shipped unstyled markup (ROUTE-1b, fixed in 1c)
+
+Found 2026-09-12 while porting the `/o-nemocnici` history timeline.
+
+`packages/ui/src/globals.css` is the app's only stylesheet, and it had never
+received several layout primitives that exist in the prototype's
+`assets/styles.css`: `.section`, `.grid`/`.grid-2`/`.grid-3`, `.table-wrap`,
+`.wait-row`/`.wr-clinic`, `.quote-card`, and the `.mt-*`/`.mb-*` scale.
+
+Sprint ROUTE-1b's `/pre-pacientov` used all of them, so it shipped with the
+waiting-time rows unstyled (no flex row, no separators), the testimonial
+cards missing their terracotta rule and serif quote, the price table without
+its scroll container, and the card pairs/triples stacked because `.grid-2`
+and `.grid-3` were inert. The section bands had no vertical padding.
+
+**Why it survived verification:** the ROUTE-1b check was content-presence
+(`curl` + `grep` for expected strings) plus the no-scroll ladder. A missing
+class fails neither — `.grid-2` with no rule still renders every child, just
+in one column, and stacking *reduces* width so the scroll check is happy.
+
+**The lesson, worth keeping:** for any new markup, assert a computed style,
+not just that the text is in the HTML. The check that caught this is a
+headless-browser `getComputedStyle` probe on one element per new class
+(`grid-template-columns` has 2 tracks, `.wait-row` is `display:flex`,
+`.quote-card` has a 4px left border, `.section` has 76px padding). Cheap,
+and it is the only thing that distinguishes "rendered" from "styled".
+
+All of the above are now ported verbatim into `globals.css` and verified by
+computed style. The full `.mt-*`/`.mb-*` scale was ported rather than only
+the steps in use, because a partially-present utility scale fails silently
+in exactly this way.

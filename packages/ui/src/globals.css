@@ -434,6 +434,57 @@
  * day number + month abbreviation with no room to spare for a longer SK month name. */
 @media (max-width: 380px) { .grid-dates-4 { grid-template-columns: repeat(2, 1fr); } }
 
+/* ── Content-page primitives ───────────────────────────────────────────────
+ * Ported verbatim from design_handoff_nemocnica_snina/assets/styles.css
+ * (values are the prototype's — do not re-derive, per SPRINT_UI_HERO_NAV_ART).
+ *
+ * These were used by /pre-pacientov when Sprint ROUTE-1b shipped it, but had
+ * never been ported out of the prototype, so those elements rendered with no
+ * styling at all: the waiting-time rows had no separators or layout, the
+ * testimonial cards lost their terracotta rule and serif quote, the price
+ * table lost its scroll container, and .grid-2/.grid-3 were inert so the
+ * card pairs/triples stacked instead of forming a grid. Content-presence
+ * checks (curl + grep) pass either way, which is exactly why it survived —
+ * .grid-2 with no rule still renders every child, just in one column.
+ *
+ * The 940/620px collapse points are the prototype's own; keeping them means
+ * a .grid-3 is never narrower than ~1/2 viewport above 620px. */
+/* Vertical rhythm + margin utilities. The full scale is ported, not just the
+ * steps in use today: a partially-present scale fails silently (the class
+ * renders, the spacing just doesn't happen), which is how the gaps above
+ * went unnoticed. */
+.section { padding: 76px 0; }
+.section-sm { padding: 48px 0; }
+@media (max-width: 620px) { .section { padding: 52px 0; } }
+.mt-0{margin-top:0}.mt-1{margin-top:8px}.mt-2{margin-top:16px}.mt-3{margin-top:24px}.mt-4{margin-top:36px}
+.mb-0{margin-bottom:0}.mb-1{margin-bottom:8px}.mb-2{margin-bottom:16px}.mb-3{margin-bottom:24px}.mb-4{margin-bottom:36px}
+
+.grid { display: grid; gap: 22px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 940px) { .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+
+.wait-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.wait-row:last-child { border-bottom: none; }
+.wait-row .wr-clinic { font-weight: 700; color: var(--ink); }
+
+.quote-card { border-left: 4px solid var(--terra); position: relative; }
+.quote-card blockquote { margin: 0 0 10px; font-family: 'Newsreader', serif; font-size: 1.08rem; line-height: 1.55; color: var(--ink); font-style: italic; }
+.quote-card cite { font-style: normal; font-size: .85rem; color: var(--ink-3); font-weight: 600; }
+
+/* History timeline (/o-nemocnici). The dot sits at -28px, matching the
+ * track's 28px padding-left — move one and the other must follow. */
+.hist-timeline { position: relative; padding-left: 28px; }
+.hist-timeline::before { content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }
+.hist-item { position: relative; padding-bottom: 26px; }
+.hist-item:last-child { padding-bottom: 0; }
+.hist-item::before { content: ''; position: absolute; left: -28px; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--blue-700); box-shadow: 0 0 0 3px var(--blue-50); }
+.hist-year { font-family: 'Newsreader', serif; font-weight: 700; color: var(--terra); font-size: 1.05rem; }
+.hist-text { color: var(--ink-2); margin-top: 2px; }
+
 /* High-contrast mode support */
 @media (prefers-contrast: more) {
   :root {

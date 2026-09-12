@@ -18,7 +18,8 @@
     "news": "News",
     "contact": "Contact",
     "education": "Patient education",
-    "patients": "For patients"
+    "patients": "For patients",
+    "about": "About the hospital"
   },
   "navGroups": {
     "hospitalLabel": "Hospital",
@@ -37,6 +38,7 @@
       "portal": "Results & my appointments"
     },
     "hospital": {
+      "about": "History, leadership and finances",
       "news": "Notices & news",
       "careers": "Open positions",
       "disclosures": "Contracts, invoices, orders"

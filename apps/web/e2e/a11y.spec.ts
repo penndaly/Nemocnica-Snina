@@ -22,6 +22,7 @@ const KEY_ROUTES = [
   '/sk/kariera',
   '/sk/kariera/j1',
   '/sk/pre-pacientov',
+  '/sk/o-nemocnici',
 ];
 
 for (const route of KEY_ROUTES) {

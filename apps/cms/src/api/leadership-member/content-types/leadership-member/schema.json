@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "leadership_members",
+  "info": {
+    "singularName": "leadership-member",
+    "pluralName": "leadership-members",
+    "displayName": "Leadership member",
+    "description": "Hospital management (konateľ, deputies, division heads) — from DATA_MODEL.md aboutInfo.leadershipTeam. Deliberately not a relation to Physician: these are management posts and only one holder also has a clinical role."
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "name": { "type": "string", "required": true },
+    "slug": { "type": "uid", "targetField": "name" },
+    "role": { "type": "string", "required": true, "pluginsOptions": { "i18n": { "localized": true } } },
+    "phone": { "type": "string" },
+    "email": { "type": "email" }
+  }
+}

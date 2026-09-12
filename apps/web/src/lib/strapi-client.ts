@@ -14,6 +14,7 @@ import type {
   Disclosure, Hospital, Pages, Locale, PhysicianProfile, Weekday,
   EducationArticle, EducationCategory, JobPosting, CareersInfo,
   PriceListItem, ClinicWaitingTime, WaitingTimeLevel, PatientTestimonial,
+  AboutInfo, LeadershipMember, HistoryMilestone, Investment, Certification,
 } from '@ns/types';
 
 const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
@@ -459,6 +460,86 @@ export async function getWaitingTimes(locale: Locale = 'sk'): Promise<ClinicWait
       clinic: { [locale]: String(a['clinic'] ?? '') },
       wait: { [locale]: String(a['wait'] ?? '') },
       level: (a['level'] as WaitingTimeLevel) ?? 'ok',
+    };
+  });
+}
+
+// ── About the hospital (/[lang]/o-nemocnici) ──────────────
+
+export async function getAboutInfo(locale: Locale = 'sk'): Promise<AboutInfo> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.aboutInfo; }
+  const entry = await strapiGet<Record<string, unknown>>('about-info', locale);
+  const a = (entry['attributes'] as Record<string, unknown>) ?? entry;
+  const fin = (a['financials'] as Record<string, unknown>) ?? {};
+  return {
+    owner: { [locale]: String(a['owner'] ?? '') },
+    leadership: { [locale]: String(a['leadership'] ?? '') },
+    ethics: { [locale]: String(a['ethics'] ?? '') },
+    adverseEvents: { [locale]: String(a['adverseEvents'] ?? '') },
+    antiCorruption: { [locale]: String(a['antiCorruption'] ?? '') },
+    transfusionCommittee: { [locale]: String(a['transfusionCommittee'] ?? '') },
+    rankings: { [locale]: String(a['rankings'] ?? '') },
+    board: (a['board'] as string[]) ?? [],
+    financials: {
+      revenue: String(fin['revenue'] ?? ''),
+      assets: String(fin['assets'] ?? ''),
+      profit: String(fin['profit'] ?? ''),
+      year: String(fin['year'] ?? ''),
+    },
+  };
+}
+
+export async function getLeadershipTeam(locale: Locale = 'sk'): Promise<LeadershipMember[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.leadershipTeam; }
+  const data = await strapiGet<Record<string, unknown>[]>('leadership-members', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    const member: LeadershipMember = {
+      id: String(a['slug'] ?? e['id']),
+      name: String(a['name'] ?? ''),
+      role: { [locale]: String(a['role'] ?? '') },
+    };
+    if (a['phone']) member.phone = String(a['phone']);
+    if (a['email']) member.email = String(a['email']);
+    return member;
+  });
+}
+
+export async function getHistory(locale: Locale = 'sk'): Promise<HistoryMilestone[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.history; }
+  const data = await strapiGet<Record<string, unknown>[]>('history-milestones?sort=year', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id: String(e['id']),
+      year: String(a['year'] ?? ''),
+      text: { [locale]: String(a['text'] ?? '') },
+    };
+  });
+}
+
+export async function getInvestments(locale: Locale = 'sk'): Promise<Investment[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.investments; }
+  const data = await strapiGet<Record<string, unknown>[]>('investments', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id: String(e['id']),
+      amount: String(a['amount'] ?? ''),
+      desc: { [locale]: String(a['desc'] ?? '') },
+    };
+  });
+}
+
+export async function getCertifications(locale: Locale = 'sk'): Promise<Certification[]> {
+  if (USE_FALLBACK) { const { SEED } = await import('./seed'); return SEED.certifications; }
+  const data = await strapiGet<Record<string, unknown>[]>('certifications', locale);
+  return data.map((e) => {
+    const a = e['attributes'] as Record<string, unknown> ?? e;
+    return {
+      id: String(e['id']),
+      name: String(a['name'] ?? ''),
+      desc: { [locale]: String(a['desc'] ?? '') },
     };
   });
 }

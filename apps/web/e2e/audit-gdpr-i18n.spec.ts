@@ -95,7 +95,7 @@ test.describe('A3-7 — WCAG AA (axe) sweep', () => {
     '/sk', '/sk/oddelenia', '/sk/lekari', '/sk/lekari/borscova', '/sk/ambulancie',
     '/sk/sluzby', '/sk/diagnostika', '/sk/aktuality', '/sk/zverejnovanie', '/sk/kontakt',
     '/sk/portal', '/sk/edukacia', '/sk/edukacia/priprava', '/sk/kariera', '/sk/kariera/j1',
-    '/sk/pre-pacientov', '/admin/users', '/admin/audit',
+    '/sk/pre-pacientov', '/sk/o-nemocnici', '/admin/users', '/admin/audit',
   ];
   for (const route of ROUTES) {
     test(`axe: zero critical/serious on ${route}`, async ({ page }) => {

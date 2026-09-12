@@ -32,6 +32,7 @@ export function SiteFooter() {
   ];
 
   const col4 = [
+    { href: `/${locale}/o-nemocnici`, label: t('nav.about') },
     { href: `/${locale}/zverejnovanie`, label: t('footer.disclosures') },
     { href: `/${locale}/kontakt#gdpr`, label: t('footer.privacy') },
     { href: `/${locale}/kontakt#pristupnost`, label: t('footer.accessibility') },

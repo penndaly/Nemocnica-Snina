@@ -1,0 +1,20 @@
+{
+  "kind": "collectionType",
+  "collectionName": "history_milestones",
+  "info": {
+    "singularName": "history-milestone",
+    "pluralName": "history-milestones",
+    "displayName": "History milestone",
+    "description": "One entry on the /o-nemocnici history timeline — from DATA_MODEL.md aboutInfo.history."
+  },
+  "options": { "draftAndPublish": true },
+  "pluginsOptions": { "i18n": { "localized": true } },
+  "attributes": {
+    "year": {
+      "type": "string",
+      "required": true,
+      "description": "String, not a number — real values include ranges such as \"1951–1952\" and \"2025–2026\"."
+    },
+    "text": { "type": "text", "required": true, "pluginsOptions": { "i18n": { "localized": true } } }
+  }
+}

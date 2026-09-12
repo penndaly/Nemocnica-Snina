@@ -264,6 +264,75 @@ export interface PatientTestimonial {
   author: Loc;
 }
 
+// ─── About the hospital (/[lang]/o-nemocnici) ─────────────
+// From assets/data.js `aboutInfo`. Only the 13 fields o-nemocnici.html
+// actually renders are modelled here; `aboutInfo` also carries awards,
+// sponsors, insurers, projects, gdpr and kralapni, which no page renders
+// yet — they stay in data.js rather than becoming unused app-side shapes.
+//
+// Deliberately NOT duplicated here, because they already exist:
+//   · hospital identity (IČO/DIČ/address/phone) → `Hospital`
+//   · the GDPR/DPO block                        → /kontakt#gdpr
+//   · contracts & invoices                      → `Disclosure` + /zverejnovanie
+
+/**
+ * Hospital management — konateľ, deputies, division heads.
+ *
+ * Not a `Physician` and not linked to one: these are management posts, and
+ * only one holder (Kulan, also the surgery lead) has a clinical role too.
+ * A relation would encode a rule that holds for one row out of four.
+ */
+export interface LeadershipMember {
+  id: string;
+  name: string;
+  role: Loc;
+  phone?: string;
+  email?: string;
+}
+
+/** `year` is a string, not a number — the source has ranges ("1951–1952", "2025–2026"). */
+export interface HistoryMilestone {
+  id: string;
+  year: string;
+  text: Loc;
+}
+
+export interface Investment {
+  id: string;
+  /** Formatted as published, e.g. "340 000 €" — same convention as PriceListItem.price. */
+  amount: string;
+  desc: Loc;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  desc: Loc;
+}
+
+/** Published figures, formatted as-is — strings, never arithmetic operands. */
+export interface HospitalFinancials {
+  revenue: string;
+  assets: string;
+  profit: string;
+  year: string;
+}
+
+/** Governance prose + finances singleton; the list-shaped parts of the page
+ * (leadership, history, investments, certifications) are their own
+ * collections, so an editor manages each as a list. */
+export interface AboutInfo {
+  owner: Loc;
+  leadership: Loc;
+  ethics: Loc;
+  adverseEvents: Loc;
+  antiCorruption: Loc;
+  transfusionCommittee: Loc;
+  rankings: Loc;
+  board: string[];
+  financials: HospitalFinancials;
+}
+
 // ─── Operational (PostgreSQL, not CMS) ───────────────────
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -403,4 +472,9 @@ export interface Seed {
   pricing: PriceListItem[];
   waitingTimes: ClinicWaitingTime[];
   testimonials: PatientTestimonial[];
+  aboutInfo: AboutInfo;
+  leadershipTeam: LeadershipMember[];
+  history: HistoryMilestone[];
+  investments: Investment[];
+  certifications: Certification[];
 }
