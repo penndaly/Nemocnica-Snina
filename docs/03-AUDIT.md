@@ -249,3 +249,83 @@ All of the above are now ported verbatim into `globals.css` and verified by
 computed style. The full `.mt-*`/`.mb-*` scale was ported rather than only
 the steps in use, because a partially-present utility scale fails silently
 in exactly this way.
+
+---
+
+## UI-2a — `/kontakt` fixed + class-coverage audit + computed-style ladder (2026-09-12)
+
+Three things in one sprint, because the `/kontakt` overflow and the ROUTE-1b
+unstyled markup were the same defect class seen from two sides: markup that
+names a style it doesn't get.
+
+### 1. `/kontakt` class swap (the symptom)
+
+`apps/web/src/app/[lang]/kontakt/page.tsx` now puts `.detail-grid` on the
+body grid and `.detail-sidebar` on the sticky aside, same as
+`/oddelenia/[slug]` and `/lekari/[slug]`. Measured after the change
+(headless Chromium, `documentElement.scrollWidth` vs viewport):
+
+| width | before | after | `.detail-grid` tracks | aside |
+|---|---|---|---|---|
+| 320 | 523 | 349 | 1 | static |
+| 375 | 523 | 375 | 1 | static |
+| 390 | 523 | 390 | 1 | static |
+| 414 | 523 | 414 | 1 | static |
+| 480 | 523 | 480 | 1 | static |
+| 941 | 941 | 941 | 2 | sticky |
+| 1280 | 1280 | 1280 | 2 | sticky |
+
+320px now sits at the same ~349px floor as every other route — i.e. the
+route-specific defect is gone and what remains is the shared UI-2 one.
+
+### 2. Class-coverage audit (assume 1b wasn't the only one — it wasn't)
+
+Every class name referenced from a `className=` in `apps/web/src` (static
+strings, template literals and ternary branches inside `className={…}`)
+cross-checked against `packages/ui/src/globals.css`, the app's only
+stylesheet. 108 distinct classes referenced, 119 defined. Unknown:
+
+| class | where | verdict | action |
+|---|---|---|---|
+| `edu-body` | `edukacia/[slug]` article body | **real gap** — prototype rule never ported; richtext `h4` rhythm and body colour/line-height missing (the page carried a partial inline copy) | ported; inline copy removed |
+| `spin` | `admin/gdpr`, `admin/tools`, `admin/translations` (`<Loader2 className="spin">`) | **real gap** — no rule *and* no keyframes anywhere; busy-state icons sat still | `@keyframes spin` + `.spin` added, reduced-motion slowed |
+| `h3` | `objednanie/zrusit/[token]` (`<h1 className="h3">`) | **real gap** — no rule in prototype or app; the result-card h1 rendered at full h1 size | `.h3` heading-size utility added (mirrors base `h3`) |
+| `flex` `items-center` `justify-center` `gap-3` `py-16` `mb-6` `mt-6` `animate-spin` | `objednanie/zrusit`, `admin/login` | Tailwind utilities — `globals.css` has `@tailwind utilities` and the content glob covers `src/**`; **confirmed emitted** by computed style (`display:flex`, `padding-top:64px`, `gap:12px`, `animation-name:spin`) | allowlisted by name in the audit script (not by pattern — Tailwind is not the app's convention) |
+| `site-header` `utility-bar` | `SiteHeader.tsx`, `UtilityBar.tsx` | hook-only — the components carry the prototype's rules inline | allowlisted. **UI-2 lead:** the prototype's `.utility-bar .container` has `flex-wrap: wrap`; the inline port doesn't. Worth checking first when hunting the 320px floor. |
+
+Found on the way, fixed because it was one line: `objednanie/zrusit/[token]`
+rendered its own `<main id="main-content">` *inside* `SiteLayout`'s — a
+nested main landmark with a duplicate id (axe `landmark-no-duplicate-main`,
+`duplicate-id`). Now a `<div>`.
+
+Not found: any class that is *defined* but silently wrong — that's what
+layer 2 below is for.
+
+### 3. The durable fix — verification ladder now has two new rungs
+
+Content-presence (`curl` + `grep`) plus the no-scroll ladder can never again
+pass an unstyled section on their own, because they are no longer the whole
+ladder:
+
+- **Static — `apps/web/scripts/audit-classes.mjs`** (`pnpm --filter=@ns/web
+  audit:classes`, wired into the CI lint job). Fails on any class referenced
+  by markup and defined nowhere. Negative-tested: an injected `zzz-nope`
+  class exits 1. ~50ms. Catches the ROUTE-1b case at commit time.
+- **Runtime — `apps/web/e2e/styled.spec.ts`**. One `getComputedStyle`
+  assertion per ported layout primitive on a real element on a real route
+  (`.detail-grid` track count at 1280 vs 390, `.section` padding, `.grid-2`/
+  `.grid-3` collapse, `.wait-row` flex, `.quote-card` border, `.table-wrap`
+  overflow, `.hist-timeline`, `.edu-body`, `.h3`, `.spin`, and the Tailwind
+  utilities the allowlist depends on). A missing selector fails with
+  `NO-ELEMENT` rather than probing nothing. The same file carries the
+  **committed** no-horizontal-scroll ladder (13 widths × 19 public routes),
+  previously an uncommitted one-off; 320px is asserted as `test.fail` so it
+  flips loudly when UI-2 lands. Run: 44/44 green, 2026-09-12, Chromium
+  desktop, against the local dev server (API down — the spec waits for
+  `load` + `main`, not `networkidle`, for exactly that reason).
+
+**Standing rule (also in `CLAUDE.md`):** a verification claim names the
+method, not the outcome. "content present + scroll ladder" is a true
+statement about ROUTE-1b that would have shown the gap at the time;
+"renders correctly" hid it. Add a `styled.spec.ts` row for every class you
+port; the audit script will tell you when you forgot.

@@ -40,6 +40,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      # Sprint UI-2a: every className in apps/web must resolve to a rule in
+      # packages/ui/src/globals.css (or the script's allowlist). Static, ~50ms.
+      - run: pnpm --filter=@ns/web audit:classes
 
   # ── Unit + Integration tests ──────────────────────────────
   # Postgres runs as nstest (superuser equivalent in CI).

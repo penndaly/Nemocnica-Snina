@@ -467,6 +467,26 @@
 
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 
+/* ── Ported in Sprint UI-2a after the class-coverage audit (docs/03-AUDIT.md,
+ * "Class-coverage audit"). Each of these was referenced by app markup but
+ * defined nowhere — the same silent-failure class as the ROUTE-1b primitives
+ * above. `apps/web/scripts/audit-classes.mjs` now fails CI on the next one. */
+
+/* Education article body (prototype styles.css .edu-body) — richtext from
+ * seed/CMS, so the h4 rhythm has to come from CSS, not from markup we control. */
+.edu-body { padding: 0 0 20px; color: var(--ink-2); line-height: 1.7; }
+.edu-body h4 { margin: 1.1em 0 .4em; color: var(--ink); }
+
+/* Heading-size utility: an <h1> that must stay the page's h1 for a11y/SEO but
+ * read at h3 scale (booking-cancel result card). Mirrors the base h3 size. */
+.h3 { font-size: 1.35rem; }
+
+/* Busy-state spinner for lucide icons in admin (`<Loader2 className="spin" />`).
+ * Was referenced with no rule or keyframes, so the icon just sat still. */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+
 .wait-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 .wait-row:last-child { border-bottom: none; }
 .wait-row .wr-clinic { font-weight: 700; color: var(--ink); }

@@ -35,7 +35,12 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
       {/* 2-col body */}
       <div style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr .85fr', gap: '2.5rem', alignItems: 'start' }}>
+          {/* detail-grid / detail-sidebar (globals.css) collapse to one column
+              and un-stick the aside below 940px. The columns MUST be set via
+              the class, not only inline: an inline grid-template-columns
+              cannot be overridden by any media query, which is what made this
+              page overflow to 523px on every phone width (UI-2a). */}
+          <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr .85fr', gap: '2.5rem', alignItems: 'start' }}>
             {/* Left */}
             <div>
               {/* Map placeholder */}
@@ -136,7 +141,7 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
             </div>
 
             {/* Right: sticky quick-contact */}
-            <aside style={{ position: 'sticky', top: 'calc(var(--header-h) + 1rem)' }}>
+            <aside className="detail-sidebar" style={{ position: 'sticky', top: 'calc(var(--header-h) + 1rem)' }}>
               <div className="card card-pad" style={{ borderTop: '4px solid var(--blue-600)' }}>
                 <h3 style={{ marginBottom: '1rem' }}>
                   {locale === 'sk' ? 'Rýchly kontakt' : 'Quick contact'}

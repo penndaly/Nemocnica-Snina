@@ -50,7 +50,6 @@ export default async function EducationArticleDetailPage({
               convention as Department.desc in the Strapi schema. */}
           <div
             className="edu-body"
-            style={{ lineHeight: 1.7, color: 'var(--ink-2)' }}
             dangerouslySetInnerHTML={{ __html: localizeField(article.body, locale) }}
           />
         </div>

@@ -54,7 +54,10 @@ export default function CancelBookingPage({
 
   return (
     <SiteLayout>
-      <main id="main-content" className="container py-16 flex justify-center">
+      {/* SiteLayout already renders <main id="main-content">; a second <main>
+          here nested a duplicate landmark + duplicate id (axe: landmark-no-
+          duplicate-main, duplicate-id). Found by the UI-2a class audit. */}
+      <div className="container py-16 flex justify-center">
         <div
           className="card card-pad"
           style={{ maxWidth: 520, width: '100%' }}
@@ -168,7 +171,7 @@ export default function CancelBookingPage({
             </div>
           )}
         </div>
-      </main>
+      </div>
     </SiteLayout>
   );
 }
