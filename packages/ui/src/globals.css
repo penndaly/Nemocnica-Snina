@@ -401,6 +401,26 @@
     display: inline-flex;
   }
 }
+/* UI-2b (fixes UI-3): above the 1100px floor the header measures itself
+ * (SiteHeader.tsx useLayoutEffect) and adds .nav-collapsed when brand + nav
+ * + CTAs would overlap for the current locale's labels. The nav and CTAs
+ * are parked off-flow but NOT display:none — visibility:hidden keeps their
+ * intrinsic widths measurable so the header can expand again when the
+ * viewport grows. They are also `inert` + aria-hidden in the markup, so
+ * nothing in them is focusable or announced. */
+.site-header.nav-collapsed .nav-links,
+.site-header.nav-collapsed .header-ctas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: 100%;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.site-header.nav-collapsed .show-mobile {
+  display: inline-flex;
+}
 
 /* Grouped nav — ported from design_handoff_nemocnica_snina/assets/styles.css. */
 .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }

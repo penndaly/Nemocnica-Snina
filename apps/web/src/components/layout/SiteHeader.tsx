@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { Menu, X, Plus, ChevronRight } from 'lucide-react';
@@ -30,6 +30,21 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const brandRef = useRef<HTMLAnchorElement>(null);
+  const ctasRef = useRef<HTMLDivElement>(null);
+  // UI-2b (fixes UI-3): content-aware collapse. The 1100px CSS breakpoint is
+  // a floor, not the rule — above it, whether the grouped nav fits depends on
+  // the locale's label lengths (uk overflowed into the CTAs at every desktop
+  // width; sk by 38px at 1101px). So measure: brand + nav content + CTAs +
+  // gaps against the container's content box, and switch to the hamburger
+  // when it would overlap. Intrinsic widths are read from the *children*
+  // (`.nav-top` is nowrap and flex items don't shrink below content), so the
+  // sum is the same whether the nav is currently in flow or parked off-flow
+  // by `.nav-collapsed` (visibility:hidden keeps layout) — no hysteresis
+  // needed. Below the CSS floor everything is display:none, the sum is 0,
+  // and this state is simply false; CSS owns that range.
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   const navGroups: NavGroup[] = [
     {
@@ -96,6 +111,42 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
     };
   }, [openGroup]);
 
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const brand = brandRef.current;
+    const nav = navRef.current;
+    const ctas = ctasRef.current;
+    if (!container || !brand || !nav || !ctas) return;
+
+    function measure() {
+      if (!container || !brand || !nav || !ctas) return;
+      const items = Array.from(nav.children) as HTMLElement[];
+      const navGap = parseFloat(getComputedStyle(nav).columnGap) || 0;
+      const navContent =
+        items.reduce((w, el) => w + el.offsetWidth, 0) + navGap * Math.max(0, items.length - 1);
+      if (navContent === 0) {
+        // display:none (≤1100px CSS floor) — nothing to decide here.
+        setNavCollapsed(false);
+        return;
+      }
+      const cs = getComputedStyle(container);
+      const available =
+        container.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      const gap = parseFloat(cs.columnGap) || 0;
+      const needed = brand.offsetWidth + gap + navContent + gap + ctas.offsetWidth;
+      setNavCollapsed(needed > available);
+    }
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+    // Web fonts land after first layout and change every label's width.
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(measure).catch(() => void 0);
+    }
+    return () => ro.disconnect();
+  }, []);
+
   function toggleGroup(key: string) {
     setOpenGroup((cur) => (cur === key ? null : key));
   }
@@ -143,7 +194,8 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
 
   return (
     <header
-      className="site-header"
+      className={`site-header${navCollapsed ? ' nav-collapsed' : ''}`}
+      data-nav={navCollapsed ? 'collapsed' : 'expanded'}
       style={{
         position: 'sticky',
         top: 0,
@@ -158,11 +210,13 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
       }}
     >
       <div
+        ref={containerRef}
         className="container"
         style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%' }}
       >
         {/* Brand */}
         <Link
+          ref={brandRef}
           href={`/${locale}`}
           style={{ display: 'flex', alignItems: 'center', gap: '.7rem', textDecoration: 'none', flexShrink: 0 }}
           aria-label="Nemocnica Snina — domov"
@@ -210,8 +264,16 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           </div>
         </Link>
 
-        {/* Primary nav — grouped, hidden < 1100px (see globals.css). */}
-        <nav ref={navRef} className="hidden-mobile nav-links" aria-label="Hlavná navigácia" style={{ flex: 1, minWidth: 0 }}>
+        {/* Primary nav — grouped, hidden < 1100px (see globals.css) and
+            parked off-flow (still measurable) when .nav-collapsed — UI-2b. */}
+        <nav
+          ref={navRef}
+          className="hidden-mobile nav-links"
+          aria-label="Hlavná navigácia"
+          aria-hidden={navCollapsed || undefined}
+          inert={navCollapsed || undefined}
+          style={{ flex: 1, minWidth: 0 }}
+        >
           {navGroups.map((g) => {
             if (g.href) {
               return (
@@ -261,7 +323,10 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
 
         {/* CTAs */}
         <div
-          className="hidden-mobile"
+          ref={ctasRef}
+          className="hidden-mobile header-ctas"
+          aria-hidden={navCollapsed || undefined}
+          inert={navCollapsed || undefined}
           style={{ display: 'flex', gap: '.6rem', alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}
         >
           <Link href={`/${locale}/portal`} className="btn btn-ghost btn-sm">
@@ -272,7 +337,7 @@ export function SiteHeader({ activePath = '' }: { activePath?: string }) {
           </Link>
         </div>
 
-        {/* Hamburger — visible < 1100px */}
+        {/* Hamburger — visible < 1100px, and whenever .nav-collapsed (UI-2b) */}
         <button
           className="show-mobile"
           onClick={() => setMenuOpen(!menuOpen)}

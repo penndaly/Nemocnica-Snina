@@ -197,3 +197,115 @@ test('prose links are underlined, not colour-only (axe link-in-text-block; STG-2
   // Buttons keep their own affordance.
   expect(await computed(page, 'a.btn', 'text-decoration-line')).toBe('none');
 });
+
+// ── 3. Header: grouped nav must never overlap the CTAs, per locale (UI-2b) ──
+// UI-3 (docs/03-AUDIT.md): `.nav-links` overflowed into the CTA buttons —
+// uk at every desktop width, sk at the 1101px boundary. Invisible to the
+// no-scroll ladder because the overflow is inside the header. The header
+// now measures itself and collapses to the hamburger when the locale's
+// labels would not fit (SiteHeader.tsx, UI-2b). This assertion — not the
+// ladder — is what catches a regression: for every locale × width, either
+// the nav is expanded and its last item ends left of the first CTA, or it
+// is collapsed and the hamburger is the visible control.
+const HEADER_LOCALES = ['sk', 'en', 'cs', 'pl', 'hu', 'uk'] as const;
+const HEADER_WIDTHS = [1101, 1280, 1440] as const;
+
+interface HeaderProbe {
+  state: string | null;
+  navDisplay: string;
+  navVisibility: string;
+  lastNavRight: number | null;
+  firstCtaLeft: number | null;
+  hamburgerDisplay: string;
+  navInert: boolean;
+  scrollWidth: number;
+}
+
+async function probeHeader(page: Page): Promise<HeaderProbe> {
+  return page.evaluate(() => {
+    const header = document.querySelector('header.site-header') as HTMLElement | null;
+    const nav = document.querySelector('header.site-header .nav-links') as HTMLElement | null;
+    const tops = Array.from(document.querySelectorAll('header.site-header .nav-links .nav-top')) as HTMLElement[];
+    const cta = document.querySelector('header.site-header .header-ctas .btn') as HTMLElement | null;
+    const burger = document.querySelector('header.site-header .show-mobile') as HTMLElement | null;
+    const last = tops[tops.length - 1];
+    return {
+      state: header?.getAttribute('data-nav') ?? null,
+      navDisplay: nav ? getComputedStyle(nav).display : 'NO-ELEMENT',
+      navVisibility: nav ? getComputedStyle(nav).visibility : 'NO-ELEMENT',
+      lastNavRight: last ? last.getBoundingClientRect().right : null,
+      firstCtaLeft: cta ? cta.getBoundingClientRect().left : null,
+      hamburgerDisplay: burger ? getComputedStyle(burger).display : 'NO-ELEMENT',
+      navInert: !!nav?.hasAttribute('inert'),
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  });
+}
+
+for (const locale of HEADER_LOCALES) {
+  test(`header: nav never overlaps CTAs — /${locale} at ${HEADER_WIDTHS.join('/')}px (UI-2b)`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const report: string[] = [];
+    for (const width of HEADER_WIDTHS) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, `/${locale}`);
+      // Fonts change label widths; the header re-measures on fonts.ready.
+      await page.evaluate(() => document.fonts.ready);
+      const p = await probeHeader(page);
+      report.push(`${locale}@${width}: ${p.state} navRight=${p.lastNavRight?.toFixed(0)} ctaLeft=${p.firstCtaLeft?.toFixed(0)}`);
+      expect(p.scrollWidth, `${locale}@${width} page overflows`).toBeLessThanOrEqual(width);
+      expect(p.state, `${locale}@${width} data-nav missing`).not.toBeNull();
+      if (p.state === 'expanded') {
+        expect(p.navDisplay, `${locale}@${width} expanded nav not displayed`).toBe('flex');
+        expect(p.navVisibility).toBe('visible');
+        expect(p.hamburgerDisplay, `${locale}@${width} hamburger shown while expanded`).toBe('none');
+        expect(p.lastNavRight, `${locale}@${width} no .nav-top`).not.toBeNull();
+        expect(p.firstCtaLeft, `${locale}@${width} no CTA`).not.toBeNull();
+        // The UI-3 defect: last group label ended right of the first CTA.
+        expect(p.lastNavRight!, `${locale}@${width} nav overlaps CTA`).toBeLessThan(p.firstCtaLeft!);
+      } else {
+        expect(p.state).toBe('collapsed');
+        expect(p.navVisibility, `${locale}@${width} collapsed nav still visible`).toBe('hidden');
+        expect(p.navInert, `${locale}@${width} collapsed nav not inert`).toBe(true);
+        // A <button> that is a flex item is blockified: computes 'flex', not
+        // 'inline-flex'. Anything but 'none' is "shown".
+        expect(p.hamburgerDisplay, `${locale}@${width} collapsed without hamburger`).not.toBe('none');
+      }
+    }
+    test.info().annotations.push({ type: 'header-states', description: report.join(' | ') });
+  });
+}
+
+test('header: sk and en keep the desktop nav at 1280/1440 (collapse must not over-trigger)', async ({ page }) => {
+  // The measurement is only right if it says "fits" when it does. The two
+  // primary locales fit at the common desktop widths (UI-3 table: sk only
+  // overlapped at 1101px). If this starts collapsing, the sum is wrong.
+  for (const locale of ['sk', 'en']) {
+    for (const width of [1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, `/${locale}`);
+      await page.evaluate(() => document.fonts.ready);
+      expect((await probeHeader(page)).state, `${locale}@${width}`).toBe('expanded');
+    }
+  }
+});
+
+test('header: collapsed nav re-expands when the viewport grows (UI-2b, same page, no reload)', async ({ page }) => {
+  // sk overlaps by 38px at 1101px (UI-3 table) and fits at 1280px. Start
+  // collapsed, widen, and the nav must come back without a navigation —
+  // proves the off-flow re-measurement, not just the initial one. (uk is
+  // not usable here: `.container` is capped at --maxw, and uk's labels need
+  // more than that cap at any viewport — it stays collapsed on desktop by
+  // design; see docs/03-AUDIT.md UI-2b.)
+  await page.setViewportSize({ width: 1101, height: 900 });
+  await open(page, '/sk');
+  await page.evaluate(() => document.fonts.ready);
+  expect((await probeHeader(page)).state).toBe('collapsed');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect.poll(async () => (await probeHeader(page)).state).toBe('expanded');
+  const p = await probeHeader(page);
+  expect(p.lastNavRight!).toBeLessThan(p.firstCtaLeft!);
+  // And back down: the CSS floor is not involved at 1101, this is the JS path.
+  await page.setViewportSize({ width: 1101, height: 900 });
+  await expect.poll(async () => (await probeHeader(page)).state).toBe('collapsed');
+});

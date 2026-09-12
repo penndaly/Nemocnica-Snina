@@ -398,6 +398,64 @@ right edge < first CTA left edge" assertion in `styled.spec.ts` at
 1101/1280/1440, which the Rusyn sprint adds (C4). Any seventh locale makes
 this worse; fix it first.
 
+### UI-2b close-out (2026-09-12) — content-aware collapse; UI-3 fixed
+
+Rusyn call C4(a), pulled ahead of the Rusyn build as its own sprint. The
+1100px CSS breakpoint stays as the floor. Above it `SiteHeader.tsx` now
+measures, in a `useLayoutEffect` with a `ResizeObserver` on the container
+and a re-run on `document.fonts.ready`: brand + Σ`.nav-links` children +
+CTAs + the two container gaps, against the container's content box. If
+that sum exceeds it, the header gets `.nav-collapsed` / `data-nav=
+"collapsed"`: the nav and the CTA block are parked off-flow
+(`position:absolute; visibility:hidden` — *not* `display:none`, so their
+intrinsic widths stay measurable and the header can expand again) and are
+`inert` + `aria-hidden`; the hamburger shows. The sum is built from the
+children's intrinsic widths (`.nav-top` is `nowrap`, flex items don't
+shrink below content), so it is identical in both states — no hysteresis.
+New classes `nav-collapsed`, `header-ctas` have rules in `globals.css`;
+`audit:classes` 0 unknown.
+
+Method: `styled.spec.ts` §3 — for 6 locales × 1101/1280/1440, either
+`data-nav=expanded` and last `.nav-top` right edge < first `.header-ctas
+.btn` left edge, or `collapsed` with the nav `visibility:hidden` + `inert`
+and the hamburger displayed; page `scrollWidth` ≤ viewport throughout. Plus
+an over-trigger guard (sk/en must stay expanded at 1280/1440) and a
+same-page resize test (sk 1101 → 1280 → 1101 flips collapsed → expanded →
+collapsed with no navigation). Measured edges (Chromium, fonts loaded):
+
+| locale | 1101 | 1280 | 1440 |
+|---|---|---|---|
+| sk | **collapsed** | expanded 869 < 910 | expanded 949 < 990 |
+| en | expanded 728 < 791 | expanded 778 < 920 | expanded 858 < 1000 |
+| cs | expanded 752 < 781 | expanded 802 < 910 | expanded 882 < 990 |
+| pl | expanded 767 < 812 | expanded 817 < 941 | expanded 897 < 1021 |
+| hu | **collapsed** | expanded 853 < 950 | expanded 933 < 1030 |
+| uk | **collapsed** | **collapsed** | **collapsed** |
+
+The UI-3 table's four overlaps are all gone (sk@1101 and uk everywhere
+now collapse instead of overlapping). Axe (wcag2a/2aa/21aa, contrast rule
+excluded as in `a11y.spec.ts`) on `/uk`@1280 and `/sk`@1101 (collapsed)
+and `/sk`@1280 (expanded): 0 critical/serious. Full `styled.spec.ts` +
+`a11y.spec.ts` against the dev server with the DB-free temp config: 73
+passed, the 19 `320px reflow` rows still the tracked UI-2 expected
+failures. Screenshots taken for sk/en/uk at all three widths (not
+committed). `pnpm --filter=@ns/web typecheck` and `lint` clean for the
+changed files.
+
+**Consequence to know:** `.container` is capped at `--maxw: 1180px`, so
+`uk` (needs ≈1290px of content box) is collapsed at *every* desktop
+width — the hamburger is its desktop navigation. That is what C4(a) buys:
+correct for whatever a translator returns, at the price of a shorter nav
+for long-label locales. Shortening `uk`'s group labels (or C4(b)) would
+restore the desktop nav there; a design call, not made here. Rusyn's
+labels will be measured by the same assertion the day they land.
+
+**Limitation:** the server renders `expanded`; the measurement runs in a
+layout effect after hydration, so on a long-label locale there is a
+pre-hydration frame or two with the overlapping nav. Not observable in the
+Playwright run (fonts + hydration settle before the probe) and not
+addressed here.
+
 ### CMS-1 close-out (2026-09-12) — this is a behaviour change, not a typo fix
 
 Renaming `pluginsOptions` → `pluginOptions` in 20 schemas turns localization

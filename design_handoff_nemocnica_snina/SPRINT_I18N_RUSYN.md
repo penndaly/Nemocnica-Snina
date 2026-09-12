@@ -114,7 +114,9 @@ Also found, not blocking but relevant to what Rusyn will look like on day one:
   h1 (Cyrillic width ≠ Georgia width), plus Latin unchanged on `/sk`.
 - **T3 Header (C4, fixes UI-3).** *Method:* per-locale collision assertion at
   1101/1280/1440 in `styled.spec.ts`, screenshots for `uk`, `sk`, `rue`; no-
-  scroll ladder unchanged.
+  scroll ladder unchanged. **Landed ahead of this sprint as UI-2b
+  (2026-09-12, `docs/03-AUDIT.md` "UI-2b close-out").** For Rusyn only the
+  `rue` row of the assertion and its screenshot remain.
 - **T4 Switcher (C5).** *Method:* computed style + ladder at 320–1440, axe
   gap noted (still no local axe), keyboard operation in `a11y.spec.ts`.
 - **T5 Docs.** `PRODUCTION_ARCHITECTURE.md` "7 languages"; `LAUNCH_CHECKLIST`
