@@ -20,7 +20,7 @@ module.exports = ({ env }) => {
   // Local dev: SQLite
   return {
     connection: {
-      client: 'better-sqlite3',
+      client: 'sqlite', // Strapi 4 dialect name; the driver it loads is better-sqlite3. 'better-sqlite3' here throws "Unknown dialect" (CMS-1).
       connection: { filename: env('SQLITE_PATH', '.tmp/data.db') },
       useNullAsDefault: true,
     },
