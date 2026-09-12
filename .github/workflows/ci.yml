@@ -52,19 +52,28 @@ jobs:
   # SQLite DB and runs 12 assertions (i18n live on 20/20 types, sk default,
   # gate blocks/allows, rue registers). ~1 min. Secrets are throwaway: the
   # scratch DB is created and deleted inside the job.
+  # Install note: apps/cms is installed with npm from its own package-lock
+  # (hoisted layout), NOT via the pnpm workspace. Strapi 4 packages require
+  # undeclared internal deps (@strapi/database → @strapi/utils …) that pnpm's
+  # strict layout can't resolve — the first CI boot failed exactly there.
+  # `--workspaces=false` stops npm from treating apps/cms as a member of the
+  # root `workspaces` and demanding a root package-lock. Node 20: better-
+  # sqlite3 9.4.3 has no Node 22 prebuild and node-gyp falls over.
   cms-verify:
     name: CMS i18n + publish gate
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cms
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          cache: npm
+          cache-dependency-path: apps/cms/package-lock.json
+      - run: npm ci --workspaces=false --no-audit --no-fund
       - name: Verify i18n + publish gate (scratch SQLite)
-        working-directory: apps/cms
         env:
           APP_KEYS: ci-key-1,ci-key-2
           ADMIN_JWT_SECRET: ci-only
@@ -72,7 +81,7 @@ jobs:
           TRANSFER_TOKEN_SALT: ci-only
           JWT_SECRET: ci-only
           SQLITE_PATH: .tmp/ci-verify-i18n.db
-        run: pnpm verify:i18n
+        run: npm run verify:i18n
 
   # ── Unit + Integration tests ──────────────────────────────
   # Postgres runs as nstest (superuser equivalent in CI).

@@ -43,7 +43,10 @@ export function HospitalImage({ slot, alt, photoUrl, priority = false, className
 
   const src = initials ? monogram(initials) : sceneDataUri(sceneFor(slot));
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- decorative data-URI SVG; next/image can't optimize these and doesn't need to.
+    // Plain <img> on purpose: decorative data-URI SVG; next/image can't optimize
+    // these and doesn't need to. (packages/ui has no Next eslint plugin, so a
+    // @next/next disable-directive here is itself a lint error — CI Lint was red
+    // on main from the content merge until this line.)
     <img
       id={slot}
       src={src}
