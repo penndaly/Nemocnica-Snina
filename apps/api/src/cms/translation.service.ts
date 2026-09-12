@@ -14,7 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
 import {
   CLINICAL_COLLECTIONS,
-  MACHINE_TRANSLATED_LOCALES,
+  REQUIRES_TRANSLATION_REVIEW,
   assertPublishable,
   normaliseCollection,
 } from './translation-gate';
@@ -52,7 +52,7 @@ export class TranslationService {
 
     for (const collection of CLINICAL_COLLECTIONS) {
       const plural = STRAPI_PLURAL[collection];
-      for (const locale of MACHINE_TRANSLATED_LOCALES) {
+      for (const locale of REQUIRES_TRANSLATION_REVIEW) {
         try {
           const res = await fetch(
             `${this.url}/api/${plural}?locale=${locale}&filters[review_status][$eq]=needs_review&pagination[pageSize]=100`,
@@ -90,7 +90,7 @@ export class TranslationService {
   ) {
     const coll = normaliseCollection(collection);
     if (!(coll in STRAPI_PLURAL)) throw new BadRequestException(`Unknown clinical collection: ${collection}`);
-    if (!(MACHINE_TRANSLATED_LOCALES as readonly string[]).includes(locale)) {
+    if (!(REQUIRES_TRANSLATION_REVIEW as readonly string[]).includes(locale)) {
       throw new BadRequestException(`Not a machine-translated locale: ${locale}`);
     }
     if (body.status !== 'approved' && body.status !== 'rejected') {

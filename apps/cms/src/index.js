@@ -13,7 +13,11 @@
 const { errors } = require('@strapi/utils');
 const { ApplicationError } = errors;
 
-const MACHINE_LOCALES = new Set(['cs', 'pl', 'hu', 'uk']);
+// Locales whose clinical content needs review_status='approved' to publish.
+// Keyed on review state, not translation origin — a human-translated locale
+// (Rusyn, Sprint I18N-RUE) gates the same way. Mirrors
+// apps/api/src/cms/translation-gate.ts REQUIRES_TRANSLATION_REVIEW.
+const REQUIRES_TRANSLATION_REVIEW = new Set(['cs', 'pl', 'hu', 'uk']);
 
 // All clinical / safety-critical collections.
 const CLINICAL_COLLECTIONS = [
@@ -62,7 +66,7 @@ module.exports = {
         // New machine-translated entries start as drafts.
         async beforeCreate(event) {
           const locale = event.params?.data?.locale;
-          if (locale && MACHINE_LOCALES.has(locale)) {
+          if (locale && REQUIRES_TRANSLATION_REVIEW.has(locale)) {
             event.params.data.publishedAt = null;
             if (!event.params.data.review_status) event.params.data.review_status = 'needs_review';
           }
@@ -86,7 +90,7 @@ module.exports = {
             }
           }
 
-          if (!locale || !MACHINE_LOCALES.has(locale)) return; // SK/EN/non-localized: pass
+          if (!locale || !REQUIRES_TRANSLATION_REVIEW.has(locale)) return; // SK/EN/non-localized: pass
           if (reviewStatus !== 'approved') {
             throw new ApplicationError(
               `Cannot publish ${locale} content without review_status='approved'. ` +
