@@ -83,6 +83,13 @@ describe('BookingRulesService.validate', () => {
     ).toThrow(BadRequestException);
   });
 
+  it('rejects booking when clinic is comingSoon (no physician assigned yet)', () => {
+    const comingSoonClinic: Clinic = { ...baseClinic, status: 'comingSoon', bookable: false, doctor: undefined };
+    expect(() =>
+      service.validate(comingSoonClinic, { clinicId: 'test', date: '2024-01-08', time: '09:00' }),
+    ).toThrow(BadRequestException);
+  });
+
   it('rejects booking when bookable=false regardless of status', () => {
     const notBookable: Clinic = { ...baseClinic, bookable: false, status: 'open' };
     expect(() =>

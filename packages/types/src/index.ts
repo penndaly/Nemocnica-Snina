@@ -70,7 +70,9 @@ export interface Department {
   visiting: Loc;
 }
 
-export type ClinicStatus = 'open' | 'new' | 'alert' | 'closed';
+/** 'comingSoon' = a listed clinic with no assigned physician yet — distinct from
+ * 'closed' (was operating, temporarily/permanently not), see DATA_MODEL.md. */
+export type ClinicStatus = 'open' | 'new' | 'alert' | 'closed' | 'comingSoon';
 
 /** Mon=1 … Sun=0 to match prototype bookingDays encoding */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -79,7 +81,8 @@ export interface Clinic {
   id: string;
   name: Loc;
   specialty: Loc;
-  doctor: string;
+  /** Absent for 'comingSoon' clinics — no physician assigned yet. */
+  doctor?: string;
   nurse?: string;
   location: Loc;
   phone?: string;

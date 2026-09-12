@@ -46,11 +46,11 @@ The seed file already contains the **complete, real content** for every collecti
 | id | slug | |
 | name | loc | |
 | specialty | loc | |
-| doctor | string | one or more names |
+| doctor | string? | one or more names; absent for `comingSoon` clinics |
 | nurse | string? | |
 | location | loc | building/floor |
 | phone | string? | |
-| status | enum | `open` \| `new` \| `alert` \| `closed` |
+| status | enum | `open` \| `new` \| `alert` \| `closed` \| `comingSoon` |
 | bookable | bool | drives online-booking availability |
 | referral | bool | requires výmenný lístok |
 | acceptingNew | bool? | new clinics accepting patients |
@@ -61,7 +61,7 @@ The seed file already contains the **complete, real content** for every collecti
 | fee | loc? | e.g. LSPP €1.99 |
 | opened | date? | launch date |
 
-**Encoded business rules (must persist):** Trauma surgery `bookingDays:[2,4]`; Angiology `bookingDays:[4,5]` + `bookingWindow` + `referral:true`; Diabetology `status:closed`/`bookable:false`; Neurology `status:alert`/`bookable:false`; General surgery 24/7 APS + fee.
+**Encoded business rules (must persist):** Trauma surgery `bookingDays:[2,4]`; Angiology `bookingDays:[4,5]` + `bookingWindow` + `referral:true`; Diabetology `status:closed`/`bookable:false`; Ortopedická/Kardiologická `status:comingSoon`/`bookable:false` (no `doctor` yet); General surgery 24/7 APS + fee.
 
 ### physicians — 15 records
 | field | type | notes |
