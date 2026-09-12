@@ -4,6 +4,8 @@ import { Calendar } from 'lucide-react';
 import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { ScrollArea } from '@/components/ScrollArea';
+import { SurveyForm } from '@/components/SurveyForm';
+import { ComplaintForm } from '@/components/ComplaintForm';
 import { getPricing, getWaitingTimes, getTestimonials, getHospitalInfo } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
@@ -19,6 +21,8 @@ const JUMP_LINKS: Array<{ href: string; sk: string; en: string }> = [
   { href: '#cennik', sk: 'Cenník', en: 'Price list' },
   { href: '#cakacie-lehoty', sk: 'Čakacie lehoty', en: 'Waiting times' },
   { href: '#informacie', sk: 'Informácie pred prijatím', en: 'Admission info' },
+  { href: '#dotaznik', sk: 'Dotazník spokojnosti', en: 'Satisfaction survey' },
+  { href: '#staznosti', sk: 'Sťažnosti', en: 'Complaints' },
   { href: '#podakovania', sk: 'Poďakovania', en: 'Testimonials' },
 ];
 
@@ -144,6 +148,32 @@ export default async function ForPatientsPage({ params }: { params: Promise<{ la
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Satisfaction survey */}
+      <div className="section band-warm" id="dotaznik" style={{ scrollMarginTop: 90 }}>
+        <div className="container container-narrow">
+          <h2>{locale === 'sk' ? 'Dotazník spokojnosti' : 'Satisfaction survey'}</h2>
+          <p className="muted">
+            {locale === 'sk'
+              ? 'Vaša spätná väzba nám pomáha zlepšovať starostlivosť. Dotazník je anonymný.'
+              : 'Your feedback helps us improve care. The survey is anonymous.'}
+          </p>
+          <SurveyForm locale={locale} />
+        </div>
+      </div>
+
+      {/* Complaints */}
+      <div className="section" id="staznosti" style={{ scrollMarginTop: 90 }}>
+        <div className="container container-narrow">
+          <h2>{locale === 'sk' ? 'Sťažnosti' : 'Complaints'}</h2>
+          <p className="muted">
+            {locale === 'sk'
+              ? 'Sťažnosti vybavujeme podľa zákona č. 9/2010 Z. z. o sťažnostiach. Odpoveď zašleme do 30 pracovných dní.'
+              : 'Complaints are handled under Act No. 9/2010 on Complaints. We respond within 30 working days.'}
+          </p>
+          <ComplaintForm locale={locale} hospitalEmail={hospital.email} />
         </div>
       </div>
 

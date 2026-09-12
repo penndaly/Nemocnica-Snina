@@ -21,6 +21,8 @@ import { GdprModule } from './gdpr/gdpr.module';
 import { PaymentsModule } from './payments/payments.module';
 import { TelehealthModule } from './telehealth/telehealth.module';
 import { WearablesModule } from './wearables/wearables.module';
+import { SatisfactionSurveyModule } from './satisfaction-survey/satisfaction-survey.module';
+import { ComplaintsModule } from './complaints/complaints.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { WearablesModule } from './wearables/wearables.module';
     PaymentsModule,
     TelehealthModule,
     WearablesModule,
+    SatisfactionSurveyModule,
+    ComplaintsModule,
     PortalModule,
     CronHeartbeatModule,
     HealthModule,

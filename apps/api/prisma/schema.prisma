@@ -103,6 +103,49 @@ enum OnboardingStatus {
   REJECTED
 }
 
+// ─── Patient feedback (ROUTE-1b) ──────────────────────────
+// Anonymous by design — no name/email/session, nothing to hash or redact.
+
+model SatisfactionSurveyResponse {
+  id         String   @id @default(uuid())
+  clinicName String   @map("clinic_name")
+  visitDate  DateTime? @map("visit_date")
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([clinicName])
+  @@map("satisfaction_survey_responses")
+}
+
+// PII (fullName, email) — handled under Act No. 9/2010 on Complaints (30
+// working-day response SLA). Readable only by administrator|super_admin
+// staff (ComplaintsAdminController); every submission and every staff read
+// is audit-logged (survey responses above are anonymous and are not).
+
+model Complaint {
+  id             String          @id @default(uuid())
+  fullName       String          @map("full_name")
+  email          String
+  department     String?
+  complaintText  String          @map("complaint_text")
+  status         ComplaintStatus @default(RECEIVED)
+  resolvedById   String?         @map("resolved_by_id")
+  resolutionNote String?         @map("resolution_note")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("complaints")
+}
+
+enum ComplaintStatus {
+  RECEIVED
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
 // ─── Staff users ──────────────────────────────────────────
 
 model StaffUser {

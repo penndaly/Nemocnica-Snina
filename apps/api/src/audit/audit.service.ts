@@ -46,6 +46,8 @@ export const ALLOWED_ACTIONS = new Set<string>([
   // ── Admin booking + wearables management (A4) ──
   'booking_cancelled', 'booking_rescheduled', 'booking_no_show',
   'wearable_platform_toggled', 'wearable_alert_log_exported',
+  // ── Patient feedback (ROUTE-1b) ──
+  'survey_submitted', 'complaint_submitted', 'complaint_viewed', 'complaint_resolved',
   // ── Legacy (pre-A3, kept so existing callers validate) ──
   'login', 'login_failed', 'booking_confirm', 'booking_cancel',
   'onboarding_accept', 'onboarding_reject', 'onboarding_manual_required',
