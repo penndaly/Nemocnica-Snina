@@ -432,3 +432,31 @@ it. That last assertion is what the Rusyn sprint's CMS half will rely on.
 
 Not covered: the Strapi admin UI itself was not opened (no `strapi build`
 here); CI does not run the CMS. `verify:i18n` is the standing check.
+
+### CMS-1 follow-ups (2026-09-12, same day, at the user's direction)
+
+**No backfill audit is owed — stated explicitly for the record.** Because
+0 of 20 content types were localized before this fix, no entry in any
+Strapi database built from this repo could ever have carried a locale other
+than the default. The review gate keys on `data.locale`, which never existed
+on any row, and the seed importer writes Slovak only. Therefore no `cs`,
+`pl`, `hu` or `uk` clinical entry has ever existed, published or draft, and
+nothing published unreviewed. On first boot after the fix Strapi assigns
+the default locale (`sk`) to every pre-existing row. Verification for any
+environment that carried content before the fix: `SELECT DISTINCT locale
+FROM departments` (and the other six clinical tables) must return only `sk`.
+
+**CI-1 — CI never ran the CMS.** The actual finding under CMS-1: no job in
+`ci.yml` installed, booted or tested `apps/cms`, so the lifecycle hook that
+enforces "review-gated clinical content never auto-publishes" (a legal
+requirement) had zero execution history. Fixed: `cms-verify` job runs
+`pnpm verify:i18n` (12 assertions against a scratch SQLite DB) on every
+push/PR, and the staging smoke gate now depends on it.
+
+**MT-1 — the DeepL note is now a guard.** `TranslationProviderService`
+carries the provider's supported-target set (DeepL's list; the mock uses
+the same one so dev is never more permissive than prod), refuses to
+construct if `MT_TARGET_LOCALES` names an unsupported locale, and
+`translate()` throws `UnsupportedTranslationLocaleError` for one. Tests
+assert `rue` throws under both providers and at construction. Nothing calls
+`translate()` yet; when the MT loop lands it inherits the guard.

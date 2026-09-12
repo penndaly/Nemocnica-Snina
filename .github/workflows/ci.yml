@@ -44,6 +44,36 @@ jobs:
       # packages/ui/src/globals.css (or the script's allowlist). Static, ~50ms.
       - run: pnpm --filter=@ns/web audit:classes
 
+  # ── CMS: boot Strapi and exercise the translation review gate ─────────
+  # Until CMS-1 (2026-09-12) CI never ran the CMS at all — the publish gate
+  # that enforces "machine-translated clinical content never auto-publishes"
+  # (a legal requirement, see CLAUDE.md non-negotiables) had never executed
+  # anywhere. scripts/verify-i18n-gate.js boots Strapi 4 against a scratch
+  # SQLite DB and runs 12 assertions (i18n live on 20/20 types, sk default,
+  # gate blocks/allows, rue registers). ~1 min. Secrets are throwaway: the
+  # scratch DB is created and deleted inside the job.
+  cms-verify:
+    name: CMS i18n + publish gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify i18n + publish gate (scratch SQLite)
+        working-directory: apps/cms
+        env:
+          APP_KEYS: ci-key-1,ci-key-2
+          ADMIN_JWT_SECRET: ci-only
+          API_TOKEN_SALT: ci-only
+          TRANSFER_TOKEN_SALT: ci-only
+          JWT_SECRET: ci-only
+          SQLITE_PATH: .tmp/ci-verify-i18n.db
+        run: pnpm verify:i18n
+
   # ── Unit + Integration tests ──────────────────────────────
   # Postgres runs as nstest (superuser equivalent in CI).
   # After db:push we apply audit-immutability.sql which:
@@ -192,7 +222,7 @@ jobs:
   smoke-staging-guard:
     name: Check staging is configured
     runs-on: ubuntu-latest
-    needs: [build, test, test-edge]
+    needs: [build, test, test-edge, cms-verify]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     outputs:
       configured: ${{ steps.check.outputs.configured }}

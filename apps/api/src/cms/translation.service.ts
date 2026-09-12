@@ -91,7 +91,7 @@ export class TranslationService {
     const coll = normaliseCollection(collection);
     if (!(coll in STRAPI_PLURAL)) throw new BadRequestException(`Unknown clinical collection: ${collection}`);
     if (!(REQUIRES_TRANSLATION_REVIEW as readonly string[]).includes(locale)) {
-      throw new BadRequestException(`Not a machine-translated locale: ${locale}`);
+      throw new BadRequestException(`Locale is not review-gated: ${locale}`);
     }
     if (body.status !== 'approved' && body.status !== 'rejected') {
       throw new BadRequestException('status must be approved | rejected');

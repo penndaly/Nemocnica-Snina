@@ -17,6 +17,28 @@ export interface TranslateRequest {
   targetLocale: string; // cs|pl|hu|uk
 }
 
+/**
+ * Target locales DeepL can actually produce (api.deepl.com target_lang, lower-
+ * cased, 2026). The mock provider deliberately uses the SAME list: dev/CI must
+ * never accept a target that production would reject, or the guard is only
+ * ever exercised in production. Rusyn (`rue`) is not machine-translatable by
+ * any provider — it is human-translated and must never reach this service.
+ */
+export const DEEPL_TARGET_LOCALES: ReadonlySet<string> = new Set([
+  'ar', 'bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'hu', 'id', 'it', 'ja', 'ko',
+  'lt', 'lv', 'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'zh',
+]);
+
+export class UnsupportedTranslationLocaleError extends Error {
+  constructor(locale: string, provider: string) {
+    super(
+      `Locale '${locale}' is not a supported machine-translation target for provider '${provider}'. ` +
+        `Human-translated locales (e.g. rue) must not be sent to a translation provider.`,
+    );
+    this.name = 'UnsupportedTranslationLocaleError';
+  }
+}
+
 @Injectable()
 export class TranslationProviderService {
   private readonly logger = new Logger(TranslationProviderService.name);
@@ -25,7 +47,18 @@ export class TranslationProviderService {
 
   constructor(private readonly cfg: ConfigService) {
     this.provider = (cfg.get<string>('MT_PROVIDER') as 'mock' | 'deepl') ?? 'mock';
-    this.targets = (cfg.get<string>('MT_TARGET_LOCALES') ?? 'cs,pl,hu,uk').split(',').map((s) => s.trim());
+    this.targets = (cfg.get<string>('MT_TARGET_LOCALES') ?? 'cs,pl,hu,uk').split(',').map((s) => s.trim()).filter(Boolean);
+    // Fail at boot, not on the first translate() call: a misconfigured
+    // MT_TARGET_LOCALES (e.g. someone adds `rue` alongside the review-gated
+    // locales) must be impossible to run with.
+    for (const t of this.targets) {
+      if (!this.supportsTarget(t)) throw new UnsupportedTranslationLocaleError(t, this.provider);
+    }
+  }
+
+  /** True if this provider can produce `locale` — same list for mock and deepl (see DEEPL_TARGET_LOCALES). */
+  supportsTarget(locale: string): boolean {
+    return DEEPL_TARGET_LOCALES.has(locale.toLowerCase());
   }
 
   get targetLocales(): string[] {
@@ -38,6 +71,9 @@ export class TranslationProviderService {
    * and prefixes "[MT] " so reviewers can see it is unreviewed machine output.
    */
   async translate(req: TranslateRequest, glossary: string[] = DEFAULT_GLOSSARY): Promise<string> {
+    if (!this.supportsTarget(req.targetLocale)) {
+      throw new UnsupportedTranslationLocaleError(req.targetLocale, this.provider);
+    }
     if (this.provider === 'deepl') {
       // TODO(prod): POST api-free.deepl.com/v2/translate with MT_DEEPL_API_KEY +
       // MT_GLOSSARY_ID; respect MT glossary for medical/hospital terms.
