@@ -736,3 +736,37 @@ Two corrections to the record follow from this:
   around on staging; production uses a separate `api.` hostname and was
   never affected.
 
+---
+
+## PREVIEW-1 — web-only preview on Firebase App Hosting (2026-09-13)
+
+At the user's direction ("we need to be able to see everything"), after
+declining a billable GCE VM for the full stack. A backend
+`nemocnica-snina-web` already existed in project `snina-nemocnica`
+(created 2026-09-09 from the unmerged branch
+`infra/firebase-app-hosting-preview`, commit `9e4940e`) and was still
+serving that pre-ROUTE-1 build — `/sk/kariera`, `/sk/pre-pacientov`,
+`/sk/o-nemocnici` all 404. Its config was ported to `main`
+(`firebase.json`, `.firebaserc`, `apps/web/apphosting.yaml`), plus the two
+platform-forced changes from that commit: `next` 15.1.3 → 15.1.12 (the
+adapter blocks the CVE-flagged version) and `engines.pnpm` `>=9 <11`.
+Lockfile refreshed; `pnpm --filter=@ns/web build` clean locally (327
+static pages).
+
+**Deployed `a00f5bf` + this config.** Verification against the live URL,
+method named: 12 routes curl → 200 (all ROUTE-1 routes now present);
+`data-nav` attribute present on `/sk` (UI-2b shipped); Playwright with a
+temp config whose `baseURL` is the live host — `styled.spec.ts` §3 header
+assertions for all 6 locales, the over-trigger and resize tests, the
+prose-link underline test, and `a11y.spec.ts` axe on `/sk`, `/sk/kariera`,
+`/sk/pre-pacientov`: 12 passed. `GET /api/aps` → `x-ns-upstream:
+fallback`, expected (no API).
+
+**What this is not:** the staging or production stack. No API/CMS/DB.
+Deploys are manual (`firebase deploy --only apphosting`), not on push, so
+the CI/deploy-workflow signal problem from STG-3 is unchanged: the only
+automatic deploy path still targets a host that does not exist.
+
+CI on `a00f5bf` (STG-3 + UI-2b pushed): all jobs green, `Integration smoke
+— staging` skipped by the guard as designed.
+

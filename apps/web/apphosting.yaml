@@ -1,0 +1,40 @@
+# Firebase App Hosting config for apps/web — public-site preview only.
+#
+# Why this exists (2026-09-13): no EU staging host has ever been provisioned
+# (docs/STAGING_DEPLOYMENT.md, docs/03-AUDIT.md STG-3), and the user needs
+# to see the site. This backend runs ONLY the Next.js app on an existing
+# Firebase project (snina-nemocnica, europe-west4 — EU). There is no API,
+# CMS, database or queue behind it:
+#   * STRAPI_API_TOKEN is unset, so strapi-client.ts serves seed.ts's SEED
+#     (USE_FALLBACK) — every public content route renders.
+#   * NEXT_PUBLIC_API_URL points at this same origin, so browser calls to
+#     /api/... hit Next.js and fail cleanly instead of a CORS error; booking,
+#     portal, telehealth, wearables and admin do NOT function here.
+# This is NOT production infrastructure: CLAUDE.md's non-negotiables (MFA,
+# no mock providers, EU DB, config-validator enforcement) apply to the real
+# stack, which is the docker-compose staging/production overlay.
+#
+# Deploy: `npx -y firebase-tools@latest deploy --only apphosting` from the
+# repo root (firebase.json rootDir = apps/web; the whole pnpm workspace is
+# uploaded so @ns/ui and @ns/types resolve).
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 3
+  concurrency: 40
+
+env:
+  - variable: NEXT_PUBLIC_API_URL
+    value: https://nemocnica-snina-web--snina-nemocnica.europe-west4.hosted.app
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_BASE_URL
+    value: https://nemocnica-snina-web--snina-nemocnica.europe-west4.hosted.app
+    availability: [BUILD, RUNTIME]
+  # Portal route handlers call getSessionSecret(), which throws in production
+  # without a >=32-char JWT_SECRET. A throwaway value in Secret Manager keeps
+  # those routes at a clean 401 instead of a 500. No real session is ever
+  # issued here (no OIDC, no API).
+  - variable: JWT_SECRET
+    secret: ns-web-preview-jwt-secret
+    availability: [RUNTIME]

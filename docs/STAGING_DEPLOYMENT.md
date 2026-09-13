@@ -12,6 +12,34 @@ demonstrated without anyone's laptop.
 
 ---
 
+## Interim: public-site preview on Firebase App Hosting (2026-09-13)
+
+Because no staging host exists, the **web app alone** is deployed to the
+existing Firebase project `snina-nemocnica` (App Hosting, `europe-west4`,
+EU) so the site can be seen:
+
+**https://nemocnica-snina-web--snina-nemocnica.europe-west4.hosted.app**
+
+- Config: `firebase.json` (backend `nemocnica-snina-web`, `rootDir:
+  apps/web`), `.firebaserc`, `apps/web/apphosting.yaml`. Deploy from the
+  repo root: `npx -y firebase-tools@latest deploy --only apphosting`.
+  Not wired to CI — deploys are manual and deliberate.
+- **No API, CMS, DB or queue behind it.** Content renders from `seed.ts`
+  (`STRAPI_API_TOKEN` unset → `USE_FALLBACK`). Booking, portal,
+  telehealth, wearables and admin do not function. `GET /api/aps` answers
+  `x-ns-upstream: fallback`, which is the same header the STG-3 gate
+  would reject on a real deploy — correct here, because there is no API.
+- `JWT_SECRET` is a throwaway value in Secret Manager
+  (`ns-web-preview-jwt-secret`) so portal handlers 401 instead of 500.
+- Two build-time facts forced by the platform: Firebase's Next.js adapter
+  refuses `next@15.1.3` (CVE-2025-55182), so apps/web is on 15.1.12; and
+  the buildpack resolves an open `engines.pnpm` range to a pnpm 12 that it
+  cannot install, so the range is `>=9 <11` (packageManager pins 9.15.0).
+- This is a preview, not the production stack. Everything above this
+  section still applies for the real deployment.
+
+---
+
 ## What is already in the repo
 
 | Piece | Path |
