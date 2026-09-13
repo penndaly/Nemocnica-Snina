@@ -6,6 +6,7 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getJobPostings, getCareersInfo, getDepartments, getClinics, getHospitalInfo } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export default async function CareersPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
@@ -28,8 +29,7 @@ export default async function CareersPage({ params }: { params: Promise<{ lang: 
   return (
     <SiteLayout activePath={`/${locale}/kariera`}>
       <PageHero
-        slot="careers-hero"
-        alt=""
+        {...(await heroProps('careers-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('footer.careers') }}
       >
         <p className="eyebrow">{locale === 'sk' ? 'Kariéra' : 'Careers'}</p>

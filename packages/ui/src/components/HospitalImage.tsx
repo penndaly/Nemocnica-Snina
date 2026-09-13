@@ -37,6 +37,7 @@ export function HospitalImage({ slot, alt, photoUrl, priority = false, className
         className={cn('object-cover', className)}
         priority={priority}
         fetchPriority={priority ? 'high' : 'auto'}
+        data-media="photo"
       />
     );
   }
@@ -56,6 +57,7 @@ export function HospitalImage({ slot, alt, photoUrl, priority = false, className
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
       data-placeholder-art=""
+      data-media="art"
     />
   );
 }

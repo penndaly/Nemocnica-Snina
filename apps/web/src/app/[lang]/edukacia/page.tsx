@@ -6,6 +6,7 @@ import { getEducationArticles } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { EducationCategory } from '@ns/types';
+import { heroProps } from '@/lib/media';
 
 const CATEGORY_ORDER: EducationCategory[] = ['predoperacne', 'chronicke', 'materska', 'dieta', 'fyziatria'];
 
@@ -38,8 +39,7 @@ export default async function EducationPage({
   return (
     <SiteLayout activePath={`/${locale}/edukacia`}>
       <PageHero
-        slot="education-hero"
-        alt=""
+        {...(await heroProps('education-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('footer.education') }}
       >
         <p className="eyebrow">

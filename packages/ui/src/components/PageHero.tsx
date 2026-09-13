@@ -14,6 +14,8 @@ export interface PageHeroProps {
   slot: string;
   alt: string;
   photoUrl?: string | null;
+  /** Attribution line rendered bottom-right (CC BY-SA placeholder photos, MEDIA-1). */
+  credit?: string | null;
   breadcrumb?: PageHeroBreadcrumb;
   /**
    * Content of the hero — eyebrow/h1/lede/chips/buttons, already localized. Passed
@@ -32,7 +34,7 @@ export interface PageHeroProps {
  * SPRINT_UI_HERO_NAV_ART.md — the 62% copy cap and scrim opacity are load-
  * bearing for WCAG AA contrast, not cosmetic; don't tune them per-page.
  */
-export function PageHero({ slot, alt, photoUrl, breadcrumb, children, containerClassName, className }: PageHeroProps) {
+export function PageHero({ slot, alt, photoUrl, credit, breadcrumb, children, containerClassName, className }: PageHeroProps) {
   return (
     <section className={cn('page-hero has-hero-media', className)}>
       <div className="hero-media">
@@ -49,6 +51,7 @@ export function PageHero({ slot, alt, photoUrl, breadcrumb, children, containerC
         )}
         {children}
       </div>
+      {photoUrl && credit && <p className="hero-credit">{credit}</p>}
     </section>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 const JUMP_LINKS: Array<{ href: string; sk: string; en: string }> = [
   { href: '#vedenie', sk: 'Vedenie', en: 'Leadership' },
@@ -43,8 +44,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
   return (
     <SiteLayout activePath={`/${locale}/o-nemocnici`}>
       <PageHero
-        slot="about-hero"
-        alt=""
+        {...(await heroProps('about-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.about') }}
       >
         <p className="eyebrow">{sk ? 'O nemocnici' : 'About the hospital'}</p>

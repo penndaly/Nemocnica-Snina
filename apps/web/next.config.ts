@@ -43,6 +43,18 @@ function connectSrc(): string {
   return `connect-src ${[...origins].join(' ')}`;
 }
 
+function strapiRemotePatterns(): Array<{ protocol: 'http' | 'https'; hostname: string; port?: string; pathname: string }> {
+  const out: Array<{ protocol: 'http' | 'https'; hostname: string; port?: string; pathname: string }> = [
+    { protocol: 'http', hostname: 'localhost', port: '1337', pathname: '/uploads/**' },
+    { protocol: 'http', hostname: 'strapi', port: '1337', pathname: '/uploads/**' },
+  ];
+  try {
+    const u = new URL(process.env['STRAPI_URL'] ?? '');
+    out.push({ protocol: u.protocol === 'https:' ? 'https' : 'http', hostname: u.hostname, ...(u.port ? { port: u.port } : {}), pathname: '/uploads/**' });
+  } catch { /* unset or relative — nothing to allow */ }
+  return out;
+}
+
 function scriptSrc(): string {
   const base = ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
   if (process.env['NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID']) base.push('https://*.googletagmanager.com');
@@ -58,9 +70,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [
-      // CMS media will be added here once Strapi URL is known
-    ],
+    // MEDIA-1: allow next/image to optimise CMS uploads. STRAPI_URL is a
+    // build-time value here (next.config runs at build); /img/* (the bundled
+    // placeholder photos) needs no entry.
+    remotePatterns: strapiRemotePatterns(),
   },
   async headers() {
     return [

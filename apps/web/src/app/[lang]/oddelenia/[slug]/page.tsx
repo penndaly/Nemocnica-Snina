@@ -7,6 +7,7 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getDepartments, getDepartmentBySlug, getPhysicians } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import { locales, type SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export async function generateStaticParams() {
   const departments = await getDepartments('sk');
@@ -36,8 +37,7 @@ export default async function DepartmentDetailPage({
     <SiteLayout activePath={`/${locale}/oddelenia`}>
       {/* Page hero */}
       <PageHero
-        slot={`dept-${dept.id}-hero`}
-        alt=""
+        {...(await heroProps(`dept-${dept.id}-hero`, locale, dept.image?.url ?? null))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: localizeField(dept.short, locale) }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.2rem' }}>

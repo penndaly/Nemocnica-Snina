@@ -6,6 +6,7 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getEducationArticleBySlug, getEducationArticleSlugs } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import { locales, type SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export async function generateStaticParams() {
   const slugs = await getEducationArticleSlugs();
@@ -29,8 +30,7 @@ export default async function EducationArticleDetailPage({
   return (
     <SiteLayout activePath={`/${locale}/edukacia`}>
       <PageHero
-        slot="education-hero"
-        alt=""
+        {...(await heroProps('education-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: localizeField(article.title, locale) }}
       >
         <p className="eyebrow">{locale === 'sk' ? 'Materiály pre pacientov' : 'Patient education library'}</p>

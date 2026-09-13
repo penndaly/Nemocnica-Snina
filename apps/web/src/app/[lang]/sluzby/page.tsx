@@ -9,6 +9,7 @@ import { getServices } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { ServiceIcon } from '@ns/types';
+import { heroProps } from '@/lib/media';
 
 const ICON_MAP: Record<ServiceIcon, React.ReactNode> = {
   scalpel:     <Scissors  size={26} />,
@@ -32,8 +33,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ lang:
     <SiteLayout activePath={`/${locale}/sluzby`}>
       {/* Page hero */}
       <PageHero
-        slot="services-hero"
-        alt=""
+        {...(await heroProps('services-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.services') }}
       >
         <p className="eyebrow">{t('nav.services')}</p>

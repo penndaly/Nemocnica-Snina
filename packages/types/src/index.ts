@@ -78,6 +78,8 @@ export interface Department {
   desc: Loc;
   facilities: LocList;
   visiting: Loc;
+  /** CMS Department.image (MEDIA-1). Absent in seed → the manifest photo `dept-<id>` renders. */
+  image?: { url: string };
 }
 
 /** 'comingSoon' = a listed clinic with no assigned physician yet — distinct from

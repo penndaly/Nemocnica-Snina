@@ -876,3 +876,93 @@ for it), T5 `PRODUCTION_ARCHITECTURE.md` "7 languages" + `LAUNCH_CHECKLIST`
 row. The `rue` switcher entry stays hidden until section 1 of the
 worklist is filled.
 
+---
+
+## I18N-RUE follow-up — `rue` no longer advertised to crawlers (2026-09-13)
+
+User's call: an untranslated locale must not be discoverable except by
+direct URL. Before this, `/sk`'s alternates block listed `hreflang="rue"`
+while `/rue` rendered Slovak — a duplicate for search engines.
+`apps/web/src/i18n/public-locales.ts` computes `publicLocales`: `rue` is
+included only once every chrome namespace in `rue.json` is non-empty
+(the same section 1 of the worklist that gates the switcher). Layout
+alternates, `openGraph.alternateLocale` and `sitemap.ts` use it;
+`generateMetadata` adds `robots: noindex, follow` on a non-public locale.
+No code change is needed when the translation lands. Method:
+`i18n.spec.ts` I3 asserts the six translated alternates present,
+`hreflang="rue"` count 0, and `<meta name="robots" content*="noindex">`
+on `/rue` — passed against the dev server.
+
+---
+
+## MEDIA-1 — placeholder photography deployed, CMS-managed (2026-09-13)
+
+User's brief: put appropriate placeholder images in every slot that was
+empty, and make them CMS-managed so an admin can remove or redeploy them.
+
+**What "missing" was.** Every hero rendered the illustrated SVG art
+(UI-1) — presentation-complete by design, but no photograph anywhere on
+the site, and `/oddelenia` cards showed the prototype's `.ph` text box.
+Physician avatars are monograms (real-photo-only rule, kept).
+
+**Source.** The 32 photographs sourced in IMG-0 on the never-merged branch
+`feat/placeholder-media` (`3fce6f1`, 2026-09-08): Pexels / Unsplash /
+Wikimedia Commons / NCI, each downloaded and visually reviewed for faces,
+real institution branding and resolution (≈40 % of licence-clean
+candidates failed that review). Ported: the webp variants (32 files,
+5.7 MB) to `apps/web/public/img/`, the manifest to
+`apps/web/src/lib/media-manifest.json`, `docs/media/LICENSES.md` and the
+slot inventory `docs/media/SLOTS.md`. No new photo was sourced here.
+
+**Resolution order** (`apps/web/src/lib/media.ts`): CMS `media-slots` row
+(replace / `hidden` / `placeholder` flags; `Department.image` for the
+department detail hero and cards) → bundled manifest → SVG art.
+`HospitalImage` marks the rendered `<img>` `data-media="photo"|"art"`.
+Four hero slots the IMG-0 sprint left as honest gaps (`home-campus`,
+`patients-hero`, `contact-hero`, `telehealth-hero`) now **reuse** the
+closest sourced file (`SLOT_ALIASES`; `reusedFrom` on the CMS row) —
+a placeholder that duplicates another page beats an art-only hero on a
+site whose brief is "see everything". CC BY-SA files render their credit
+(`.hero-credit`, over the scrim's dark corner). 15 hero slots + 7
+department cards now show photographs; physician portraits do not.
+
+**CMS.** New collection `media-slot` (`slot` unique, `image`, `altSk`,
+`altEn`, `hidden`, `placeholder`, `credit`, `licence`, `sourceUrl`,
+`reusedFrom`; not localized, no draft/publish). Seeded by
+`apps/cms/seed/import-seed.ts`: uploads each file to the media library
+(idempotent by filename), creates 29 rows (25 non-department entries + 4
+aliases) and sets `Department.image` for the 7 departments. Strapi boots
+with the type (`verify:i18n` 12/12, "20/21 api content types localized").
+**The importer's upload path is unexercised** — it needs a running Strapi
+with an API token, which this environment does not have; it follows the
+documented `POST /api/upload` multipart contract. First real seed run is
+the test.
+
+**Client-component pages** (`objednanie`, `lekari`, `zverejnovanie`)
+resolve from the manifest only (`staticHeroProps`); the CMS
+replace/hide controls do not reach those three heroes without a server
+wrapper. Logged, not done.
+
+**Guard.** `pnpm --filter=@ns/web check:media` (CI lint): manifest parses;
+every webp present; alt sk+en; weight budgets; no `doc-*`; every
+`PageHero` slot in `src/app` resolves to a photo (own entry or alias) — a
+new route cannot ship art-only by accident. `LAUNCH_CHECKLIST.md` gains
+the go-live rule: no `placeholder = true` slot visible.
+
+**Method.** typecheck web/types clean; lint 0 errors; `audit:classes`
+0 unknown (`hero-credit`, `card-media` added with rules); `check:media`
+"32 entries, 4 aliases, 15 hero slots — all resolve"; `next build` 377
+pages; Playwright against the dev server — `styled.spec.ts` §4 (photo
+`<img>` with the expected file on 4 routes and zero art markers; CC BY-SA
+credit visible + `position: absolute` on `/oddelenia/chirurgia`, absent on
+`/pediatria`; 7 card photos on `/oddelenia`, zero `.ph`), header rows,
+`hero-contrast.spec.ts` (photo under the scrim — the 62 % cap still
+holds), axe on all `KEY_ROUTES` plus 5 photo-hero routes, I1/I3:
+**53 passed**. Redeployed to the Firebase preview; live probe recorded in
+the commit.
+
+**Not done:** in-page galleries from the prototype's media plan
+(`home-care-*`, `careers-*`, `diag-*`, `patients-*`: 15 sourced photos)
+have no slot in the web app yet — they are in the manifest and the CMS
+media library, ready for a route sprint that ports those bands.
+

@@ -9,6 +9,10 @@ import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Physician, Department, Clinic } from '@ns/types';
 import Link from 'next/link';
+import { staticHeroProps } from '@/lib/media';
+
+// MEDIA-1: client component → manifest photo only (no CMS override here).
+const PHYSICIANS_HERO = staticHeroProps('physicians-hero');
 
 export default function PhysiciansPage() {
   const t = useTranslations();
@@ -45,8 +49,7 @@ export default function PhysiciansPage() {
   return (
     <SiteLayout activePath={`/${locale}/lekari`}>
       <PageHero
-        slot="physicians-hero"
-        alt=""
+        {...PHYSICIANS_HERO}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.doctors') }}
       >
         <p className="eyebrow">{t('nav.doctors')}</p>

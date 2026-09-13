@@ -6,6 +6,7 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getJobPostingBySlug, getJobPostingSlugs, getDepartments, getClinics, getHospitalInfo } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import { locales, type SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export async function generateStaticParams() {
   const slugs = await getJobPostingSlugs();
@@ -37,8 +38,7 @@ export default async function JobPostingDetailPage({
   return (
     <SiteLayout activePath={`/${locale}/kariera`}>
       <PageHero
-        slot="careers-hero"
-        alt=""
+        {...(await heroProps('careers-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: localizeField(job.title, locale) }}
       >
         <p className="eyebrow">{place}</p>

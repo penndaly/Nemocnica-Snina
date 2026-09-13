@@ -26,6 +26,45 @@ presents fully dressed. Landed in Sprint UI-1 (`feat/ui-hero-nav-art`,
   list and per-route mapping — unchanged, still the source of truth for
   *which* slot goes on *which* route).
 
+## Placeholder photography layer (MEDIA-1, 2026-09-13)
+
+Above the art and below real photography sits a third layer: **32
+licence-clean placeholder photographs** (sourced in IMG-0, every candidate
+visually reviewed — no faces, no real institution branding; see
+`docs/media/LICENSES.md`). They are resolved by `apps/web/src/lib/media.ts`
+in this order:
+
+1. **CMS** — Strapi collection `media-slots` (one row per hero slot:
+   `image`, `hidden`, `placeholder`, `credit`, `licence`, `sourceUrl`,
+   `reusedFrom`). The admin **replaces** the image, **hides** the slot
+   (`hidden: true` → the illustrated art renders, no photo) or un-hides it.
+   Department photos are `Department.image`; physician portraits stay
+   `Physician.avatar`, real photos only — never a placeholder.
+2. **Manifest** — `src/lib/media-manifest.json` + `public/img/*.webp`,
+   bundled with the app so the preview (no CMS) shows photos too.
+3. **Art** — the SVG scenes below.
+
+Four hero slots had no photo of their own (IMG-0 gaps: every candidate
+failed visual review) and **reuse** the closest sourced file — recorded in
+`SLOT_ALIASES` and in each CMS row's `reusedFrom`: `home-campus` ←
+`about-hero`, `patients-hero` ← `patients-room`, `contact-hero` ←
+`news-hero`, `telehealth-hero` ← `teleconsult-hero`.
+
+CC BY-SA files (`dept-chirurgia`, `dept-gynekologia`, `dept-oaim`) render
+their attribution on-page (`PageHero` `credit` → `.hero-credit`).
+
+Client-component pages (`objednanie`, `lekari`, `zverejnovanie`) resolve
+from the manifest only (`staticHeroProps`); a CMS override for those three
+heroes needs a server wrapper — not done. Guard: `pnpm --filter=@ns/web
+check:media` (CI lint) fails if any `PageHero` slot has no photo, a file is
+missing, alt sk/en is absent, a weight budget is exceeded, or a `doc-*`
+entry appears. Seeding: `apps/cms/seed/import-seed.ts` uploads the files to
+the media library and creates the rows (idempotent).
+
+**Go-live rule:** no `placeholder: true` slot may remain visible
+(`LAUNCH_CHECKLIST.md`). Replacing a placeholder with a real photo = upload
+in the CMS row and untick `placeholder`.
+
 ## A real photo always wins
 `HospitalImage` checks `photoUrl` first, full stop — there's no separate
 "remove the placeholder" step. Once a real photo is available (CMS media

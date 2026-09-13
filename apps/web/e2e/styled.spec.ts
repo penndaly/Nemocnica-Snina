@@ -311,3 +311,40 @@ test('header: collapsed nav re-expands when the viewport grows (UI-2b, same page
   await page.setViewportSize({ width: 1101, height: 900 });
   await expect.poll(async () => (await probeHeader(page)).state).toBe('collapsed');
 });
+
+// ── 4. MEDIA-1: placeholder photography renders in the slots, not just art ──
+// The manifest photos ship with the app (/img/*.webp) and next/image serves
+// them through /_next/image. Probe the rendered <img>, its data-media marker
+// (photo vs art), the CC BY-SA credit line, and the department card frame.
+test('media: hero slots render a photo (data-media=photo) via next/image', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  for (const [route, file] of [['/sk/o-nemocnici', 'about-hero'], ['/sk/telehealth', 'teleconsult-hero'], ['/sk', 'about-hero'], ['/sk/kontakt', 'news-hero']] as const) {
+    await open(page, route);
+    const img = page.locator('.page-hero .hero-media img[data-media="photo"]').first();
+    await expect(img, `${route} hero is not a photo`).toBeAttached();
+    const src = (await img.getAttribute('src')) ?? '';
+    expect(src, `${route} src`).toMatch(new RegExp(`${file}-\\d+\\.webp`));
+    await expect(page.locator('.page-hero .hero-media img[data-placeholder-art]')).toHaveCount(0);
+  }
+});
+
+test('media: CC BY-SA department photo renders its credit line (positioned over the scrim)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, '/sk/oddelenia/chirurgia');
+  const credit = page.locator('.page-hero .hero-credit');
+  await expect(credit).toBeVisible();
+  await expect(credit).toContainText('CC BY-SA');
+  expect(await computed(page, '.hero-credit', 'position')).toBe('absolute');
+  // A Pexels-licensed hero has no on-page credit requirement.
+  await open(page, '/sk/oddelenia/pediatria');
+  await expect(page.locator('.page-hero .hero-credit')).toHaveCount(0);
+});
+
+test('media: /oddelenia cards show department photos in a sized frame (no .ph text placeholder)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, '/sk/oddelenia');
+  expect(await computed(page, '.card-media', 'position')).toBe('relative');
+  expect(await page.locator('.card-media img[data-media="photo"]').count()).toBe(7);
+  await expect(page.locator('.card .ph')).toHaveCount(0);
+});
+

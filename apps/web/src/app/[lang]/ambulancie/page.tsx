@@ -7,6 +7,7 @@ import { getClinics } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { ClinicStatus } from '@ns/types';
+import { heroProps } from '@/lib/media';
 
 const statusBadge: Record<ClinicStatus, { cls: string; dot: boolean }> = {
   open:       { cls: 'badge-green', dot: true },
@@ -25,8 +26,7 @@ export default async function ClinicsPage({ params }: { params: Promise<{ lang: 
   return (
     <SiteLayout activePath={`/${locale}/ambulancie`}>
       <PageHero
-        slot="clinics-hero"
-        alt=""
+        {...(await heroProps('clinics-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.clinics') }}
       >
         <p className="eyebrow">{t('nav.clinics')}</p>

@@ -9,6 +9,10 @@ import { ScrollArea } from '@/components/ScrollArea';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Disclosure } from '@ns/types';
+import { staticHeroProps } from '@/lib/media';
+
+// MEDIA-1: client component → manifest photo only (no CMS override here).
+const DISCLOSURE_HERO = staticHeroProps('disclosure-hero');
 
 type Filter = 'all' | 'contract' | 'invoice';
 
@@ -52,8 +56,7 @@ export default function DisclosuresPage() {
   return (
     <SiteLayout activePath={`/${locale}/zverejnovanie`}>
       <PageHero
-        slot="disclosure-hero"
-        alt=""
+        {...DISCLOSURE_HERO}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('footer.disclosures') }}
       >
         <p className="eyebrow">{t('footer.legal')}</p>

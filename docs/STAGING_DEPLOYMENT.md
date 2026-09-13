@@ -29,6 +29,9 @@ EU) so the site can be seen:
   telehealth, wearables and admin do not function. `GET /api/aps` answers
   `x-ns-upstream: fallback`, which is the same header the STG-3 gate
   would reject on a real deploy — correct here, because there is no API.
+- Photos: the preview renders the bundled placeholder photography
+  (`apps/web/public/img`, MEDIA-1); there is no CMS, so the admin
+  replace/hide controls only apply on a deployment with Strapi.
 - `JWT_SECRET` is a throwaway value in Secret Manager
   (`ns-web-preview-jwt-secret`) so portal handlers 401 instead of 500.
 - Two build-time facts forced by the platform: Firebase's Next.js adapter

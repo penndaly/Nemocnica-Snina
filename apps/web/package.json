@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "audit:classes": "node scripts/audit-classes.mjs",
     "worklist:rue": "node scripts/rue-worklist.mjs",
+    "check:media": "node scripts/check-media.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

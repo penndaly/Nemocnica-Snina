@@ -43,6 +43,9 @@ jobs:
       # Sprint UI-2a: every className in apps/web must resolve to a rule in
       # packages/ui/src/globals.css (or the script's allowlist). Static, ~50ms.
       - run: pnpm --filter=@ns/web audit:classes
+      # MEDIA-1: manifest ↔ files ↔ hero slots stay consistent (no hero slot
+      # without a photo, no missing file, alt sk+en, weight budgets, no doc-*).
+      - run: pnpm --filter=@ns/web check:media
 
   # ── CMS: boot Strapi and exercise the translation review gate ─────────
   # Until CMS-1 (2026-09-12) CI never ran the CMS at all — the publish gate

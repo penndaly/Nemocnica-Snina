@@ -300,3 +300,7 @@ All items below must be confirmed before enabling telehealth for any clinic in p
 - [ ] WEARABLES_TOKEN_KEY: 64-char hex, rotated from dev key, stored in vault
 - [ ] WEARABLES_OAUTH_REDIRECT_BASE + WEB_PORTAL_BASE_URL: production domains
 - [ ] WEARABLES_ALERT_SMS_TO: on-call escalation number set; GARMIN_WEBHOOK_KEY set
+
+### Placeholder photography (MEDIA-1)
+
+- [ ] No `media-slots` row with `placeholder = true` is visible (`hidden = false`) and no `Department.image` is still a stock placeholder — every public photo is a Nemocnica Snina photograph with a signed release. Query: `SELECT slot FROM media_slots WHERE placeholder AND NOT hidden;` must return 0 rows. Physician portraits: real photos only (`Physician.avatar`), never a placeholder.

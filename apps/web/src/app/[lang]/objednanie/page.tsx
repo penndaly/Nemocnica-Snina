@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { staticHeroProps } from '@/lib/media';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Check, ChevronRight, AlertTriangle, Clock, Video, Camera, CameraOff, ExternalLink } from 'lucide-react';
@@ -9,6 +10,9 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { Clinic } from '@ns/types';
+
+// MEDIA-1: client component → manifest photo only (no CMS override here).
+const BOOKING_HERO = staticHeroProps('booking-hero');
 
 type Step = 1 | 2 | 3 | 4 | 5;
 type DeviceState = 'idle' | 'checking' | 'ready' | 'denied';
@@ -275,8 +279,7 @@ export default function BookingPage() {
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div data-step="1">
           <PageHero
-            slot="booking-hero"
-            alt=""
+            {...BOOKING_HERO}
             breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
           >
             {isTelehealth && (
@@ -349,8 +352,7 @@ export default function BookingPage() {
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div data-step="2">
           <PageHero
-            slot="booking-hero"
-            alt=""
+            {...BOOKING_HERO}
             breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
           >
             <p className="eyebrow">{localizeField(selectedClinic.name, locale)}</p>
@@ -435,8 +437,7 @@ export default function BookingPage() {
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div data-step="3">
           <PageHero
-            slot="booking-hero"
-            alt=""
+            {...BOOKING_HERO}
             breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
           >
             <p className="eyebrow">{booking.date}</p>
@@ -530,8 +531,7 @@ export default function BookingPage() {
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div data-step="4">
           <PageHero
-            slot="booking-hero"
-            alt=""
+            {...BOOKING_HERO}
             breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
           >
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step4')}</h1>
@@ -844,8 +844,7 @@ export default function BookingPage() {
       <SiteLayout activePath={`/${locale}/objednanie`}>
         <div data-step="5">
           <PageHero
-            slot="booking-hero"
-            alt=""
+            {...BOOKING_HERO}
             breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('book') }}
           >
             <h1 style={{ marginBottom: '1.5rem' }}>{t('booking.step5')}</h1>

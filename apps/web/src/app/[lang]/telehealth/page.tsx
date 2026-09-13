@@ -8,6 +8,7 @@ import { getTelehealthPage, getTelehealthClinics } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import { locales } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export async function generateMetadata({
   params,
@@ -55,8 +56,7 @@ export default async function TelehealthPage({
     <SiteLayout activePath={`/${locale}/telehealth`}>
       {/* ── Hero ────────────────────────────────────────────── */}
       <PageHero
-        slot="telehealth-hero"
-        alt=""
+        {...(await heroProps('telehealth-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: th('navLabel') }}
       >
           <div

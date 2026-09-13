@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "media_slots",
+  "info": {
+    "singularName": "media-slot",
+    "pluralName": "media-slots",
+    "displayName": "Media slot (page photo)",
+    "description": "One row per photo slot on the public site (page heroes). The admin replaces the image, hides it (site falls back to illustrated art), or un-hides it. Seeded with licence-clean placeholder photography (MEDIA-1); placeholder=true until a real Nemocnica Snina photo replaces it. Department photos live on Department.image, physician portraits on Physician.avatar (real photos only)."
+  },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "i18n": { "localized": false } },
+  "attributes": {
+    "slot":        { "type": "string", "required": true, "unique": true, "regex": "^[a-z0-9-]+$", "description": "Slot id used by the site, e.g. about-hero, home-campus. Must match a PageHero slot in apps/web." },
+    "image":       { "type": "media", "multiple": false, "allowedTypes": ["images"], "required": false },
+    "altSk":       { "type": "string", "description": "Alt text (Slovak). Heroes are decorative (h1 carries meaning) — used for in-page slots and the media library." },
+    "altEn":       { "type": "string" },
+    "hidden":      { "type": "boolean", "default": false, "description": "true = do not show any photo in this slot; the site renders its illustrated placeholder art instead." },
+    "placeholder": { "type": "boolean", "default": true, "description": "true = licence-clean stock placeholder, not a Nemocnica Snina photo. Set false when a real photo is uploaded. LAUNCH_CHECKLIST: no placeholder=true slot may remain visible at go-live." },
+    "credit":      { "type": "text", "description": "Attribution line. Rendered on-page when the licence requires it (CC BY-SA)." },
+    "licence":     { "type": "string" },
+    "sourceUrl":   { "type": "string" },
+    "reusedFrom":  { "type": "string", "description": "When the slot had no photo of its own and reuses another slot's file (MEDIA-1: home-campus, patients-hero, contact-hero, telehealth-hero)." }
+  }
+}

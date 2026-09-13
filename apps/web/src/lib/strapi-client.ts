@@ -17,10 +17,23 @@ import type {
   AboutInfo, LeadershipMember, HistoryMilestone, Investment, Certification,
 } from '@ns/types';
 
-const STRAPI_URL   = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
+export const STRAPI_URL = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
 const API_TOKEN    = process.env['STRAPI_API_TOKEN']  ?? '';
 const REVALIDATE   = Number(process.env['CONTENT_REVALIDATE_SECONDS'] ?? 60);
 const USE_FALLBACK = !API_TOKEN || API_TOKEN === 'dev-token';
+/** true when a real Strapi is configured (shared with lib/media.ts). */
+export const CMS_ENABLED = !USE_FALLBACK;
+
+/** Raw authenticated GET without the seed fallback or locale/populate defaults (media.ts). */
+export async function strapiGetRaw<T>(path: string): Promise<T> {
+  const res = await fetch(`${STRAPI_URL}/api/${path}`, {
+    headers: { Authorization: `Bearer ${API_TOKEN}` },
+    next: { revalidate: REVALIDATE },
+  });
+  if (!res.ok) throw new Error(`Strapi ${path}: HTTP ${res.status}`);
+  const json = await res.json() as { data: T };
+  return json.data;
+}
 
 // ── Fetch helper ──────────────────────────────────────────
 
@@ -46,6 +59,15 @@ async function strapiGet<T>(path: string, locale: Locale = 'sk'): Promise<T> {
 
 // ── Mappers: Strapi response → our type ───────────────────
 
+/** Strapi media field → { url } (absolute), or undefined. */
+function mediaUrl(v: unknown): { url: string } | undefined {
+  const d = (v as Record<string, unknown>)?.['data'] as Record<string, unknown> | null | undefined;
+  const attrs = (d?.['attributes'] as Record<string, unknown> | undefined) ?? (v as Record<string, unknown> | undefined);
+  const url = attrs?.['url'] ? String(attrs['url']) : '';
+  if (!url) return undefined;
+  return { url: url.startsWith('http') ? url : `${STRAPI_URL}${url}` };
+}
+
 function mapDepartment(entry: Record<string, unknown>): Department {
   const a = entry['attributes'] as Record<string, unknown> ?? entry;
   return {
@@ -65,6 +87,7 @@ function mapDepartment(entry: Record<string, unknown>): Department {
     desc:       { sk: String(a['desc'] ?? '') },
     facilities: { sk: (a['facilities'] as string[]) ?? [] },
     visiting:   { sk: String(a['visiting'] ?? '') },
+    image:      mediaUrl(a['image']),
   } as Department;
 }
 

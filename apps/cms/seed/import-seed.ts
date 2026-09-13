@@ -13,6 +13,15 @@
 
 // Import SEED from the web package (already ported as TypeScript)
 import { SEED } from '../../web/src/lib/seed';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+// MEDIA-1: the placeholder photo manifest + files ship with the web app.
+const IMG_DIR = join(__dirname, '..', '..', 'web', 'public', 'img');
+const MANIFEST = JSON.parse(readFileSync(join(__dirname, '..', '..', 'web', 'src', 'lib', 'media-manifest.json'), 'utf8')) as Record<string, unknown>;
+// Hero slots that reuse another slot's file — keep in step with apps/web/src/lib/media.ts SLOT_ALIASES.
+const SLOT_ALIASES: Record<string, string> = {
+  'home-campus': 'about-hero', 'patients-hero': 'patients-room', 'contact-hero': 'news-hero', 'telehealth-hero': 'teleconsult-hero',
+};
 
 const BASE  = process.env['STRAPI_URL']       ?? 'http://localhost:1337';
 const TOKEN = process.env['STRAPI_API_TOKEN'] ?? '';
@@ -63,6 +72,32 @@ async function putSingleton(path: string, data: unknown, locale?: string): Promi
   console.log(`  set: ${path}${locale ? ` (${locale})` : ''}`);
 }
 
+/** Upload one file to the Strapi media library; returns its id. Idempotent by name. */
+async function uploadImage(fileName: string, alt: string): Promise<number | null> {
+  const file = join(IMG_DIR, fileName);
+  if (!existsSync(file)) { console.warn(`  missing file, skipped: ${fileName}`); return null; }
+  const existing = await fetch(`${BASE}/api/upload/files?filters[name][$eq]=${encodeURIComponent(fileName)}`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  if (existing.ok) {
+    const found = (await existing.json()) as Array<{ id: number }>;
+    if (found[0]) return found[0].id;
+  }
+  const form = new FormData();
+  form.append('files', new Blob([readFileSync(file)], { type: 'image/webp' }), fileName);
+  form.append('fileInfo', JSON.stringify({ name: fileName, alternativeText: alt, caption: '' }));
+  const res = await fetch(`${BASE}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }, body: form });
+  if (!res.ok) throw new Error(`upload ${fileName} failed: ${res.status} ${await res.text()}`);
+  const [uploaded] = (await res.json()) as Array<{ id: number }>;
+  console.log(`  uploaded: ${fileName} → media ${uploaded!.id}`);
+  return uploaded!.id;
+}
+
+async function findBySlot(slot: string): Promise<number | null> {
+  const res = await fetch(`${BASE}/api/media-slots?filters[slot][$eq]=${slot}`, { headers });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { data: Array<{ id: number }> };
+  return json.data[0]?.id ?? null;
+}
+
 async function upsert(path: string, slug: string, data: unknown): Promise<number> {
   const existing = await findBySlug(path, slug);
   if (existing) {
@@ -77,11 +112,38 @@ async function upsert(path: string, slug: string, data: unknown): Promise<number
 async function main() {
   console.log('Seeding Strapi from design_handoff SEED…');
 
+  // ── Media slots (MEDIA-1) ─────────────────────────────
+  // Page-hero photos as CMS rows the admin can replace / hide / un-hide.
+  // dept-<id> files go on Department.image below instead of a slot row.
+  console.log('\nMedia slots:');
+  const mediaIds: Record<string, number | null> = {};
+  const manifest = MANIFEST as Record<string, { webp: string; alt: { sk?: string; en?: string }; credit?: string; placeholder?: boolean }>;
+  for (const [key, e] of Object.entries(manifest)) {
+    mediaIds[key] = await uploadImage(e.webp, e.alt.sk ?? '');
+  }
+  const slotRows: Array<[string, string]> = [
+    ...Object.keys(manifest).filter((k) => !k.startsWith('dept-')).map((k) => [k, k] as [string, string]),
+    ...Object.entries(SLOT_ALIASES),
+  ];
+  for (const [slot, from] of slotRows) {
+    if (await findBySlot(slot)) { console.log(`  skip (exists): media-slots/${slot}`); continue; }
+    const e = manifest[from]!;
+    const [, , url, licence] = (e.credit ?? '').split(' · ');
+    await post('media-slots', {
+      slot, image: mediaIds[from], altSk: e.alt.sk, altEn: e.alt.en,
+      hidden: false, placeholder: e.placeholder !== false,
+      credit: e.credit, licence: licence ?? '', sourceUrl: url ?? '',
+      reusedFrom: slot === from ? undefined : from,
+    });
+    console.log(`  created: media-slots/${slot}${slot === from ? '' : ` (reuses ${from})`}`);
+  }
+
   // ── Departments ────────────────────────────────────────
   console.log('\nDepartments:');
   const deptIds: Record<string, number> = {};
   for (const dept of SEED.departments) {
     const id = await upsert('departments', dept.id, {
+      image:     mediaIds[`dept-${dept.id}`] ?? undefined,
       name:      dept.name.sk,
       short:     dept.short.sk,
       slug:      dept.id,

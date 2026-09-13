@@ -5,6 +5,7 @@ import { NewsHashHighlight } from '@/components/NewsHashHighlight';
 import { getNewsItems } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 const badgeClass: Record<string, string> = {
   good: 'badge-green',
@@ -22,8 +23,7 @@ export default async function NewsPage({ params }: { params: Promise<{ lang: str
     <SiteLayout activePath={`/${locale}/aktuality`}>
       <NewsHashHighlight />
       <PageHero
-        slot="news-hero"
-        alt=""
+        {...(await heroProps('news-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.news') }}
       >
         <p className="eyebrow">{t('nav.news')}</p>

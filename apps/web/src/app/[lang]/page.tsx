@@ -9,6 +9,7 @@ import { ApsCard } from '@/components/ApsCard';
 import { getDepartments, getPhysicians, getNewsItems, getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import { intlLocale, type SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export async function generateMetadata({
   params,
@@ -52,7 +53,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
     <SiteLayout activePath={`/${locale}`}>
       <StructuredData locale={locale} page="home" />
       {/* ── Hero ──────────────────────────────────────────── */}
-      <PageHero slot="home-campus" alt="" containerClassName="hero-grid">
+      <PageHero {...(await heroProps('home-campus', locale))} containerClassName="hero-grid">
         {/* Left: copy */}
         <div>
           <p className="eyebrow terra">{localizeField(hero.badge, locale)}</p>

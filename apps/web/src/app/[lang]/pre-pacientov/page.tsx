@@ -10,6 +10,7 @@ import { getPricing, getWaitingTimes, getTestimonials, getHospitalInfo } from '@
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
 import type { WaitingTimeLevel } from '@ns/types';
+import { heroProps } from '@/lib/media';
 
 const WAIT_BADGE: Record<WaitingTimeLevel, string> = {
   good: 'badge-green',
@@ -40,8 +41,7 @@ export default async function ForPatientsPage({ params }: { params: Promise<{ la
   return (
     <SiteLayout activePath={`/${locale}/pre-pacientov`}>
       <PageHero
-        slot="patients-hero"
-        alt=""
+        {...(await heroProps('patients-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.patients') }}
       >
         <p className="eyebrow">{locale === 'sk' ? 'Pre pacientov' : 'For patients'}</p>

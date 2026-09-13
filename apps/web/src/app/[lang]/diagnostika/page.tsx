@@ -5,6 +5,7 @@ import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getFacilities } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export default async function DiagnosticsPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
@@ -15,8 +16,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ la
   return (
     <SiteLayout activePath={`/${locale}/diagnostika`}>
       <PageHero
-        slot="diagnostics-hero"
-        alt=""
+        {...(await heroProps('diagnostics-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.diagnostics') }}
       >
         <p className="eyebrow">{t('nav.diagnostics')}</p>

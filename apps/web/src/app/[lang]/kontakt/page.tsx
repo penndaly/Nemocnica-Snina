@@ -7,6 +7,7 @@ import { ApsCard } from '@/components/ApsCard';
 import { getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
 import type { SupportedLocale } from '@/i18n/config';
+import { heroProps } from '@/lib/media';
 
 export default async function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
@@ -23,8 +24,7 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
     <SiteLayout activePath={`/${locale}/kontakt`}>
       {/* Page hero — about */}
       <PageHero
-        slot="contact-hero"
-        alt=""
+        {...(await heroProps('contact-hero', locale))}
         breadcrumb={{ homeLabel: t('backHome'), homeHref: `/${locale}`, here: t('nav.contact') }}
       >
         <p className="eyebrow">{t('nav.contact')}</p>
