@@ -11,15 +11,19 @@
  * (apps/cms) mirrors it for enforcement at the CMS layer, and the
  * /api/cms/translations approve path calls it. No bypass.
  */
+import { REVIEW_GATED_LOCALES } from '@ns/types';
+
 export const CLINICAL_COLLECTIONS = ['departments', 'clinics', 'physicians', 'services', 'facilities', 'news', 'education-articles'] as const;
 /**
  * Locales whose *clinical* content must carry review_status='approved' before
  * it can publish. Named for the review state, not the translation origin:
  * today these four are machine-translated, but a human-translated locale
  * (Rusyn, Sprint I18N-RUE) gates exactly the same way. sk/en are the
- * authored source locales and pass through.
+ * authored source locales and pass through. The list itself lives in
+ * @ns/types REVIEW_GATED_LOCALES (I18N-RUE T1, single source); apps/cms
+ * mirrors it by hand (no workspace deps there — see the note in index.js).
  */
-export const REQUIRES_TRANSLATION_REVIEW = ['cs', 'pl', 'hu', 'uk'] as const;
+export const REQUIRES_TRANSLATION_REVIEW = REVIEW_GATED_LOCALES;
 
 /** Normalise a Strapi uid ("api::department.department") or plural/singular to a collection key. */
 export function normaliseCollection(input: string): string {

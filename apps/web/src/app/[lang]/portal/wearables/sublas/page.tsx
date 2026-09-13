@@ -1,4 +1,5 @@
 'use client';
+import { intlLocale } from '@/i18n/config';
 
 /**
  * GDPR consent management — /[lang]/portal/wearables/sublas (Sprint W4).
@@ -262,7 +263,7 @@ export default function ConsentManagementPage() {
                   <tbody>
                     {audit.map((e) => (
                       <tr key={e.id}>
-                        <td style={{ fontSize: '.82rem' }}>{new Date(e.ts).toLocaleString(sk ? 'sk-SK' : 'en-GB')}</td>
+                        <td style={{ fontSize: '.82rem' }}>{new Date(e.ts).toLocaleString(intlLocale(locale))}</td>
                         <td style={{ fontSize: '.82rem' }}>{e.deviceLabel}</td>
                         <td style={{ fontSize: '.82rem' }}>{e.consentType}</td>
                         <td>
@@ -317,7 +318,7 @@ export default function ConsentManagementPage() {
 }
 
 function statusNote(row: { granted: boolean; grantedAt: string } | undefined, c: ReturnType<typeof COPY>, locale: string): string {
-  if (row?.granted) return `${c.granted} · ${new Date(row.grantedAt).toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-GB')}`;
+  if (row?.granted) return `${c.granted} · ${new Date(row.grantedAt).toLocaleDateString(intlLocale(locale))}`;
   return c.notActive;
 }
 

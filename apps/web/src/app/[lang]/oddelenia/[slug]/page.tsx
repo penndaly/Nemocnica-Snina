@@ -6,12 +6,12 @@ import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getDepartments, getDepartmentBySlug, getPhysicians } from '@/lib/strapi-client';
 import { localizeField, localizelist } from '@/lib/i18n-utils';
-import type { SupportedLocale } from '@/i18n/config';
+import { locales, type SupportedLocale } from '@/i18n/config';
 
 export async function generateStaticParams() {
   const departments = await getDepartments('sk');
   return departments.flatMap((dept) =>
-    ['sk', 'cs', 'pl', 'hu', 'uk', 'en'].map((lang) => ({ lang, slug: dept.id })),
+    locales.map((lang) => ({ lang, slug: dept.id })),
   );
 }
 

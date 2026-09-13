@@ -8,7 +8,10 @@ module.exports = {
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
   moduleNameMapper: {
-    '^@ns/types$': '<rootDir>/../../packages/types/src/index.ts',
+    // rootDir is src, so packages/ is three levels up (was two — never
+    // exercised while @ns/types was a type-only import; I18N-RUE T1 made it
+    // a value import and the wrong path surfaced).
+    '^@ns/types$': '<rootDir>/../../../packages/types/src/index.ts',
     '^@/(.*)$': '<rootDir>/$1',
   },
 };

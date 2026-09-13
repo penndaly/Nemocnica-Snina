@@ -6,11 +6,12 @@
  * the ISR window (news 30s, everything else 60s) for the Next.js consumer and
  * any edge cache.
  */
+import { LOCALES } from '@ns/types';
 import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import type { Locale } from '@ns/types';
 import { PublicContentService } from './public-content.service';
 
-const SUPPORTED: ReadonlySet<string> = new Set(['sk', 'cs', 'pl', 'hu', 'uk', 'en']);
+const SUPPORTED: ReadonlySet<string> = new Set(LOCALES);
 const ISR_60 = 'public, s-maxage=60, stale-while-revalidate=120';
 const ISR_30 = 'public, s-maxage=30, stale-while-revalidate=60';
 

@@ -5,11 +5,11 @@ import { PageHero } from '@ns/ui';
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { getEducationArticleBySlug, getEducationArticleSlugs } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
-import type { SupportedLocale } from '@/i18n/config';
+import { locales, type SupportedLocale } from '@/i18n/config';
 
 export async function generateStaticParams() {
   const slugs = await getEducationArticleSlugs();
-  return slugs.flatMap((slug) => ['sk', 'cs', 'pl', 'hu', 'uk', 'en'].map((lang) => ({ lang, slug })));
+  return slugs.flatMap((slug) => locales.map((lang) => ({ lang, slug })));
 }
 
 export default async function EducationArticleDetailPage({

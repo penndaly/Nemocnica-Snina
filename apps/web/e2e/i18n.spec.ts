@@ -4,7 +4,7 @@
  */
 import { test, expect } from '@playwright/test';
 
-const LOCALES = ['sk', 'cs', 'pl', 'hu', 'uk', 'en'] as const;
+const LOCALES = ['sk', 'cs', 'pl', 'hu', 'uk', 'en', 'rue'] as const;
 const PUBLIC_ROUTES = ['/', '/oddelenia', '/ambulancie', '/lekari', '/kontakt', '/edukacia', '/kariera', '/pre-pacientov', '/o-nemocnici'];
 
 for (const locale of LOCALES) {
@@ -23,7 +23,7 @@ test('I2: default root / redirects to /sk', async ({ page }) => {
   await expect(page).toHaveURL(/\/sk/);
 });
 
-test('I3: hreflang tags present on home page for all 6 locales', async ({ page }) => {
+test('I3: hreflang tags present on home page for all 7 locales', async ({ page }) => {
   await page.goto('/sk');
   for (const locale of LOCALES) {
     const hreflang = page.locator(`link[rel="alternate"][hreflang="${locale}"]`);

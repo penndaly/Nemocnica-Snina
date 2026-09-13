@@ -27,10 +27,11 @@ describe('translation review gate', () => {
     expect(normaliseCollection('clinics')).toBe('clinics');
   });
 
-  it('blocks all four machine locales, passes the rest', () => {
-    for (const l of ['cs', 'pl', 'hu', 'uk']) {
+  it('blocks all five review-gated locales (four MT + human-translated rue), passes the rest', () => {
+    for (const l of ['cs', 'pl', 'hu', 'uk', 'rue']) {
       expect(isPublishBlocked({ collection: 'clinics', locale: l, reviewStatus: 'needs_review' })).toBe(true);
     }
     expect(isPublishBlocked({ collection: 'clinics', locale: 'de', reviewStatus: 'needs_review' })).toBe(false);
+    expect(isPublishBlocked({ collection: 'clinics', locale: 'sk', reviewStatus: 'needs_review' })).toBe(false);
   });
 });

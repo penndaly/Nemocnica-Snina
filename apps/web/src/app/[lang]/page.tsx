@@ -8,7 +8,7 @@ import { StructuredData } from '@/components/StructuredData';
 import { ApsCard } from '@/components/ApsCard';
 import { getDepartments, getPhysicians, getNewsItems, getHospitalInfo, getPageContent } from '@/lib/strapi-client';
 import { localizeField } from '@/lib/i18n-utils';
-import type { SupportedLocale } from '@/i18n/config';
+import { intlLocale, type SupportedLocale } from '@/i18n/config';
 
 export async function generateMetadata({
   params,
@@ -311,7 +311,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
                         {localizeField(item.tag, locale)}
                       </span>
                       <span style={{ fontSize: '.82rem', color: 'var(--ink-3)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                        {new Date(item.date).toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-GB')}
+                        {new Date(item.date).toLocaleDateString(intlLocale(locale))}
                       </span>
                     </div>
                     <h4 style={{ margin: 0 }}>{localizeField(item.title, locale)}</h4>

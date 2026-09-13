@@ -4,7 +4,17 @@
 // Bilingual fields are Loc<T>; extend locales as needed.
 // =========================================================
 
-export type Locale = 'sk' | 'cs' | 'pl' | 'hu' | 'uk' | 'en';
+/**
+ * The supported locales — the ONE list (Sprint I18N-RUE T1). Every other
+ * locale list in apps/web and apps/api derives from this; do not add a
+ * literal `['sk', 'cs', …]` anywhere else. `rue` = Rusyn (ISO 639-3; no
+ * 2-letter code exists), Prešov standard, Cyrillic. Human-translated only —
+ * it is NOT an MT target (see MT_TARGET_LOCALES) but IS review-gated.
+ */
+export const LOCALES = ['sk', 'cs', 'pl', 'hu', 'uk', 'en', 'rue'] as const;
+export type Locale = (typeof LOCALES)[number];
+/** Locales whose clinical CMS content must be reviewer-approved to publish. */
+export const REVIEW_GATED_LOCALES = ['cs', 'pl', 'hu', 'uk', 'rue'] as const;
 
 /** Localized string — one value per supported locale */
 export type Loc = Partial<Record<Locale, string>>;

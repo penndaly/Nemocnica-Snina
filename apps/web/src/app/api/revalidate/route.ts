@@ -2,10 +2,11 @@
  * ISR revalidation webhook — called by Strapi lifecycle hooks when content is saved.
  * Verifies the STRAPI_WEBHOOK_SECRET header before flushing the Next.js cache.
  */
+import { locales } from '@/i18n/config';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 
-const LOCALES = ['sk', 'cs', 'pl', 'hu', 'uk', 'en'];
+const LOCALES = locales;
 const SECRET  = process.env['STRAPI_WEBHOOK_SECRET'] ?? '';
 
 // Map Strapi model names to the Next.js routes that should be invalidated

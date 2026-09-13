@@ -64,9 +64,10 @@ services:
     # never touched those three, so the merged config still ran the built
     # image with the dev command, against a volume that masks /repo/apps/cms
     # with the host's source tree. Explicit here to actually run the image's
-    # own Dockerfile.cms CMD (`pnpm start` from /repo/apps/cms) unmasked.
-    working_dir: /repo/apps/cms
-    command: ["pnpm", "start"]
+    # own Dockerfile.cms CMD (`npm start` from /app — the image is npm-
+    # managed, CLAUDE.md exemption) unmasked.
+    working_dir: /app
+    command: ["npm", "start"]
     volumes: !reset []
     environment:
       NODE_ENV: production

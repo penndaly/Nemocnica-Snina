@@ -65,8 +65,8 @@ function fail(name, detail = '') { results.push(['FAIL', name, detail]); }
     const localeSvc = strapi.plugin('i18n').service('locales');
     const es = strapi.entityService;
     const codes = (await localeSvc.find()).map((l) => l.code).sort();
-    assert.deepEqual(codes, ['cs', 'en', 'hu', 'pl', 'sk', 'uk'].sort());
-    ok('bootstrap created the 6 locales', codes.join(','));
+    assert.deepEqual(codes, ['cs', 'en', 'hu', 'pl', 'sk', 'uk', 'rue'].sort());
+    ok('bootstrap created the 7 locales (incl. rue)', codes.join(','));
     const def = await localeSvc.getDefaultLocale();
     assert.equal(def, 'sk', `default locale must be sk (plugin seeds en; config defaultLocale is inert), got ${def}`);
     ok('default locale is sk', 'plugin seeds en on first boot; bootstrap overrides');
@@ -108,10 +108,13 @@ function fail(name, detail = '') { results.push(['FAIL', name, detail]); }
     else { assert.ok(hm.publishedAt); ok('non-clinical cs entry passes through gate (history-milestone)'); }
 
     // ── 3. Rusyn via the service path ────────────────────────────────────
-    const rue = await localeSvc.create({ code: 'rue', name: 'Русиньскый' });
+    // I18N-RUE T1: bootstrap now registers rue itself; assert it is there
+    // and that the service path (not the ISO-list-validated admin UI) is what
+    // created it.
+    const rue = await localeSvc.findByCode('rue');
+    assert.ok(rue, 'bootstrap must register rue (not in Strapi 4.25 ISO list)');
     assert.equal(rue.code, 'rue');
-    assert.ok(await localeSvc.findByCode('rue'));
-    ok('rue (Rusyn) locale registers via locales service', 'admin-UI path would reject: not in Strapi 4.25 ISO list');
+    ok('rue (Rusyn) locale registered by bootstrap via locales service', 'admin-UI path would reject: not in Strapi 4.25 ISO list');
     const rueEntry = await es.create(UID, { data: { ...dept('Gate test RUE', 'gate-test-rue'), locale: 'rue' } });
     assert.equal(rueEntry.locale, 'rue');
     ok('content can be created in locale rue');

@@ -7,12 +7,15 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Globe, Check, X, RefreshCw, Loader2 } from 'lucide-react';
+import { REVIEW_GATED_LOCALES } from '@ns/types';
 import { AdminAuthProvider, useAdminAuth } from '@/components/admin/AdminAuthContext';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { showToast } from '@/components/admin/AdminToast';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-const LOCALES = ['cs', 'pl', 'hu', 'uk'] as const;
+// Review-gated locales (cs/pl/hu/uk MT + rue human-translated) — mirrors
+// @ns/types REVIEW_GATED_LOCALES; the review queue must list rue too.
+const LOCALES = REVIEW_GATED_LOCALES;
 
 interface PendingItem { id: number; slug: string; locale: string; title: string }
 interface PendingResp { total: number; byCollection: Record<string, PendingItem[]>; byLocale: Record<string, number> }

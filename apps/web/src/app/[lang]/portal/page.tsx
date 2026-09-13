@@ -7,7 +7,7 @@ import { Lock, User, Activity, Pill, FlaskConical, Calendar, LogOut, Download, A
 import { SiteLayout } from '@/components/layout/SiteLayout';
 import { ScrollArea } from '@/components/ScrollArea';
 import { WearablesTab } from './WearablesTab';
-import type { SupportedLocale } from '@/i18n/config';
+import { intlLocale, type SupportedLocale } from '@/i18n/config';
 import type { FhirCondition, FhirMedicationRequest, FhirObservation, FhirAppointment } from '@ns/types';
 
 type Tab = 'overview' | 'teleconsult' | 'records' | 'prescriptions' | 'labs' | 'payments' | 'wearables';
@@ -341,7 +341,9 @@ function SummaryPdfButton({ sessionId, locale }: { sessionId: string; locale: Su
   );
 }
 
-const OIDC_ERROR_MESSAGES: Record<string, Record<SupportedLocale, string>> = {
+// Partial: a locale without its own string (rue until translated) falls back
+// to sk at the lookup below — never generate Rusyn copy here (I18N-RUE C1).
+const OIDC_ERROR_MESSAGES: Record<string, Partial<Record<SupportedLocale, string>>> = {
   oidc_access_denied:  { sk: 'Prihlásenie cez eID bolo zamietnuté.',       en: 'eID login was denied.',               cs: 'Přihlášení přes eID bylo zamítnuto.', pl: 'Logowanie przez eID zostało odrzucone.', hu: 'Az eID bejelentkezést elutasították.', uk: 'Вхід через eID було відхилено.' },
   missing_code:        { sk: 'Neplatná odpoveď od prihlasovacieho servera.', en: 'Invalid response from login server.', cs: 'Neplatná odpověď od přihlašovacího serveru.', pl: 'Nieprawidłowa odpowiedź serwera logowania.', hu: 'Érvénytelen válasz a bejelentkezési szervertől.', uk: 'Недійсна відповідь від сервера входу.' },
   missing_verifier:    { sk: 'Platnosť relácie vypršala. Skúste znovu.',    en: 'Session expired. Please try again.',   cs: 'Relace vypršela. Zkuste to znovu.', pl: 'Sesja wygasła. Spróbuj ponownie.', hu: 'A munkamenet lejárt. Próbálja újra.', uk: 'Сесія закінчилася. Спробуйте ще раз.' },
@@ -614,7 +616,7 @@ export default function PortalPage() {
                           {tcUpcoming.map((s) => {
                             const mins = minutesUntil(s.scheduledAt);
                             const joinActive = mins <= 10;
-                            const dateLabel = new Date(s.scheduledAt).toLocaleString(locale === 'sk' ? 'sk-SK' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+                            const dateLabel = new Date(s.scheduledAt).toLocaleString(intlLocale(locale), { dateStyle: 'medium', timeStyle: 'short' });
                             return (
                               <div key={s.id} className="card card-pad" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-sm)', background: 'var(--blue-50)', color: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -689,7 +691,7 @@ export default function PortalPage() {
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
                           {tcPast.map((s) => {
-                            const dateLabel = new Date(s.scheduledAt).toLocaleString(locale === 'sk' ? 'sk-SK' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+                            const dateLabel = new Date(s.scheduledAt).toLocaleString(intlLocale(locale), { dateStyle: 'medium', timeStyle: 'short' });
                             const expanded = expandedSummary === s.id;
                             const sumData  = summaryData[s.id];
                             return (
@@ -908,7 +910,7 @@ export default function PortalPage() {
                           <tbody>
                             {receipts.map((r) => (
                               <tr key={r.id}>
-                                <td>{new Date(r.createdAt).toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-GB')}</td>
+                                <td>{new Date(r.createdAt).toLocaleDateString(intlLocale(locale))}</td>
                                 <td style={{ fontFamily: 'monospace', fontSize: '.82rem' }}>{r.transactionRef.slice(0, 16)}…</td>
                                 <td style={{ fontSize: '.82rem' }}>{r.bookingId ?? '—'}</td>
                                 <td>

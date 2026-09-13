@@ -207,7 +207,9 @@ test('prose links are underlined, not colour-only (axe link-in-text-block; STG-2
 // ladder — is what catches a regression: for every locale × width, either
 // the nav is expanded and its last item ends left of the first CTA, or it
 // is collapsed and the hamburger is the visible control.
-const HEADER_LOCALES = ['sk', 'en', 'cs', 'pl', 'hu', 'uk'] as const;
+// rue renders sk labels until rue.json is filled (I18N-RUE); the row is
+// here so the day the endonyms land, this is what measures them.
+const HEADER_LOCALES = ['sk', 'en', 'cs', 'pl', 'hu', 'uk', 'rue'] as const;
 const HEADER_WIDTHS = [1101, 1280, 1440] as const;
 
 interface HeaderProbe {

@@ -8,8 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClinics, getPhysicians, getDisclosures } from '@/lib/strapi-client';
 import type { Locale } from '@ns/types';
+import { locales } from '@/i18n/config';
 
-const VALID_LOCALES = new Set(['sk', 'cs', 'pl', 'hu', 'uk', 'en']);
+const VALID_LOCALES = new Set<string>(locales);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;

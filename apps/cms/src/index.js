@@ -17,7 +17,9 @@ const { ApplicationError } = errors;
 // Keyed on review state, not translation origin — a human-translated locale
 // (Rusyn, Sprint I18N-RUE) gates the same way. Mirrors
 // apps/api/src/cms/translation-gate.ts REQUIRES_TRANSLATION_REVIEW.
-const REQUIRES_TRANSLATION_REVIEW = new Set(['cs', 'pl', 'hu', 'uk']);
+// Hand-mirrored (apps/cms is npm-managed, no @ns/types workspace dep) —
+// keep in step with packages/types REVIEW_GATED_LOCALES.
+const REQUIRES_TRANSLATION_REVIEW = new Set(['cs', 'pl', 'hu', 'uk', 'rue']);
 
 // All clinical / safety-critical collections.
 const CLINICAL_COLLECTIONS = [
@@ -45,8 +47,11 @@ module.exports = {
     // (CMS-1: this loop used to skip `sk` entirely — unnoticed because the
     // `pluginsOptions` typo meant no collection was localized anyway.)
     const i18nService = strapi.plugin('i18n').service('locales');
-    const LOCALE_NAMES = { sk: 'Slovenčina', cs: 'Čeština', pl: 'Polski', hu: 'Magyar', uk: 'Українська', en: 'English' };
-    for (const code of ['sk', 'cs', 'pl', 'hu', 'uk', 'en']) {
+    // `rue` (Rusyn) is absent from Strapi 4.25's bundled ISO list, so the
+    // admin-UI picker cannot add it; this service path can (verified by
+    // scripts/verify-i18n-gate.js). Mirrors packages/types LOCALES.
+    const LOCALE_NAMES = { sk: 'Slovenčina', cs: 'Čeština', pl: 'Polski', hu: 'Magyar', uk: 'Українська', en: 'English', rue: 'Русиньскый' };
+    for (const code of ['sk', 'cs', 'pl', 'hu', 'uk', 'en', 'rue']) {
       const existing = await i18nService.findByCode(code);
       if (!existing) {
         await i18nService.create({ code, name: LOCALE_NAMES[code] });

@@ -20,6 +20,10 @@ type Messages = Record<string, unknown>;
 function mergeMessages(base: Messages, override: Messages): Messages {
   const out: Messages = { ...base };
   for (const [k, v] of Object.entries(override)) {
+    // I18N-RUE: rue.json carries the full key structure with "" for every
+    // untranslated string (so translators and the worklist see the shape);
+    // an empty string means "not translated yet", never "render nothing".
+    if (v === '') continue;
     const existing = out[k];
     out[k] =
       v && typeof v === 'object' && !Array.isArray(v) &&
