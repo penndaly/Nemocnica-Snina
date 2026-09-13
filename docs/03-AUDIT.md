@@ -447,8 +447,13 @@ changed files.
 width — the hamburger is its desktop navigation. That is what C4(a) buys:
 correct for whatever a translator returns, at the price of a shorter nav
 for long-label locales. Shortening `uk`'s group labels (or C4(b)) would
-restore the desktop nav there; a design call, not made here. Rusyn's
-labels will be measured by the same assertion the day they land.
+restore the desktop nav there. **Call made 2026-09-13 (user): leave it.
+This is expected behaviour, not a defect — do not shorten the Ukrainian
+group labels to fit a container; a hamburger at desktop is a mild
+degradation, an overlapping nav is a broken one.** Revisit only if `rue`'s
+endonyms land longer still, and then as a container-width question
+(`--maxw`), not a translation one. Rusyn's labels are measured by the same
+assertion the day they land (the `rue` row is in `styled.spec.ts` §3).
 
 **Limitation:** the server renders `expanded`; the measurement runs in a
 layout effect after hydration, so on a long-label locale there is a
@@ -541,7 +546,13 @@ stops the publish-gate verification from booting. **Open inconsistency:**
 `infra/docker/Dockerfile.cms` still installs with pnpm; its boot was
 verified on 2026-08-24 against an earlier lockfile and has not been rebuilt
 since the npm switch. Until it is rebuilt with `npm ci` (or re-verified as
-is), the staging Strapi image is not known to boot.
+is), the staging Strapi image is not known to boot. **Resolved 2026-09-13
+(folded into I18N-RUE T1 at the user's direction):** `Dockerfile.cms` now
+copies only `apps/cms` and runs `npm ci --workspaces=false` from its
+package-lock, identical to the CI job; `docker-compose.production.yml`'s
+Strapi service points at `/app` + `npm start` accordingly. Not built here
+(Docker down) — the install path is the one CI proves on every push; the
+image build itself is verified the first time the deploy workflow runs.
 
 **MT-1 — the DeepL note is now a guard.** `TranslationProviderService`
 carries the provider's supported-target set (DeepL's list; the mock uses
@@ -769,4 +780,99 @@ automatic deploy path still targets a host that does not exist.
 
 CI on `a00f5bf` (STG-3 + UI-2b pushed): all jobs green, `Integration smoke
 — staging` skipped by the guard as designed.
+
+---
+
+## PREVIEW-2 — an orphaned preview backend nobody owned (found 2026-09-13)
+
+While doing PREVIEW-1 the App Hosting backend `nemocnica-snina-web` turned
+out to already exist: created 2026-09-09 from the branch
+`infra/firebase-app-hosting-preview` (single commit `9e4940e`, never
+merged, no reference anywhere on `main`, in the docs, or in project
+memory), and **still serving that pre-ROUTE-1 build four days later** —
+`/sk/kariera`, `/sk/pre-pacientov`, `/sk/o-nemocnici` all 404 on a public
+URL. Same failure class as STG-3's false-green deploy: an environment
+nobody owns, reporting nothing. Its config was ported to `main` and it
+now serves `main` (PREVIEW-1).
+
+**Inventory of project `snina-nemocnica` (Firebase CLI, 2026-09-13) — no
+third state; each item is deleted or owned:**
+
+| Resource | State found | Disposition |
+|---|---|---|
+| App Hosting backend `nemocnica-snina-web` (europe-west4) | stale, unowned | **Owned** — PREVIEW-1; config on `main`; manual deploy documented in `STAGING_DEPLOYMENT.md` |
+| Secret `ns-web-preview-jwt-secret` | created 2026-09-13 | **Owned** — referenced from `apps/web/apphosting.yaml` |
+| Classic Hosting site `snina-nemocnica` (`snina-nemocnica.web.app`), channel `live`, last release 2026-08-24 | serves "Site Not Found" (no content) | **Owned as the project's default site, empty.** Cannot be deleted (default site); nothing in the repo deploys to it — `firebase.json` has no `hosting` block. Nothing to take down. |
+| Web app `Nemocnica Snina` (`1:512786960608:web:…`) | analytics app id used by `NEXT_PUBLIC_FIREBASE_*` | **Owned** (analytics only) |
+| Cloud Functions | `functions:list` errors (API not enabled) — none | — |
+| Git branch `infra/firebase-app-hosting-preview` (origin + local) | source of the orphan; fully superseded by `b217b43` | **Deleted** |
+| Git stash on `feat/placeholder-media` ("firebase app hosting deploy config") | same content as the deleted branch | **Dropped** |
+
+Not inventoried: `gcloud`-level resources (Cloud Run, Cloud SQL, GCE) —
+`gcloud` calls were blocked by the session's permission classifier. App
+Hosting is the only Cloud Run consumer this repo has ever configured, but
+that is a statement about the repo, not the project; an owner with
+console access should glance at Cloud Run and Compute once.
+
+**Rule, stated:** anything that serves a URL has an owner and a line in
+`STAGING_DEPLOYMENT.md`, or it is deleted. A preview created "to review a
+branch" is deleted when the branch is.
+
+---
+
+## I18N-RUE T1 — Rusyn locale plumbing (2026-09-13)
+
+Per the user's brief: no Prešov Rusyn medical copy is generated here.
+What landed:
+
+- **One locale list.** `packages/types` exports `LOCALES` (7, `rue`
+  added) and `REVIEW_GATED_LOCALES` (`cs pl hu uk rue`); `Locale` is
+  derived. `apps/web/i18n/config.ts` re-exports it; the 12 hardcoded
+  6-locale literals (`content/route.ts`, `revalidate/route.ts`, three
+  `generateStaticParams`, API `public.controller` `SUPPORTED`,
+  `translation-gate.ts`, `admin/translations`, `i18n.spec.ts`,
+  `styled.spec.ts`, CMS bootstrap + verify script) now derive from it or
+  — in `apps/cms`, which has no workspace deps — mirror it with a comment.
+  `grep` for `'sk', 'cs', 'pl'` in `apps/*/src` returns only the CMS
+  mirror.
+- **`rue.json`: full key structure, every value `""`.** The message
+  merge treats `""` as untranslated and keeps the Slovak string, so `/rue`
+  renders Slovak chrome today. `intlLocale()` maps `rue` → `sk-SK` for
+  date/number formatting (Intl has no `rue` CLDR data), and gives
+  `cs/pl/hu/uk` their own tags instead of the previous `en-GB`.
+- **Translator worklist** `docs/RUE_TRANSLATION_WORKLIST.md`, generated by
+  `pnpm --filter=@ns/web worklist:rue`: 253 keys open, split into chrome
+  (fill first; gates the switcher entry), clinical/safety-critical
+  (clinician-reader sign-off required, named in the commit) and other;
+  plus the CMS-entry rule.
+- **Review gate includes `rue`** on both layers (API `translation-gate`
+  via `REVIEW_GATED_LOCALES`; CMS `index.js` mirror). The CMS bootstrap
+  registers `rue` via the locales service (Strapi 4.25's ISO list lacks
+  it); `verify-i18n-gate.js` now asserts 7 locales and that bootstrap
+  created `rue`. MT: `MT_TARGET_LOCALES` default unchanged (`cs,pl,hu,uk`);
+  the provider guard already throws on `rue`.
+- **Collision assertion has its `rue` row** (`styled.spec.ts` §3).
+- **Folded in:** `Dockerfile.cms` → npm (CI-1), and a latent
+  `apps/api/jest.config.js` bug — the `@ns/types` mapper pointed two
+  directories up instead of three, unexercised while the import was
+  type-only.
+
+Method: `pnpm typecheck` web + api + types clean; `audit:classes` 0
+unknown; API tests `translation|public|app-module-di` 16 passed; web
+`next build` 377 pages (327 before — `rue` adds 50) with `/rue` present;
+Playwright against the dev server (DB-free temp config): `I1 [rue]` 200
++ brand; `I3` hreflang for all 7 locales; `styled.spec.ts` header row for
+`/rue` and `/sk`; a probe asserting `<html lang="rue">`, `hreflang="rue"`
+attached, every `.nav-top` label non-empty and Slovak ("Starostlivosť"
+present — the `""` fallback works), and axe 0 critical/serious on `/rue`:
+5 passed. CMS: `npm ci --workspaces=false` under Node 20 (the CI recipe,
+1481 packages) then `verify:i18n`: 12/12 PASS, including "bootstrap
+created the 7 locales (incl. rue)" and "content can be created in locale
+rue".
+
+**Not done (later Rusyn tasks):** T2 Literata for Cyrillic headings
+(FONT-1), T4 the 7-endonym switcher (C5; `localeNames` is exported ready
+for it), T5 `PRODUCTION_ARCHITECTURE.md` "7 languages" + `LAUNCH_CHECKLIST`
+row. The `rue` switcher entry stays hidden until section 1 of the
+worklist is filled.
 

@@ -1,4 +1,9 @@
-# Sprint I18N-RUE — Rusyn (7th locale) — SCOPE, not yet built
+# Sprint I18N-RUE — Rusyn (7th locale) — T1 + T3 built (2026-09-13); T2, T4, T5 open
+
+> Status: T1 (locale plumbing, `rue.json` skeleton, worklist, review gate,
+> CMS bootstrap) landed 2026-09-13 — see `docs/03-AUDIT.md` "I18N-RUE T1".
+> T3 landed earlier as UI-2b. No Rusyn text has been authored; the
+> worklist is `docs/RUE_TRANSLATION_WORKLIST.md`.
 
 Scoped 2026-09-12 on `main` `a1a4f57`. This is the pre-build scope the user
 asked for. Nothing below is implemented; the "Calls needed" section blocks
