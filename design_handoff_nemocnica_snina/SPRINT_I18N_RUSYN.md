@@ -1,8 +1,9 @@
-# Sprint I18N-RUE — Rusyn (7th locale) — T1 + T3 built (2026-09-13); T2, T4, T5 open
+# Sprint I18N-RUE — Rusyn (7th locale) — T1 + T3 + T4 built (2026-09-13); T2, T5 open
 
 > Status: T1 (locale plumbing, `rue.json` skeleton, worklist, review gate,
 > CMS bootstrap) landed 2026-09-13 — see `docs/03-AUDIT.md` "I18N-RUE T1".
-> T3 landed earlier as UI-2b. No Rusyn text has been authored; the
+> T3 landed earlier as UI-2b. T4 (switcher, C5a) landed 2026-09-13 in
+> I18N-ALL — `rue` appears in it automatically once its chrome is filled. No Rusyn text has been authored; the
 > worklist is `docs/RUE_TRANSLATION_WORKLIST.md`.
 
 Scoped 2026-09-12 on `main` `a1a4f57`. This is the pre-build scope the user

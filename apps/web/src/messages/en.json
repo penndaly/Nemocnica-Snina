@@ -54,7 +54,8 @@
     "admin": "Content administration",
     "rights": "All rights reserved.",
     "education": "Patient education",
-    "careers": "Careers"
+    "careers": "Careers",
+    "builtBy": "Website by"
   },
   "status": {
     "open": "Open",

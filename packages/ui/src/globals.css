@@ -381,6 +381,19 @@
 .has-hero-media .stepper-step { color: #c3d5e8; border-color: rgba(255,255,255,.32); }
 .has-hero-media .stepper-step.active { color: #fff; border-color: #fff; }
 .has-hero-media .stepper-step.done { color: #dbe6f2; border-color: var(--green); }
+/* Footer builder credit (parent-company mark). */
+.built-by { display: inline-flex; align-items: center; gap: .45em; }
+.built-by img { width: 22px; height: 22px; border-radius: 5px; background: #fff; padding: 2px; }
+.built-by b { font-weight: 700; color: #fff; }
+/* I18N-RUE T4: language switcher in the dark utility bar. Native <select>
+ * styled to match the old pill; the wrapper is the hook for tests. */
+.lang-switch { display: inline-flex; align-items: center; flex-shrink: 0; }
+.lang-switch select { appearance: none; -webkit-appearance: none; background: var(--blue-600) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='white' stroke-width='1.6'/></svg>") no-repeat right .6em center; color: #fff; border: none; border-radius: 999px; padding: .25em 1.7em .25em .75em; font-family: 'Mulish', sans-serif; font-weight: 700; font-size: .78rem; line-height: 1.4; cursor: pointer; max-width: 11rem; }
+.lang-switch select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.lang-switch select option { color: var(--ink); background: #fff; }
+/* Narrow phones: the endonym still shows in the open list; the closed
+ * control is capped so the bar keeps to the viewport (UI-2 floor). */
+@media (max-width: 360px) { .lang-switch select { max-width: 6.2rem; padding-right: 1.4em; } }
 /* MEDIA-1: photo attribution (rendered only when the licence requires it —
  * CC BY-SA); sits over the scrim's darkest corner so it clears 4.5:1. */
 .hero-credit { position: absolute; right: 12px; bottom: 8px; z-index: 3; margin: 0; font-size: .7rem; line-height: 1.3; color: #dbe6f2; background: rgba(16,44,76,.72); padding: 3px 8px; border-radius: 6px; max-width: min(60ch, calc(100% - 24px)); }

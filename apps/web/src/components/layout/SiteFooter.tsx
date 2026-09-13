@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
 import { Plus } from 'lucide-react';
 import type { SupportedLocale } from '@/i18n/config';
@@ -198,6 +199,13 @@ export function SiteFooter() {
             © {CURRENT_YEAR} Nemocnica Snina, s.r.o. {t('footer.rights')}
           </span>
           <span>WCAG 2.1 AA · Act No. 351/2022</span>
+          {/* Builder credit — parent company mark (assets/pixel-perfekt-logo.png,
+              copied to public/img). Decorative image + visible text. */}
+          <span className="built-by">
+            <span>{t('footer.builtBy')}</span>
+            <Image src="/img/pixel-perfekt-logo.png" alt="" width={22} height={22} aria-hidden />
+            <b>Pixel Perfekt Media</b>
+          </span>
         </div>
       </div>
     </footer>

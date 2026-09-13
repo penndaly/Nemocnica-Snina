@@ -54,7 +54,8 @@
     "admin": "Správa obsahu (admin)",
     "rights": "Všetky práva vyhradené.",
     "education": "Edukácia pacientov",
-    "careers": "Kariéra"
+    "careers": "Kariéra",
+    "builtBy": "Web vytvoril"
   },
   "status": {
     "open": "V prevádzke",

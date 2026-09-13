@@ -52,20 +52,26 @@ test('I4: lang attribute on <html> matches active locale', async ({ page }) => {
   }
 });
 
-test('I5: language switch renders all 6 locale options', async ({ page }) => {
+test('I5: language switch lists every advertised locale by native name, each option lang-attributed', async ({ page }) => {
   await page.goto('/sk');
-  const switcher = page.locator('[aria-label*="jazyk"], [aria-label*="language"], .lang-switch');
-  await expect(switcher).toBeVisible();
+  const select = page.getByTestId('lang-switch');
+  await expect(select).toBeVisible();
+  const options = select.locator('option');
+  await expect(options).toHaveCount(ADVERTISED.length);
+  for (const l of ADVERTISED) {
+    await expect(select.locator(`option[value="${l}"][lang="${l}"]`)).toHaveCount(1);
+  }
+  await expect(select.locator('option[value="rue"]')).toHaveCount(0);
+  await expect(select.locator('option[value="uk"]')).toHaveText('Українська');
+  await expect(select).toHaveValue('sk');
 });
 
-test('I6: switching SK → EN updates URL and page language', async ({ page }) => {
-  await page.goto('/sk');
-  const enLink = page.locator('a[href*="/en"], button:has-text("EN")').first();
-  if (await enLink.isVisible()) {
-    await enLink.click();
-    await expect(page).toHaveURL(/\/en/);
-    const lang = await page.locator('html').getAttribute('lang');
-    expect(lang).toMatch(/^en/i);
+test('I6: switching via the selector updates URL and page language for every advertised locale', async ({ page }) => {
+  for (const l of ADVERTISED.filter((x) => x !== 'sk')) {
+    await page.goto('/sk/kontakt');
+    await page.getByTestId('lang-switch').selectOption(l);
+    await expect(page).toHaveURL(new RegExp(`/${l}/kontakt`));
+    expect(await page.locator('html').getAttribute('lang')).toMatch(new RegExp(`^${l}`, 'i'));
   }
 });
 
@@ -87,9 +93,10 @@ test('I9: sitemap.xml contains all department slugs × all locales', async ({ pa
   const r = await page.goto('/sitemap.xml');
   expect(r?.status()).toBe(200);
   const xml = await page.content();
-  for (const locale of LOCALES) {
+  for (const locale of ADVERTISED) {
     expect(xml).toContain(`/${locale}/`);
   }
+  expect(xml).not.toContain('/rue/');
   expect(xml).toContain('/chirurgia');
 });
 

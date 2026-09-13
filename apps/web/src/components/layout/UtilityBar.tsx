@@ -3,7 +3,8 @@
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
 import { Phone, PhoneCall } from 'lucide-react';
-import { locales, type SupportedLocale } from '@/i18n/config';
+import { locales, localeNames, type SupportedLocale } from '@/i18n/config';
+import { publicLocales } from '@/i18n/public-locales';
 import { AccessibilityControls } from '@/components/AccessibilityControls';
 
 const HOSPITAL_PHONE = '+421 57 766 01 11';
@@ -38,7 +39,10 @@ export function UtilityBar() {
     >
       <div
         className="container"
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}
+        // flexWrap: the prototype's .utility-bar .container wraps; the port
+        // didn't, which is the UI-2 lead (docs/03-AUDIT.md) — at 320px the
+        // phone + emergency group alone is 167–187px wide.
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.4rem 1rem', flexWrap: 'wrap' }}
       >
         {/* Left: switchboard + emergency */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', fontSize: '.85rem' }}>
@@ -69,30 +73,26 @@ export function UtilityBar() {
         {/* Right: a11y controls + language switch */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
         <AccessibilityControls />
-        <nav aria-label={t('a11y.langSwitch')} style={{ display: 'flex', gap: '.3rem' }}>
-          {(['sk', 'en'] as SupportedLocale[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => switchLocale(l)}
-              aria-current={locale === l ? 'true' : undefined}
-              style={{
-                background: locale === l ? 'var(--blue-600)' : 'transparent',
-                color: locale === l ? '#fff' : '#d6e2f0',
-                border: 'none',
-                borderRadius: 999,
-                padding: '.2em .65em',
-                fontFamily: 'Mulish, sans-serif',
-                fontWeight: 700,
-                fontSize: '.78rem',
-                cursor: 'pointer',
-                letterSpacing: '.06em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </nav>
+        {/* I18N-RUE T4 (C5): one <select> of native names for every advertised
+            locale (i18n/public-locales.ts — rue appears automatically once its
+            chrome is translated). A native control is keyboard-operable, fits
+            at 320px where seven buttons did not, and each option carries its
+            own lang attribute. */}
+        <label className="lang-switch">
+          <span className="sr-only">{t('a11y.langSwitch')}</span>
+          <select
+            value={locale}
+            onChange={(e) => switchLocale(e.target.value as SupportedLocale)}
+            aria-label={t('a11y.langSwitch')}
+            data-testid="lang-switch"
+          >
+            {publicLocales.map((l) => (
+              <option key={l} value={l} lang={l}>
+                {localeNames[l]}
+              </option>
+            ))}
+          </select>
+        </label>
         </div>
       </div>
     </div>

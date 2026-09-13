@@ -966,3 +966,57 @@ the commit.
 have no slot in the web app yet — they are in the manifest and the CMS
 media library, ready for a route sprint that ports those bands.
 
+---
+
+## I18N-ALL — all translated locales exposed in the switcher; cs/pl/hu/uk completed (2026-09-13)
+
+User's brief: deploy Czech, Polish, Hungarian, Ukrainian and Rusyn as
+options alongside Slovak and English, as many as can be created.
+
+**Switcher (Rusyn T4, C5(a)).** `UtilityBar.tsx` replaces the two SK/EN
+pills with one native `<select>` of endonyms (`localeNames`), one option
+per *advertised* locale (`publicLocales`), each option `lang`-attributed,
+`aria-label` from `a11y.langSwitch`, styled `.lang-switch` to the old
+pill. A native control is keyboard-operable and fits at 320px where seven
+inline buttons did not (the sprint scoping measured the overflow).
+Switching preserves the path (`/sk/kontakt` → `/uk/kontakt`).
+
+**Rusyn is not an option yet — deliberately.** Its chrome is untranslated
+and the standing rule is no assistant-authored Prešov Rusyn; an option
+labelled Русиньскый that opens a Slovak page would mislead. The same
+`publicLocales` gate that controls hreflang adds it to the switcher the
+moment section 1 of the worklist is filled. Six locales are selectable.
+
+**cs/pl/hu/uk completed.** Each lacked 160 of 253 keys (all of `booking`
+cancel/telehealth, `telehealth`, `portal` teleconsult, `room`, `wearables`,
+four `nav` leaves, four `navGroups` descriptions, two `footer` links) and
+rendered Slovak there. Drafted by the build assistant in this sprint and
+merged; 0 missing, 0 extra keys per file. **These are not human
+translations.** They are UI chrome, outside the CMS clinical review gate,
+so `docs/UI_TRANSLATION_REVIEW.md` is the control: every key listed, the
+patient-facing care wording (booking consent, telehealth legal note,
+consultation room, wearables consent — 150 keys) flagged for a reviewer
+with clinical vocabulary, sign-off table per locale, and a
+`LAUNCH_CHECKLIST` row that blocks go-live until signed. Formal register
+throughout; Slovak statute citations kept as Slovak law with the
+jurisdiction marked.
+
+**Builder credit.** At the user's direction, the parent-company mark
+(`assets/pixel-perfekt-logo.png`, the same image the user supplied) now
+renders in the footer bottom bar with a localized "Website by" label
+(`footer.builtBy`; empty in `rue.json`) — `.built-by`,
+`public/img/pixel-perfekt-logo.png`. `docs/marketing/README.md`'s
+"nothing in /assets ships" rule was written for the anonymized case
+study; the logo's footer use is the user's explicit call, recorded here.
+
+**Method.** `next build` 377 pages; typecheck/lint clean; `audit:classes`
+0 unknown; Playwright against the dev server — `i18n.spec.ts` I1 (7
+locales), I3 (six alternates, no `rue`), I5 (six options by endonym, each
+`lang`-attributed, no `rue`), I6 (each non-default locale selected lands
+on the same path with the matching `<html lang>`), I9 (sitemap lists six);
+`styled.spec.ts` header rows for all seven locales and the no-scroll
+ladder on `/sk`; axe + footer-credit probe on the four filled locales'
+home, booking and telehealth pages; 320/375px no-overflow probe of the
+utility bar on `/uk` and `/hu` (the longest endonyms). Result recorded in
+the commit message.
+
