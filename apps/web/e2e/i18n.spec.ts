@@ -23,12 +23,20 @@ test('I2: default root / redirects to /sk', async ({ page }) => {
   await expect(page).toHaveURL(/\/sk/);
 });
 
-test('I3: hreflang tags present on home page for all 7 locales', async ({ page }) => {
+// rue is reachable but untranslated (Slovak fallback chrome) — it must NOT be
+// advertised as an alternate or crawlers index it as a duplicate of /sk.
+// i18n/public-locales.ts flips it on automatically once its chrome is filled.
+const ADVERTISED = LOCALES.filter((l) => l !== 'rue');
+
+test('I3: hreflang tags present on home page for the 6 translated locales, not rue', async ({ page }) => {
   await page.goto('/sk');
-  for (const locale of LOCALES) {
+  for (const locale of ADVERTISED) {
     const hreflang = page.locator(`link[rel="alternate"][hreflang="${locale}"]`);
     await expect(hreflang).toBeAttached({ timeout: 3_000 });
   }
+  await expect(page.locator('link[rel="alternate"][hreflang="rue"]')).toHaveCount(0);
+  await page.goto('/rue');
+  await expect(page.locator('meta[name="robots"][content*="noindex"]')).toBeAttached();
   // x-default should point to /sk
   const xDefault = page.locator('link[rel="alternate"][hreflang="x-default"]');
   await expect(xDefault).toBeAttached();

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { locales } from '@/i18n/config';
+import { publicLocales } from '@/i18n/public-locales';
 import { SEED } from '@/lib/seed';
 
 const BASE = 'https://nemocnicasnina.sk';
@@ -16,7 +16,7 @@ interface SitemapEntry {
 
 function withAlternates(path: string): { languages: Record<string, string> } {
   return {
-    languages: Object.fromEntries(locales.map((l) => [l, `${BASE}/${l}${path}`])),
+    languages: Object.fromEntries(publicLocales.map((l) => [l, `${BASE}/${l}${path}`])),
   };
 }
 

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { locales, isValidLocale, type SupportedLocale } from '@/i18n/config';
+import { publicLocales, isPublicLocale } from '@/i18n/public-locales';
 import { GdprCookieBanner } from '@/components/GdprCookieBanner';
 import { SkipLink } from '@/components/SkipLink';
 import '@ns/ui/globals.css';
@@ -29,15 +30,18 @@ export async function generateMetadata({
       default: 'Nemocnica Snina',
       template: '%s',
     },
+    // Only translated locales are advertised (see i18n/public-locales.ts);
+    // an untranslated one is reachable by direct URL but not indexable.
+    ...(isPublicLocale(lang) ? {} : { robots: { index: false, follow: true } }),
     alternates: {
       languages: {
-        ...Object.fromEntries(locales.map((l) => [l, `/${l}`])),
+        ...Object.fromEntries(publicLocales.map((l) => [l, `/${l}`])),
         'x-default': '/sk',
       },
     },
     openGraph: {
       locale: lang,
-      alternateLocale: locales.filter((l) => l !== lang),
+      alternateLocale: publicLocales.filter((l) => l !== lang),
       siteName: 'Nemocnica Snina',
     },
   };
